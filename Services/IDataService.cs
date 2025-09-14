@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace GamerLinkApp.Services
 {
-    internal interface IDataService
+    public interface IDataService
     {
         Task<List<Service>> GetServicesAsync();
         // ... 其他数据操作方法

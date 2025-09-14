@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GamerLinkApp.Models
 {
-    internal class Order
+    public class Order
     {
         public int Id { get; set; }
         public int ServiceId { get; set; }

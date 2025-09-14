@@ -4,17 +4,17 @@
              xmlns:viewmodels="clr-namespace:GamerLinkApp.ViewModels"  
              x:Class="GamerLinkApp.Views.ServiceListPage"
              Title="服务列表">
-    <ContentPage.BindingContext>
-        <viewmodels:ServiceListViewModel />
-    </ContentPage.BindingContext>
+
 
     <CollectionView ItemsSource="{Binding Services}">
         <CollectionView.ItemTemplate>
             <DataTemplate>
-                <Grid Padding="10">
-                    <!-- 在这里定义服务项的显示模板 -->
-                    <Label Text="{Binding Title}" />
-                </Grid>
+                <VerticalStackLayout Padding="10">
+                    <Label Text="{Binding Title}" FontSize="18" FontAttributes="Bold"/>
+                    <Label Text="{Binding GameName}" FontSize="14"/>
+                    <Label Text="{Binding Price, StringFormat='价格: {0} 元'}" FontSize="14"/>
+                    <Label Text="{Binding ServiceType}" FontSize="14" TextColor="Gray"/>
+                </VerticalStackLayout>
             </DataTemplate>
         </CollectionView.ItemTemplate>
     </CollectionView>

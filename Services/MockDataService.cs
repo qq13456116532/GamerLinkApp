@@ -6,7 +6,7 @@ using GamerLinkApp.Models;
 
 namespace GamerLinkApp.Services
 {
-    internal class MockDataService : IDataService
+    public class MockDataService : IDataService
     {
         public async Task<List<Service>> GetServicesAsync()
         {

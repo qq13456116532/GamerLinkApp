@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GamerLinkApp.Models
 {
-    internal class Service
+    public class Service
     {
         public int Id { get; set; }
         public string Title { get; set; }
