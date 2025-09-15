@@ -3,13 +3,29 @@
     x:Class="GamerLinkApp.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:GamerLinkApp"
     xmlns:views="clr-namespace:GamerLinkApp.Views"
+    Shell.FlyoutBehavior="Disabled"
     Title="GamerLinkApp">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate views:ServiceListPage}"
-        Route="MainPage" />
+    <!-- 定义底部标签栏 -->
+    <TabBar>
+        <!-- 第一个标签页: 商铺. 我们直接使用你已有的 ServiceListPage -->
+        <ShellContent
+            Title="商铺"
+            ContentTemplate="{DataTemplate views:ServiceListPage}"
+             />
+
+        <!-- 第二个标签页: 专区. 我们将创建新的 ZonePage -->
+        <ShellContent
+            Title="专区"
+            ContentTemplate="{DataTemplate views:ZonePage}"
+            />
+
+        <!-- 第三个标签页: 个人. 我们将创建新的 ProfilePage -->
+        <ShellContent
+            Title="个人"
+            ContentTemplate="{DataTemplate views:ProfilePage}"
+             />
+    </TabBar>
 
 </Shell>

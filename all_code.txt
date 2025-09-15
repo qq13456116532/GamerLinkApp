@@ -91,6 +91,10 @@ namespace GamerLinkApp
             builder.Services.AddSingleton<ServiceListViewModel>();
 
             // ... 注册其他页面和视图模型
+            builder.Services.AddSingleton<ZonePage>();
+            //builder.Services.AddSingleton<ZoneViewModel>();
+            builder.Services.AddSingleton<ProfilePage>();
+            builder.Services.AddSingleton<ProfileViewModel>();
 
             return builder.Build();
         }
@@ -107,7 +111,7 @@ using System.Threading.Tasks;
 
 namespace GamerLinkApp.Models
 {
-    internal class Order
+    public class Order
     {
         public int Id { get; set; }
         public int ServiceId { get; set; }
@@ -128,7 +132,7 @@ using System.Threading.Tasks;
 
 namespace GamerLinkApp.Models
 {
-    internal class Service
+    public class Service
     {
         public int Id { get; set; }
         public string Title { get; set; }
@@ -151,7 +155,7 @@ using System.Threading.Tasks;
 
 namespace GamerLinkApp.Models
 {
-    internal class User
+    public class User
     {
         public int Id { get; set; }
         public string Username { get; set; }
@@ -171,7 +175,7 @@ using System.Threading.Tasks;
 
 namespace GamerLinkApp.Services
 {
-    internal interface IDataService
+    public interface IDataService
     {
         Task<List<Service>> GetServicesAsync();
         // ... 其他数据操作方法
@@ -184,11 +188,10 @@ Services\MockDataService.cs:
 using GamerLinkApp.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using GamerLinkApp.Models;
 
 namespace GamerLinkApp.Services
 {
-    internal class MockDataService : IDataService
+    public class MockDataService : IDataService
     {
         public async Task<List<Service>> GetServicesAsync()
         {
@@ -222,42 +225,74 @@ namespace GamerLinkApp.ViewModels
     }
 }】
 
+ViewModels\ProfileViewModel.cs:
+【using GamerLinkApp.ViewModels;
+
+namespace GamerLinkApp.ViewModels
+{
+    public class ProfileViewModel : BaseViewModel
+    {
+        public ProfileViewModel()
+        {
+            // ÔÚÕâÀï¿ÉÒÔ³õÊ¼»¯¸öÈËÒ³ÃæµÄÊý¾ÝºÍÃüÁî
+        }
+    }
+}】
+
 ViewModels\ServiceListViewModel.cs:
 【﻿using GamerLinkApp.Models;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using GamerLinkApp.Services;
-using GamerLinkApp.Models;
+
 namespace GamerLinkApp.ViewModels
 {
     public class ServiceListViewModel : BaseViewModel
     {
         private readonly IDataService _dataService;
-        internal ObservableCollection<Service> Services { get; } = new();
 
-        public ServiceListViewModel()
+        public ObservableCollection<Service> Services { get; } = new();
+
+        public ServiceListViewModel(IDataService dataService)
         {
-            // 在实际应用中，您会通过依赖注入来获取数据服务
-            _dataService = new MockDataService();
-            LoadServices();
+            _dataService = dataService;
+            _ = LoadServicesAsync(); // 异步加载，不阻塞UI
         }
 
-        private async void LoadServices()
+        private async Task LoadServicesAsync()
         {
-            var services = await _dataService.GetServicesAsync();
-            Services.Clear();
-            foreach (var service in services)
+            try
             {
-                Services.Add(service);
+                var services = await _dataService.GetServicesAsync();
+                Services.Clear();
+                foreach (var service in services)
+                {
+                    Services.Add(service);
+                }
+            }
+            catch (Exception ex)
+            {
+                // TODO: 可以加日志或者 UI 提示
+                System.Diagnostics.Debug.WriteLine($"加载服务失败: {ex.Message}");
             }
         }
     }
 }
 】
+
+Views\ProfilePage.xaml.cs:
+【using GamerLinkApp.ViewModels;
+
+namespace GamerLinkApp.Views;
+
+public partial class ProfilePage : ContentPage
+{
+    public ProfilePage(ProfileViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+}】
 
 Views\ServiceListPage.xaml.cs:
 【using GamerLinkApp.ViewModels;
@@ -266,10 +301,22 @@ namespace GamerLinkApp.Views;
 
 public partial class ServiceListPage : ContentPage
 {
-	public ServiceListPage()
+    public ServiceListPage(ServiceListViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm; // Í¨¹ýÒÀÀµ×¢Èë°ó¶¨ ViewModel
+    }
+}
+】
+
+Views\ZonePage.xaml.cs:
+【namespace GamerLinkApp.Views;
+
+public partial class ZonePage : ContentPage
+{
+	public ZonePage()
 	{
 		InitializeComponent();
-        BindingContext = new ServiceListViewModel();
-    }
+	}
 }】
 

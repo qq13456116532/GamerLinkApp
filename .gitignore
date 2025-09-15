@@ -9,7 +9,8 @@
 *.suo
 *.userosscache
 *.sln.docstates
-
+*.txt
+*.py
 # Visual Studio Code
 .vscode/
 

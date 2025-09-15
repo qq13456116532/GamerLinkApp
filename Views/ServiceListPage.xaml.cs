@@ -9,4 +9,8 @@ public partial class ServiceListPage : ContentPage
         InitializeComponent();
         BindingContext = vm; // 通过依赖注入绑定 ViewModel
     }
+    public ServiceListPage()
+    {
+        InitializeComponent();
+    }
 }

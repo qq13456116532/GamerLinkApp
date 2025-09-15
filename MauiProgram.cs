@@ -28,6 +28,10 @@ namespace GamerLinkApp
             builder.Services.AddSingleton<ServiceListViewModel>();
 
             // ... 注册其他页面和视图模型
+            builder.Services.AddSingleton<ZonePage>();
+            //builder.Services.AddSingleton<ZoneViewModel>();
+            builder.Services.AddSingleton<ProfilePage>();
+            builder.Services.AddSingleton<ProfileViewModel>();
 
             return builder.Build();
         }

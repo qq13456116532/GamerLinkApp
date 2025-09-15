@@ -2,7 +2,6 @@
 using GamerLinkApp.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using GamerLinkApp.Models;
 
 namespace GamerLinkApp.Services
 {
