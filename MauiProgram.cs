@@ -33,6 +33,9 @@ namespace GamerLinkApp
             builder.Services.AddSingleton<ProfilePage>();
             builder.Services.AddSingleton<ProfileViewModel>();
 
+            builder.Services.AddTransient<ServiceDetailPage>();
+            builder.Services.AddTransient<ServiceDetailViewModel>();
+
             return builder.Build();
         }
     }

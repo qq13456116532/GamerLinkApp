@@ -1,39 +1,21 @@
-App.xaml.cs:
-【﻿namespace GamerLinkApp
-{
-    public partial class App : Application
-    {
-        public App()
-        {
-            InitializeComponent();
-        }
+./AppShell.xaml.cs:
+【﻿using GamerLinkApp.Views;
 
-        protected override Window CreateWindow(IActivationState? activationState)
-        {
-            return new Window(new AppShell());
-        }
-    }
-}】
-
-AppShell.xaml.cs:
-【﻿namespace GamerLinkApp
+namespace GamerLinkApp
 {
     public partial class AppShell : Shell
     {
         public AppShell()
         {
             InitializeComponent();
+            // 为服务详情页注册路由, 以便导航服务可以找到
+            Routing.RegisterRoute(nameof(ServiceDetailPage), typeof(ServiceDetailPage));
         }
     }
 }
 】
 
-GlobalXmlns.cs:
-【[assembly: XmlnsDefinition("http://schemas.microsoft.com/dotnet/maui/global", "GamerLinkApp")]
-[assembly: XmlnsDefinition("http://schemas.microsoft.com/dotnet/maui/global", "GamerLinkApp.Pages")]
-】
-
-MainPage.xaml.cs:
+./MainPage.xaml.cs:
 【﻿namespace GamerLinkApp
 {
     public partial class MainPage : ContentPage
@@ -60,7 +42,7 @@ MainPage.xaml.cs:
 }
 】
 
-MauiProgram.cs:
+./MauiProgram.cs:
 【﻿using GamerLinkApp.Services;
 using Microsoft.Extensions.Logging;
 using GamerLinkApp.ViewModels;
@@ -96,13 +78,50 @@ namespace GamerLinkApp
             builder.Services.AddSingleton<ProfilePage>();
             builder.Services.AddSingleton<ProfileViewModel>();
 
+            builder.Services.AddTransient<ServiceDetailPage>();
+            builder.Services.AddTransient<ServiceDetailViewModel>();
+
             return builder.Build();
         }
     }
 }
 】
 
-Models\Order.cs:
+Models/Banner.cs:
+【﻿namespace GamerLinkApp.Models
+{
+    public class Banner
+    {
+        public int Id { get; set; }
+        public string ImageUrl { get; set; } // Banner图片地址
+        public string TargetUrl { get; set; } // 点击Banner后跳转的地址 (例如某个服务的详情页)
+    }
+}
+】
+
+Models/Category.cs:
+【﻿namespace GamerLinkApp.Models
+{
+    public class Category
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } // 分类名称，如 "MOBA", "FPS", "RPG"
+        public string IconUrl { get; set; } // 分类的图标URL (可选)
+    }
+}】
+
+Models/Favorite.cs:
+【﻿namespace GamerLinkApp.Models
+{
+    public class Favorite
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }     // 哪个用户收藏的
+        public int ServiceId { get; set; }  // 收藏了哪个服务
+    }
+}】
+
+Models/Order.cs:
 【﻿using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -118,12 +137,48 @@ namespace GamerLinkApp.Models
         public int BuyerId { get; set; }
         public DateTime OrderDate { get; set; }
         public string Status { get; set; } // 例如: "进行中", "已完成"
-        // ... 其他订单属性
+
+        // 订单流程管理
+        public DateTime? PaymentDate { get; set; } // 支付时间
+        public DateTime? CompletionDate { get; set; } // 订单完成时间
+        public DateTime? RefundRequestDate { get; set; } // 退款申请时间
+        public decimal TotalPrice { get; set; } // 订单总价
+
+        // 评论系统关联
+        public int? ReviewId { get; set; } // 关联的评论ID，可以为空
+    }
+
+    // 建议为订单状态定义一个枚举
+    public enum OrderStatus
+    {
+        PendingPayment, // 待支付
+        Ongoing,        // 进行中
+        PendingReview,  // 待评论
+        Completed,      // 已完成
+        RefundRequested,// 退款中
+        Cancelled       // 已取消
     }
 }
 】
 
-Models\Service.cs:
+Models/Review.cs:
+【﻿using System;
+
+namespace GamerLinkApp.Models
+{
+    public class Review
+    {
+        public int Id { get; set; }
+        public int ServiceId { get; set; } // 关联哪个服务
+        public int OrderId { get; set; }   // 关联哪个订单
+        public int UserId { get; set; }    // 哪个用户发表的
+        public int Rating { get; set; }    // 评分 (例如 1-5 星)
+        public string Comment { get; set; } // 评论内容
+        public DateTime ReviewDate { get; set; } // 评论时间
+    }
+}】
+
+Models/Service.cs:
 【﻿using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -141,12 +196,21 @@ namespace GamerLinkApp.Models
         public string GameName { get; set; }
         public string ServiceType { get; set; } // 例如: "代练", "陪玩"
         public int SellerId { get; set; }
-        // ... 其他服务属性
+
+        // 店铺和商品详情
+        public List<string> ImageUrls { get; set; } // 服务的图片/Banner列表
+        public string Category { get; set; } // 服务所属分类，例如 "MOBA", "FPS" 等
+        public bool IsFeatured { get; set; } // 是否为推荐服务
+        public double AverageRating { get; set; } // 平均评分，由所有评论计算得出
+        public int ReviewCount { get; set; } // 评论总数
+
+        // 搜索功能
+        public List<string> Tags { get; set; } // 搜索标签，如 "大神带队", "快速上分"
     }
 }
 】
 
-Models\User.cs:
+Models/User.cs:
 【﻿using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -160,12 +224,20 @@ namespace GamerLinkApp.Models
         public int Id { get; set; }
         public string Username { get; set; }
         public string Email { get; set; }
-        // ... 其他用户属性
+
+        // 微信认证相关，暂时不用
+        //public string WeChatOpenId { get; set; } // 用户的唯一标识
+        //public string WeChatUnionId { get; set; } // 如果应用涉及多个公众号或小程序，会用到
+
+        // 个人资料管理
+        public string Nickname { get; set; } // 用户昵称
+        public string AvatarUrl { get; set; } // 用户头像图片的URL
+
     }
 }
 】
 
-Services\IDataService.cs:
+Services/IDataService.cs:
 【﻿using GamerLinkApp.Models;
 using System;
 using System.Collections.Generic;
@@ -183,7 +255,7 @@ namespace GamerLinkApp.Services
 }
 】
 
-Services\MockDataService.cs:
+Services/MockDataService.cs:
 【﻿using GamerLinkApp.Models;
 using GamerLinkApp.Services;
 using System.Collections.Generic;
@@ -208,7 +280,7 @@ namespace GamerLinkApp.Services
     }
 }】
 
-ViewModels\BaseViewModel.cs:
+ViewModels/BaseViewModel.cs:
 【using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -225,7 +297,7 @@ namespace GamerLinkApp.ViewModels
     }
 }】
 
-ViewModels\ProfileViewModel.cs:
+ViewModels/ProfileViewModel.cs:
 【using GamerLinkApp.ViewModels;
 
 namespace GamerLinkApp.ViewModels
@@ -239,7 +311,7 @@ namespace GamerLinkApp.ViewModels
     }
 }】
 
-ViewModels\ServiceListViewModel.cs:
+ViewModels/ServiceListViewModel.cs:
 【﻿using GamerLinkApp.Models;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
@@ -280,7 +352,7 @@ namespace GamerLinkApp.ViewModels
 }
 】
 
-Views\ProfilePage.xaml.cs:
+Views/ProfilePage.xaml.cs:
 【using GamerLinkApp.ViewModels;
 
 namespace GamerLinkApp.Views;
@@ -292,10 +364,29 @@ public partial class ProfilePage : ContentPage
         InitializeComponent();
         BindingContext = vm;
     }
+    public ProfilePage()
+    {
+        InitializeComponent();
+    }
 }】
 
-Views\ServiceListPage.xaml.cs:
+Views/ServiceDetailPage.xaml.cs:
 【using GamerLinkApp.ViewModels;
+
+namespace GamerLinkApp.Views;
+
+public partial class ServiceDetailPage : ContentPage
+{
+    public ServiceDetailPage(ServiceDetailViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+}】
+
+Views/ServiceListPage.xaml.cs:
+【using GamerLinkApp.Models;
+using GamerLinkApp.ViewModels;
 
 namespace GamerLinkApp.Views;
 
@@ -306,10 +397,30 @@ public partial class ServiceListPage : ContentPage
         InitializeComponent();
         BindingContext = vm; // Í¨¹ýÒÀÀµ×¢Èë°ó¶¨ ViewModel
     }
-}
-】
 
-Views\ZonePage.xaml.cs:
+    // ÎÞ²ÎÊýµÄ¹¹Ôìº¯Êý¿ÉÒÔ±£Áô£¬ÒÔ±ãXAMLÔ¤ÀÀÆ÷Õý³£¹¤×÷
+    public ServiceListPage()
+    {
+        InitializeComponent();
+    }
+
+    // ÐÂÔö: ´¦Àí·þÎñÏîÄ¿Ñ¡ÔñÊÂ¼þ
+    private async void OnServiceSelected(object sender, SelectionChangedEventArgs e)
+    {
+        // È·±£ÓÐÏîÄ¿±»Ñ¡ÖÐ
+        if (e.CurrentSelection.FirstOrDefault() is not Service selectedService)
+            return;
+
+        // Ê¹ÓÃ Shell µ¼º½µ½ÏêÇéÒ³£¬²¢Í¨¹ý²éÑ¯²ÎÊý´«µÝ·þÎñID
+        // "id" ±ØÐëÓë ServiceDetailViewModel ÖÐµÄ QueryProperty Ãû³ÆÆ¥Åä
+        await Shell.Current.GoToAsync($"{nameof(ServiceDetailPage)}?id={selectedService.Id}");
+
+        // È¡ÏûÑ¡ÖÐ£¬ÒÔ±ãÓÃ»§¿ÉÒÔÔÙ´ÎÑ¡ÔñÍ¬Ò»¸öÏîÄ¿
+        ((CollectionView)sender).SelectedItem = null;
+    }
+}】
+
+Views/ZonePage.xaml.cs:
 【namespace GamerLinkApp.Views;
 
 public partial class ZonePage : ContentPage

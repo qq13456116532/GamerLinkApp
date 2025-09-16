@@ -1,20 +1,21 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:viewmodels="clr-namespace:GamerLinkApp.ViewModels"  
+             xmlns:models="clr-namespace:GamerLinkApp.Models"
              x:Class="GamerLinkApp.Views.ServiceListPage"
              Title="服务列表">
-
-
-    <CollectionView ItemsSource="{Binding Services}">
+    <CollectionView ItemsSource="{Binding Services}"
+                    SelectionMode="Single"
+                    SelectionChanged="OnServiceSelected">
         <CollectionView.ItemTemplate>
-            <DataTemplate>
-                <VerticalStackLayout Padding="10">
-                    <Label Text="{Binding Title}" FontSize="18" FontAttributes="Bold"/>
-                    <Label Text="{Binding GameName}" FontSize="14"/>
-                    <Label Text="{Binding Price, StringFormat='价格: {0} 元'}" FontSize="14"/>
-                    <Label Text="{Binding ServiceType}" FontSize="14" TextColor="Gray"/>
-                </VerticalStackLayout>
+            <DataTemplate x:DataType="models:Service">
+                <Frame Padding="10" Margin="10" CornerRadius="5" BorderColor="LightGray" HasShadow="True">
+                    <VerticalStackLayout>
+                        <Label Text="{Binding Title}" FontSize="Large" FontAttributes="Bold"/>
+                        <Label Text="{Binding GameName}" FontSize="Medium"/>
+                        <Label Text="{Binding Price, StringFormat='价格: ¥{0}'}" TextColor="Red" HorizontalOptions="End"/>
+                    </VerticalStackLayout>
+                </Frame>
             </DataTemplate>
         </CollectionView.ItemTemplate>
     </CollectionView>

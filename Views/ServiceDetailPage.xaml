@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GamerLinkApp.Views.ServiceDetailPage"
+             Title="服务详情">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
+            <Label Text="{Binding SelectedService.Title}" 
+                   FontSize="Header" 
+                   FontAttributes="Bold" 
+                   HorizontalTextAlignment="Center"/>
+
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="10">
+
+                <Label Grid.Row="0" Grid.Column="0" Text="游戏名称:" FontAttributes="Bold" VerticalOptions="Center"/>
+                <Label Grid.Row="0" Grid.Column="1" Text="{Binding SelectedService.GameName}" VerticalOptions="Center"/>
+
+                <Label Grid.Row="1" Grid.Column="0" Text="服务类型:" FontAttributes="Bold" VerticalOptions="Center"/>
+                <Label Grid.Row="1" Grid.Column="1" Text="{Binding SelectedService.ServiceType}" VerticalOptions="Center"/>
+
+                <Label Grid.Row="2" Grid.Column="0" Text="价格:" FontAttributes="Bold" VerticalOptions="Center"/>
+                <Label Grid.Row="2" Grid.Column="1" Text="{Binding SelectedService.Price, StringFormat='¥{0:F2}'}" TextColor="Red" VerticalOptions="Center"/>
+
+                <Label Grid.Row="3" Grid.Column="0" Text="详细描述:" FontAttributes="Bold" VerticalOptions="Start"/>
+                <Label Grid.Row="3" Grid.Column="1" Text="{Binding SelectedService.Description}" />
+
+            </Grid>
+
+            <Button Text="立即下单" HorizontalOptions="FillAndExpand" Margin="0,20,0,0"/>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
