@@ -2,31 +2,248 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GamerLinkApp.Views.ServiceDetailPage"
-             Title="服务详情">
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="15">
-            <Label Text="{Binding SelectedService.Title}" 
-                   FontSize="Header" 
-                   FontAttributes="Bold" 
-                   HorizontalTextAlignment="Center"/>
+             Title="服务详情"
+             BackgroundColor="#F4F5F7">
+    <Grid RowDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0"
+              BackgroundColor="White"
+              Padding="20,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="10">
+            <Label Text="服务详情"
+                   Grid.ColumnSpan="2"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   VerticalOptions="Center" />
 
-                <Label Grid.Row="0" Grid.Column="0" Text="游戏名称:" FontAttributes="Bold" VerticalOptions="Center"/>
-                <Label Grid.Row="0" Grid.Column="1" Text="{Binding SelectedService.GameName}" VerticalOptions="Center"/>
+            <HorizontalStackLayout Grid.Column="1"
+                                    Spacing="12"
+                                    VerticalOptions="Center">
+                <Border StrokeThickness="1"
+                        Stroke="#E0E0E0"
+                        BackgroundColor="Transparent"
+                        Padding="10,4"
+                        HeightRequest="32">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <Label Text="..."
+                           FontSize="16"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Border>
+                <Border StrokeThickness="1"
+                        Stroke="#E0E0E0"
+                        BackgroundColor="Transparent"
+                        Padding="10,4"
+                        HeightRequest="32">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <Label Text="O"
+                           FontSize="16"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Border>
+            </HorizontalStackLayout>
+        </Grid>
 
-                <Label Grid.Row="1" Grid.Column="0" Text="服务类型:" FontAttributes="Bold" VerticalOptions="Center"/>
-                <Label Grid.Row="1" Grid.Column="1" Text="{Binding SelectedService.ServiceType}" VerticalOptions="Center"/>
+        <ScrollView Grid.Row="1"
+                    Padding="0,12,0,0">
+            <VerticalStackLayout Spacing="18"
+                                  Padding="20,0,20,120">
+                <Border HeightRequest="220"
+                        StrokeThickness="0"
+                        BackgroundColor="#D9D9D9"
+                        >
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="26" />
+                    </Border.StrokeShape>
+                    <Grid>
+                        <Image Source="{Binding SelectedService.ThumbnailUrl}"
+                               Aspect="AspectFill" />
+                        <Grid>
+                            <Grid.Background>
+                                <LinearGradientBrush StartPoint="0,0.4" EndPoint="0,1">
+                                    <GradientStop Color="#00000000" Offset="0" />
+                                    <GradientStop Color="#A6000000" Offset="1" />
+                                </LinearGradientBrush>
+                            </Grid.Background>
+                        </Grid>
+                        <VerticalStackLayout Spacing="6"
+                                              Padding="20,20,20,24"
+                                              VerticalOptions="End">
+                            <Label Text="{Binding SelectedService.GameName}"
+                                   FontSize="14"
+                                   TextColor="#F2F5FF"
+                                   Opacity="0.9" />
+                            <Label Text="{Binding SelectedService.Title}"
+                                   FontSize="22"
+                                   FontAttributes="Bold"
+                                   TextColor="White"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding SelectedService.ServiceType, StringFormat='服务类型: {0}'}"
+                                   FontSize="13"
+                                   TextColor="#F2F5FF"
+                                   Opacity="0.9" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
 
-                <Label Grid.Row="2" Grid.Column="0" Text="价格:" FontAttributes="Bold" VerticalOptions="Center"/>
-                <Label Grid.Row="2" Grid.Column="1" Text="{Binding SelectedService.Price, StringFormat='¥{0:F2}'}" TextColor="Red" VerticalOptions="Center"/>
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="24" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="16">
+                        <HorizontalStackLayout Spacing="12"
+                                                VerticalOptions="Center">
+                            <Label Text="服务亮点"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+                            <Border BackgroundColor="#EEF0FF"
+                                    Padding="10,4"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border"
+                                                 Binding="{Binding SelectedService.Category}"
+                                                 Value="">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Border"
+                                                 Binding="{Binding SelectedService.Category}"
+                                                 Value="{x:Null}">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Label Text="{Binding SelectedService.Category}"
+                                       FontSize="13"
+                                       TextColor="#5B61FF"
+                                       FontAttributes="Bold" />
+                            </Border>
+                        </HorizontalStackLayout>
 
-                <Label Grid.Row="3" Grid.Column="0" Text="详细描述:" FontAttributes="Bold" VerticalOptions="Start"/>
-                <Label Grid.Row="3" Grid.Column="1" Text="{Binding SelectedService.Description}" />
+                        <FlexLayout BindableLayout.ItemsSource="{Binding SelectedService.Tags}"
+                                   Wrap="Wrap"
+                                   AlignItems="Center"
+                                   AlignContent="Start"
+                                   JustifyContent="Start"
+                                   Margin="0">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BackgroundColor="#F5F6FB"
+                                            StrokeThickness="0"
+                                            Padding="12,6"
+                                            Margin="0,0,10,10">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="14" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding .}"
+                                               FontSize="13"
+                                               TextColor="#5B61FF" />
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
 
-            </Grid>
+                        <Grid ColumnDefinitions="*,*"
+                              ColumnSpacing="18">
+                            <Border BackgroundColor="#F9FAFC"
+                                    Padding="16"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="18" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="评分"
+                                           FontSize="13"
+                                           TextColor="#727C8C" />
+                                    <Label Text="{Binding SelectedService.AverageRating, StringFormat='{0:F1}'}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="#1F1F1F" />
+                                    <Label Text="{Binding SelectedService.ReviewCount, StringFormat='{0}条评价'}"
+                                           FontSize="12"
+                                           TextColor="#9AA0AE" />
+                                </VerticalStackLayout>
+                            </Border>
 
-            <Button Text="立即下单" HorizontalOptions="FillAndExpand" Margin="0,20,0,0"/>
-        </VerticalStackLayout>
-    </ScrollView>
+                            <Border Grid.Column="1"
+                                    BackgroundColor="#F9FAFC"
+                                    Padding="16"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="18" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="成交"
+                                           FontSize="13"
+                                           TextColor="#727C8C" />
+                                    <Label Text="{Binding SelectedService.PurchaseCount, StringFormat='{0}人购买'}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="#1F1F1F" />
+                                    <Label Text="{Binding SelectedService.CompletedCount, StringFormat='已完成 {0} 单'}"
+                                           FontSize="12"
+                                           TextColor="#9AA0AE" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="24" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="服务介绍"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+                        <Label Text="{Binding SelectedService.Description}"
+                               FontSize="14"
+                               TextColor="#434A59"
+                               LineHeight="1.4" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid Grid.Row="2"
+              BackgroundColor="White"
+              Padding="20,12,20,24"
+              ColumnDefinitions="*,Auto">
+            <VerticalStackLayout Spacing="4"
+                                  VerticalOptions="Center">
+                <Label Text="当前价格"
+                       FontSize="12"
+                       TextColor="#7B8596" />
+                <Label Text="{Binding SelectedService.Price, StringFormat='¥{0:F0}'}"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       TextColor="#FF4D4F" />
+            </VerticalStackLayout>
+            <Button Grid.Column="1"
+                    Text="立即下单"
+                    HeightRequest="48"
+                    WidthRequest="160"
+                    CornerRadius="24"
+                    BackgroundColor="#5B61FF"
+                    TextColor="White"
+                    FontAttributes="Bold" />
+        </Grid>
+    </Grid>
 </ContentPage>

@@ -179,11 +179,7 @@ namespace GamerLinkApp.Models
 }】
 
 Models/Service.cs:
-【﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+【﻿using System.Collections.Generic;
 
 namespace GamerLinkApp.Models
 {
@@ -197,15 +193,16 @@ namespace GamerLinkApp.Models
         public string ServiceType { get; set; } // 例如: "代练", "陪玩"
         public int SellerId { get; set; }
 
-        // 店铺和商品详情
-        public List<string> ImageUrls { get; set; } // 服务的图片/Banner列表
-        public string Category { get; set; } // 服务所属分类，例如 "MOBA", "FPS" 等
-        public bool IsFeatured { get; set; } // 是否为推荐服务
-        public double AverageRating { get; set; } // 平均评分，由所有评论计算得出
-        public int ReviewCount { get; set; } // 评论总数
+        public string ThumbnailUrl { get; set; } // 列表和推荐位缩略图
+        public List<string> ImageUrls { get; set; } // 轮播图/详情图集合
+        public string Category { get; set; } // 服务所属分类, 如 "MOBA", "FPS"
+        public bool IsFeatured { get; set; } // 是否精选推荐
+        public double AverageRating { get; set; } // 平均评分
+        public int ReviewCount { get; set; } // 评价数量
+        public int PurchaseCount { get; set; } // 累计购买人数
+        public int CompletedCount { get; set; } // 已完成订单数
 
-        // 搜索功能
-        public List<string> Tags { get; set; } // 搜索标签，如 "大神带队", "快速上分"
+        public List<string> Tags { get; set; } // 服务标签, 如 "上分", "陪练"
     }
 }
 】
@@ -257,7 +254,6 @@ namespace GamerLinkApp.Services
 
 Services/MockDataService.cs:
 【﻿using GamerLinkApp.Models;
-using GamerLinkApp.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -267,18 +263,81 @@ namespace GamerLinkApp.Services
     {
         public async Task<List<Service>> GetServicesAsync()
         {
-            // 模拟延迟
-            await Task.Delay(1000);
+            await Task.Delay(500); // 模拟网络延迟
 
             return new List<Service>
             {
-                new Service { Id = 1, Title = "英雄联盟段位代练", GameName = "英雄联盟", Price = 100, ServiceType = "代练" },
-                new Service { Id = 2, Title = "绝地求生大神陪玩", GameName = "绝地求生", Price = 50, ServiceType = "陪玩" },
-                new Service { Id = 3, Title = "王者荣耀上分指导", GameName = "王者荣耀", Price = 80, ServiceType = "陪玩" }
+                new Service
+                {
+                    Id = 1,
+                    Title = "王者荣耀-荣耀王者陪练",
+                    Description = "资深荣耀王者，全程语音指导，帮你稳步冲分。",
+                    GameName = "王者荣耀",
+                    Price = 50,
+                    ServiceType = "陪玩",
+                    Category = "MOBA",
+                    ThumbnailUrl = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=640&q=80",
+                    ImageUrls = new List<string>
+                    {
+                        "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1080&q=80",
+                        "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1080&q=80"
+                    },
+                    IsFeatured = true,
+                    AverageRating = 4.9,
+                    ReviewCount = 1280,
+                    PurchaseCount = 1547,
+                    CompletedCount = 120,
+                    Tags = new List<string> { "大神陪练", "语音指导", "快速上分" }
+                },
+                new Service
+                {
+                    Id = 2,
+                    Title = "英雄联盟-钻石到大师",
+                    Description = "职业选手小号，提供双排/代练服务，安全稳定。",
+                    GameName = "英雄联盟",
+                    Price = 300,
+                    ServiceType = "代练",
+                    Category = "MOBA",
+                    ThumbnailUrl = "https://images.unsplash.com/photo-1538485399081-7191377e8248?auto=format&fit=crop&w=640&q=80",
+                    ImageUrls = new List<string>
+                    {
+                        "https://images.unsplash.com/photo-1538485399081-7191377e8248?auto=format&fit=crop&w=1080&q=80",
+                        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1080&q=80"
+                    },
+                    IsFeatured = true,
+                    AverageRating = 4.8,
+                    ReviewCount = 980,
+                    PurchaseCount = 2300,
+                    CompletedCount = 45,
+                    Tags = new List<string> { "极速上分", "全天在线", "职业大神" }
+                },
+                new Service
+                {
+                    Id = 3,
+                    Title = "绝地求生-战术教官",
+                    Description = "提供战术复盘、枪法训练、团队配合提升计划。",
+                    GameName = "绝地求生",
+                    Price = 120,
+                    ServiceType = "教学",
+                    Category = "射击",
+                    ThumbnailUrl = "https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&fit=crop&w=640&q=80",
+                    ImageUrls = new List<string>
+                    {
+                        "https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&fit=crop&w=1080&q=80",
+                        "https://images.unsplash.com/photo-1529257414771-1960ab1ddb12?auto=format&fit=crop&w=1080&q=80"
+                    },
+                    IsFeatured = false,
+                    AverageRating = 4.7,
+                    ReviewCount = 560,
+                    PurchaseCount = 860,
+                    CompletedCount = 72,
+                    Tags = new List<string> { "战术复盘", "枪法提升", "团战配合" }
+                }
             };
         }
     }
-}】
+}
+】
 
 ViewModels/BaseViewModel.cs:
 【using System.ComponentModel;
@@ -310,6 +369,63 @@ namespace GamerLinkApp.ViewModels
         }
     }
 }】
+
+ViewModels/ServiceDetailViewModel.cs:
+【﻿using GamerLinkApp.Models;
+using GamerLinkApp.Services;
+using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
+
+namespace GamerLinkApp.ViewModels
+{
+    [QueryProperty(nameof(ServiceId), "id")] // Shell 路由传参用
+    public class ServiceDetailViewModel : BaseViewModel
+    {
+        private readonly IDataService _dataService;
+
+        private Service _selectedService;
+        public Service SelectedService
+        {
+            get => _selectedService;
+            set
+            {
+                _selectedService = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private int serviceId;
+        public int ServiceId
+        {
+            get => serviceId;
+            set
+            {
+                serviceId = value;
+                OnPropertyChanged();
+                _ = LoadServiceAsync(value); // 自动加载对应服务详情
+            }
+        }
+
+        public ServiceDetailViewModel(IDataService dataService)
+        {
+            _dataService = dataService;
+        }
+
+        private async Task LoadServiceAsync(int id)
+        {
+            try
+            {
+                var services = await _dataService.GetServicesAsync();
+                SelectedService = services.FirstOrDefault(s => s.Id == id);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"加载服务详情失败: {ex.Message}");
+            }
+        }
+    }
+}
+】
 
 ViewModels/ServiceListViewModel.cs:
 【﻿using GamerLinkApp.Models;

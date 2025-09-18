@@ -1,22 +1,187 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:GamerLinkApp.Models"
              x:Class="GamerLinkApp.Views.ServiceListPage"
-             Title="服务列表">
+             Title="服务列表"
+             BackgroundColor="#F5F6F9">
+    <ContentPage.Resources>
+        <Thickness x:Key="PagePadding">20,16,20,0</Thickness>
+    </ContentPage.Resources>
+
     <CollectionView ItemsSource="{Binding Services}"
                     SelectionMode="Single"
-                    SelectionChanged="OnServiceSelected">
+                    SelectionChanged="OnServiceSelected"
+                    BackgroundColor="Transparent"
+                    ItemSizingStrategy="MeasureAllItems">
+        <CollectionView.ItemsLayout>
+            <LinearItemsLayout Orientation="Vertical"
+                               ItemSpacing="0" />
+        </CollectionView.ItemsLayout>
+
+        <CollectionView.Header>
+            <VerticalStackLayout Spacing="24"
+                                  Padding="{StaticResource PagePadding}">
+                <Frame Padding="14,12"
+                       CornerRadius="24"
+                       BackgroundColor="White"
+                       HasShadow="False"
+                       BorderColor="#EEEEEE">
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="12">
+                        <Image HeightRequest="20"
+                               WidthRequest="20"
+                               VerticalOptions="Center"
+                               Source="https://img.icons8.com/ios-glyphs/30/9AA0B1/search--v1.png" />
+                        <Entry Placeholder="搜索大神或服务"
+                               PlaceholderColor="#9AA0B1"
+                               TextColor="#2A2F3C"
+                               FontSize="14"
+                               VerticalOptions="Center"
+                               BackgroundColor="Transparent"
+                               Margin="0"
+                               IsTextPredictionEnabled="False"
+                               ReturnType="Search" />
+                    </Grid>
+                </Frame>
+
+                <VerticalStackLayout Spacing="8">
+                    <CarouselView HeightRequest="165"
+                                  Loop="True"
+                                  IsBounceEnabled="False"
+                                  IndicatorView="{x:Reference BannerIndicators}">
+                        <CarouselView.ItemsSource>
+                            <x:Array Type="{x:Type x:String}">
+                                <x:String>https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&amp;fit=crop&amp;w=900&amp;q=80</x:String>
+                                <x:String>https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&amp;fit=crop&amp;w=900&amp;q=80</x:String>
+                                <x:String>https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&amp;fit=crop&amp;w=900&amp;q=80</x:String>
+                            </x:Array>
+                        </CarouselView.ItemsSource>
+                        <CarouselView.ItemTemplate>
+                            <DataTemplate>
+                                <Frame Padding="0"
+                                       HasShadow="False"
+                                       CornerRadius="18">
+                                    <Image Source="{Binding .}"
+                                           Aspect="AspectFill" />
+                                </Frame>
+                            </DataTemplate>
+                        </CarouselView.ItemTemplate>
+                    </CarouselView>
+                    <IndicatorView x:Name="BannerIndicators"
+                                   HorizontalOptions="Center"
+                                   IndicatorColor="#D9D9D9"
+                                   SelectedIndicatorColor="#5B61FF" />
+                </VerticalStackLayout>
+
+                <Grid ColumnDefinitions="*,*,*"
+                      ColumnSpacing="14">
+                    <Border BackgroundColor="White"
+                            StrokeShape="RoundRectangle 18"
+                            Padding="14,12"
+                            HeightRequest="90">
+                        <VerticalStackLayout Spacing="10"
+                                             HorizontalOptions="Center"
+                                             VerticalOptions="Center">
+                            <Image HeightRequest="28"
+                                   WidthRequest="28"
+                                   Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/sword.png" />
+                            <Label Text="英雄联盟"
+                                   FontSize="13"
+                                   TextColor="#2A2F3C"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            BackgroundColor="White"
+                            StrokeShape="RoundRectangle 18"
+                            Padding="14,12"
+                            HeightRequest="90">
+                        <VerticalStackLayout Spacing="10"
+                                             HorizontalOptions="Center"
+                                             VerticalOptions="Center">
+                            <Image HeightRequest="28"
+                                   WidthRequest="28"
+                                   Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/crown.png" />
+                            <Label Text="王者荣耀"
+                                   FontSize="13"
+                                   TextColor="#2A2F3C"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="2"
+                            BackgroundColor="White"
+                            StrokeShape="RoundRectangle 18"
+                            Padding="14,12"
+                            HeightRequest="90">
+                        <VerticalStackLayout Spacing="10"
+                                             HorizontalOptions="Center"
+                                             VerticalOptions="Center">
+                            <Image HeightRequest="28"
+                                   WidthRequest="28"
+                                   Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/medal.png" />
+                            <Label Text="金牌教学"
+                                   FontSize="13"
+                                   TextColor="#2A2F3C"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Label Text="精选推荐"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#2A2F3C" />
+            </VerticalStackLayout>
+        </CollectionView.Header>
+
         <CollectionView.ItemTemplate>
             <DataTemplate x:DataType="models:Service">
-                <Frame Padding="10" Margin="10" CornerRadius="5" BorderColor="LightGray" HasShadow="True">
-                    <VerticalStackLayout>
-                        <Label Text="{Binding Title}" FontSize="Large" FontAttributes="Bold"/>
-                        <Label Text="{Binding GameName}" FontSize="Medium"/>
-                        <Label Text="{Binding Price, StringFormat='价格: ¥{0}'}" TextColor="Red" HorizontalOptions="End"/>
-                    </VerticalStackLayout>
+                <Frame Margin="20,0,20,16"
+                       Padding="12"
+                       BackgroundColor="White"
+                       CornerRadius="18"
+                       HasShadow="False"
+                       BorderColor="#EEEEEE">
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="14">
+                        <Border WidthRequest="110"
+                                HeightRequest="88"
+                                StrokeShape="RoundRectangle 16">
+                            <Image Source="{Binding ThumbnailUrl}"
+                                   Aspect="AspectFill" />
+                        </Border>
+
+                        <VerticalStackLayout Spacing="6"
+                                             VerticalOptions="Center">
+                            <Label Text="{Binding Title}"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#2A2F3C"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding GameName}"
+                                   FontSize="13"
+                                   TextColor="#777D8C"
+                                   LineBreakMode="TailTruncation" />
+                            <HorizontalStackLayout Spacing="10">
+                                <Label Text="{Binding PurchaseCount, StringFormat='{0}人购买'}"
+                                       FontSize="12"
+                                       TextColor="#9AA0B1" />
+                                <Label Text="{Binding CompletedCount, StringFormat='已售{0}'}"
+                                       FontSize="12"
+                                       TextColor="#9AA0B1" />
+                            </HorizontalStackLayout>
+                            <Label Text="{Binding Price, StringFormat='¥{0:F0}'}"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#FF4D4F" />
+                        </VerticalStackLayout>
+                    </Grid>
                 </Frame>
             </DataTemplate>
         </CollectionView.ItemTemplate>
     </CollectionView>
 </ContentPage>
+
