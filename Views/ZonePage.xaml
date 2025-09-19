@@ -13,11 +13,11 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Label Text="专区"
-                   Grid.ColumnSpan="2"
+            <Label Grid.Column="0"
+                   Text="专区"
                    FontSize="20"
                    FontAttributes="Bold"
-                   HorizontalOptions="Center"
+                   HorizontalOptions="CenterAndExpand"
                    HorizontalTextAlignment="Center"
                    VerticalOptions="Center" />
 
@@ -90,7 +90,7 @@
                 <Border BackgroundColor="Transparent"
                         Padding="16,14"
                         HeightRequest="48">
-                    <Label Text="金铲铲"
+                    <Label Text="金铲铲之战"
                            FontSize="15"
                            TextColor="#4D4D4D"
                            VerticalOptions="Center" />

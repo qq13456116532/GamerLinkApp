@@ -27,8 +27,9 @@
                        BackgroundColor="White"
                        HasShadow="False"
                        BorderColor="#EEEEEE">
-                    <Grid ColumnDefinitions="Auto,*"
-                          ColumnSpacing="12">
+                    <HorizontalStackLayout Spacing="12"
+                                            HorizontalOptions="FillAndExpand"
+                                            VerticalOptions="Center">
                         <Image HeightRequest="20"
                                WidthRequest="20"
                                VerticalOptions="Center"
@@ -38,11 +39,12 @@
                                TextColor="#2A2F3C"
                                FontSize="14"
                                VerticalOptions="Center"
+                               HorizontalOptions="FillAndExpand"
                                BackgroundColor="Transparent"
                                Margin="0"
                                IsTextPredictionEnabled="False"
                                ReturnType="Search" />
-                    </Grid>
+                    </HorizontalStackLayout>
                 </Frame>
 
                 <VerticalStackLayout Spacing="8">
@@ -149,7 +151,9 @@
                           ColumnSpacing="14">
                         <Border WidthRequest="110"
                                 HeightRequest="88"
-                                StrokeShape="RoundRectangle 16">
+                                StrokeShape="RoundRectangle 16"
+                                VerticalOptions="Center"
+                                >
                             <Image Source="{Binding ThumbnailUrl}"
                                    Aspect="AspectFill" />
                         </Border>
