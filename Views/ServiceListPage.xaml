@@ -54,9 +54,9 @@
                                   IndicatorView="{x:Reference BannerIndicators}">
                         <CarouselView.ItemsSource>
                             <x:Array Type="{x:Type x:String}">
-                                <x:String>https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&amp;fit=crop&amp;w=900&amp;q=80</x:String>
-                                <x:String>https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&amp;fit=crop&amp;w=900&amp;q=80</x:String>
-                                <x:String>https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&amp;fit=crop&amp;w=900&amp;q=80</x:String>
+                                <x:String>banner1.png</x:String>
+                                <x:String>banner2.png</x:String>
+                                <x:String>banner3.png</x:String>
                             </x:Array>
                         </CarouselView.ItemsSource>
                         <CarouselView.ItemTemplate>
@@ -149,7 +149,8 @@
                        BorderColor="#EEEEEE">
                     <Grid ColumnDefinitions="Auto,*"
                           ColumnSpacing="14">
-                        <Border WidthRequest="110"
+                        <Border  Grid.Column="0"
+                                WidthRequest="110"
                                 HeightRequest="88"
                                 StrokeShape="RoundRectangle 16"
                                 VerticalOptions="Center"
@@ -158,7 +159,7 @@
                                    Aspect="AspectFill" />
                         </Border>
 
-                        <VerticalStackLayout Spacing="6"
+                        <VerticalStackLayout  Grid.Column="1" Spacing="6"
                                              VerticalOptions="Center">
                             <Label Text="{Binding Title}"
                                    FontSize="16"

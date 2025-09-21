@@ -1,35 +1,41 @@
 ﻿using GamerLinkApp.Models;
 using GamerLinkApp.Services;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Maui.Controls;
 
 namespace GamerLinkApp.ViewModels
 {
-    [QueryProperty(nameof(ServiceId), "id")] // Shell 路由传参用
     public class ServiceDetailViewModel : BaseViewModel
     {
         private readonly IDataService _dataService;
 
-        private Service _selectedService;
-        public Service SelectedService
+        private Service? _selectedService;
+        public Service? SelectedService
         {
             get => _selectedService;
             set
             {
+                if (_selectedService == value)
+                    return;
+
                 _selectedService = value;
                 OnPropertyChanged();
             }
         }
 
-        private int serviceId;
+        private int _serviceId;
         public int ServiceId
         {
-            get => serviceId;
+            get => _serviceId;
             set
             {
-                serviceId = value;
+                if (_serviceId == value)
+                    return;
+
+                _serviceId = value;
                 OnPropertyChanged();
-                _ = LoadServiceAsync(value); // 自动加载对应服务详情
+                _ = LoadServiceAsync(value);
             }
         }
 
@@ -40,6 +46,12 @@ namespace GamerLinkApp.ViewModels
 
         private async Task LoadServiceAsync(int id)
         {
+            if (id <= 0)
+            {
+                SelectedService = null;
+                return;
+            }
+
             try
             {
                 var services = await _dataService.GetServicesAsync();
@@ -47,7 +59,7 @@ namespace GamerLinkApp.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"加载服务详情失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to load service detail: {ex.Message}");
             }
         }
     }

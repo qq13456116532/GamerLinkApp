@@ -1,3 +1,41 @@
+./AppShell.xaml:
+【﻿<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="GamerLinkApp.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:GamerLinkApp.Views"
+    Shell.FlyoutBehavior="Disabled"
+    Title="GamerLinkApp"
+    Shell.NavBarIsVisible="False">
+
+    <!-- 定义底部标签栏 -->
+    <TabBar>
+        <!-- 第一个标签页: 商铺. 我们直接使用你已有的 ServiceListPage -->
+        <ShellContent
+            Title="商铺"
+            ContentTemplate="{DataTemplate views:ServiceListPage}"
+            Icon="tab_shop.png"
+             />
+
+        <!-- 第二个标签页: 专区. 我们将创建新的 ZonePage -->
+        <ShellContent
+            Title="专区"
+            ContentTemplate="{DataTemplate views:ZonePage}"
+            Icon="tab_zone.png"
+            />
+
+        <!-- 第三个标签页: 个人. 我们将创建新的 ProfilePage -->
+        <ShellContent
+            Title="个人"
+            ContentTemplate="{DataTemplate views:ProfilePage}"
+            Icon="tab_mine.png"
+             />
+    </TabBar>
+
+</Shell>
+】
+
 ./AppShell.xaml.cs:
 【﻿using GamerLinkApp.Views;
 
@@ -13,6 +51,45 @@ namespace GamerLinkApp
         }
     }
 }
+】
+
+./MainPage.xaml:
+【﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GamerLinkApp.MainPage">
+
+    <ScrollView>
+        <VerticalStackLayout
+            Padding="30,0"
+            Spacing="25">
+            <Image
+                Source="dotnet_bot.png"
+                HeightRequest="185"
+                Aspect="AspectFit"
+                SemanticProperties.Description="dot net bot in a hovercraft number nine" />
+
+            <Label
+                Text="Hello, World!"
+                Style="{StaticResource Headline}"
+                SemanticProperties.HeadingLevel="Level1" />
+
+            <Label
+                Text="Welcome to &#10;.NET Multi-platform App UI"
+                Style="{StaticResource SubHeadline}"
+                SemanticProperties.HeadingLevel="Level2"
+                SemanticProperties.Description="Welcome to dot net Multi platform App U I" />
+
+            <Button
+                x:Name="CounterBtn"
+                Text="Click me" 
+                SemanticProperties.Hint="Counts the number of times you click"
+                Clicked="OnCounterClicked"
+                HorizontalOptions="Fill" />
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
 】
 
 ./MainPage.xaml.cs:
@@ -74,7 +151,7 @@ namespace GamerLinkApp
 
             // ... 注册其他页面和视图模型
             builder.Services.AddSingleton<ZonePage>();
-            //builder.Services.AddSingleton<ZoneViewModel>();
+            builder.Services.AddSingleton<ZoneViewModel>();
             builder.Services.AddSingleton<ProfilePage>();
             builder.Services.AddSingleton<ProfileViewModel>();
 
@@ -234,6 +311,117 @@ namespace GamerLinkApp.Models
 }
 】
 
+Platforms/Android/AndroidManifest.xml:
+【﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:theme="@style/Maui.MainTheme"></application>
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<uses-permission android:name="android.permission.INTERNET" />
+</manifest>】
+
+Platforms/Android/MainActivity.cs:
+【﻿using Android.App;
+using Android.Content.PM;
+using Android.OS;
+
+namespace GamerLinkApp
+{
+    [Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true, LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
+    public class MainActivity : MauiAppCompatActivity
+    {
+    }
+}
+】
+
+Platforms/Android/MainApplication.cs:
+【﻿using Android.App;
+using Android.Runtime;
+
+namespace GamerLinkApp
+{
+    [Application]
+    public class MainApplication : MauiApplication
+    {
+        public MainApplication(IntPtr handle, JniHandleOwnership ownership)
+            : base(handle, ownership)
+        {
+        }
+
+        protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
+    }
+}
+】
+
+Platforms/Android/Resources/values/colors.xml:
+【<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#512BD4</color>
+    <color name="colorPrimaryDark">#2B0B98</color>
+    <color name="colorAccent">#2B0B98</color>
+</resources>】
+
+Platforms/Android/Resources/values/styles.xml:
+【<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+	<!-- 定义基础主题，确保其父主题是 MaterialComponents 的子主题 -->
+	<style name="MainTheme.Base" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+		<!-- 应用的主要颜色 -->
+		<item name="colorPrimary">@color/colorPrimary</item>
+		<item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+		<item name="colorAccent">@color/colorAccent</item>
+
+		<!-- 确保窗口没有标题栏，因为 MAUI 会自己处理 -->
+		<item name="android:windowNoTitle">true</item>
+		<!-- 对于某些版本，可能还需要这个来移除窗口边框 -->
+		<item name="windowActionBar">false</item>
+
+		<!-- 如果需要，还可以添加其他窗口相关的设置 -->
+		<item name="android:windowBackground">@android:color/white</item>
+	</style>
+
+	<!-- 定义应用实际使用的主题，它继承自我们定义的基础主题 -->
+	<style name="Maui.MainTheme" parent="MainTheme.Base" />
+
+</resources>】
+
+Platforms/iOS/Program.cs:
+【﻿using ObjCRuntime;
+using UIKit;
+
+namespace GamerLinkApp
+{
+    public class Program
+    {
+        // This is the main entry point of the application.
+        static void Main(string[] args)
+        {
+            // if you want to use a different Application Delegate class from "AppDelegate"
+            // you can specify it here.
+            UIApplication.Main(args, null, typeof(AppDelegate));
+        }
+    }
+}
+】
+
+Platforms/MacCatalyst/Program.cs:
+【﻿using ObjCRuntime;
+using UIKit;
+
+namespace GamerLinkApp
+{
+    public class Program
+    {
+        // This is the main entry point of the application.
+        static void Main(string[] args)
+        {
+            // if you want to use a different Application Delegate class from "AppDelegate"
+            // you can specify it here.
+            UIApplication.Main(args, null, typeof(AppDelegate));
+        }
+    }
+}
+】
+
 Services/IDataService.cs:
 【﻿using GamerLinkApp.Models;
 using System;
@@ -373,36 +561,42 @@ namespace GamerLinkApp.ViewModels
 ViewModels/ServiceDetailViewModel.cs:
 【﻿using GamerLinkApp.Models;
 using GamerLinkApp.Services;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Maui.Controls;
 
 namespace GamerLinkApp.ViewModels
 {
-    [QueryProperty(nameof(ServiceId), "id")] // Shell 路由传参用
     public class ServiceDetailViewModel : BaseViewModel
     {
         private readonly IDataService _dataService;
 
-        private Service _selectedService;
-        public Service SelectedService
+        private Service? _selectedService;
+        public Service? SelectedService
         {
             get => _selectedService;
             set
             {
+                if (_selectedService == value)
+                    return;
+
                 _selectedService = value;
                 OnPropertyChanged();
             }
         }
 
-        private int serviceId;
+        private int _serviceId;
         public int ServiceId
         {
-            get => serviceId;
+            get => _serviceId;
             set
             {
-                serviceId = value;
+                if (_serviceId == value)
+                    return;
+
+                _serviceId = value;
                 OnPropertyChanged();
-                _ = LoadServiceAsync(value); // 自动加载对应服务详情
+                _ = LoadServiceAsync(value);
             }
         }
 
@@ -413,6 +607,12 @@ namespace GamerLinkApp.ViewModels
 
         private async Task LoadServiceAsync(int id)
         {
+            if (id <= 0)
+            {
+                SelectedService = null;
+                return;
+            }
+
             try
             {
                 var services = await _dataService.GetServicesAsync();
@@ -420,7 +620,7 @@ namespace GamerLinkApp.ViewModels
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"加载服务详情失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to load service detail: {ex.Message}");
             }
         }
     }
@@ -468,6 +668,243 @@ namespace GamerLinkApp.ViewModels
 }
 】
 
+ViewModels/ZoneViewModel.cs:
+【using GamerLinkApp.ViewModels;
+
+namespace GamerLinkApp.ViewModels
+{
+    public class ZoneViewModel : BaseViewModel
+    {
+        public ZoneViewModel()
+        {
+            // 在这里可以初始化专区页面的数据和命令
+        }
+    }
+}】
+
+Views/ProfilePage.xaml:
+【<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GamerLinkApp.Views.ProfilePage"
+             Title="个人"
+             BackgroundColor="#F4F5F7">
+    <Grid RowDefinitions="Auto,*">
+        
+
+        <ScrollView Grid.Row="1"
+                    Padding="0,12,0,24">
+            <VerticalStackLayout Spacing="16"
+                                  Padding="20,0,20,0">
+                <Border Padding="24,32"
+                        StrokeThickness="0"
+                        BackgroundColor="Transparent">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="24" />
+                    </Border.StrokeShape>
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#E9F0FF" Offset="0" />
+                            <GradientStop Color="#FFE9F3" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <VerticalStackLayout Spacing="16"
+                                          HorizontalOptions="Center"
+                                          VerticalOptions="Center">
+                        <Border WidthRequest="96"
+                                HeightRequest="96"
+                                StrokeThickness="0"
+                                BackgroundColor="#1A1A1A"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="48" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout VerticalOptions="Center"
+                                                  HorizontalOptions="Center"
+                                                  Spacing="0">
+                                <Label Text="IHARTY"
+                                       FontSize="14"
+                                       TextColor="White"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Label Text="irving"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A"
+                               HorizontalOptions="Center" />
+                        <Label Text="ID: 123456"
+                               FontSize="14"
+                               TextColor="#666666"
+                               HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20" />
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="#14000000"
+                                Offset="0,6"
+                                Radius="12" />
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="20">
+                        <Grid ColumnDefinitions="*,Auto"
+                              VerticalOptions="Center">
+                            <Label Text="订单"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+                            <Label Text="全部"
+                                   Grid.Column="1"
+                                   FontSize="14"
+                                   TextColor="#00AEEF" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*,*,*"
+                              ColumnSpacing="18">
+                            <VerticalStackLayout Spacing="8"
+                                                  HorizontalOptions="Center"
+                                                  VerticalOptions="Center">
+                                <Border WidthRequest="48"
+                                        HeightRequest="48"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#F5F7FA">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="24" />
+                                    </Border.StrokeShape>
+                                    <Label Text="¥"
+                                           FontSize="20"
+                                           TextColor="#1A1A1A"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Border>
+                                <Label Text="待付款"
+                                       FontSize="13"
+                                       TextColor="#444444"
+                                       HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1"
+                                                  Spacing="8"
+                                                  HorizontalOptions="Center"
+                                                  VerticalOptions="Center">
+                                <Border WidthRequest="48"
+                                        HeightRequest="48"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#F5F7FA">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="24" />
+                                    </Border.StrokeShape>
+                                    <Label Text="⏳"
+                                           FontSize="20"
+                                           TextColor="#1A1A1A"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Border>
+                                <Label Text="进行中"
+                                       FontSize="13"
+                                       TextColor="#444444"
+                                       HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="2"
+                                                  Spacing="8"
+                                                  HorizontalOptions="Center"
+                                                  VerticalOptions="Center">
+                                <Border WidthRequest="48"
+                                        HeightRequest="48"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#F5F7FA">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="24" />
+                                    </Border.StrokeShape>
+                                    <Label Text="★"
+                                           FontSize="20"
+                                           TextColor="#1A1A1A"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Border>
+                                <Label Text="待评价"
+                                       FontSize="13"
+                                       TextColor="#444444"
+                                       HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="3"
+                                                  Spacing="8"
+                                                  HorizontalOptions="Center"
+                                                  VerticalOptions="Center">
+                                <Border WidthRequest="48"
+                                        HeightRequest="48"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#F5F7FA">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="24" />
+                                    </Border.StrokeShape>
+                                    <Label Text="🗂"
+                                           FontSize="20"
+                                           TextColor="#1A1A1A"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Border>
+                                <Label Text="全部订单"
+                                       FontSize="13"
+                                       TextColor="#444444"
+                                       HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout Spacing="12">
+                    <Border BackgroundColor="White"
+                            Padding="16"
+                            StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto"
+                              VerticalOptions="Center">
+                            <Label Text="关于我们"
+                                   FontSize="15"
+                                   TextColor="#1A1A1A" />
+                            <Label Text=">"
+                                   Grid.Column="1"
+                                   FontSize="16"
+                                   TextColor="#C0C0C0" />
+                        </Grid>
+                    </Border>
+
+                    <Border BackgroundColor="White"
+                            Padding="16"
+                            StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto"
+                              VerticalOptions="Center">
+                            <Label Text="设置"
+                                   FontSize="15"
+                                   TextColor="#1A1A1A" />
+                            <Label Text=">"
+                                   Grid.Column="1"
+                                   FontSize="16"
+                                   TextColor="#C0C0C0" />
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>
+】
+
 Views/ProfilePage.xaml.cs:
 【using GamerLinkApp.ViewModels;
 
@@ -486,23 +923,506 @@ public partial class ProfilePage : ContentPage
     }
 }】
 
+Views/ServiceDetailPage.xaml:
+【<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GamerLinkApp.Views.ServiceDetailPage"
+             Title="服务详情"
+             BackgroundColor="#F4F5F7">
+    <Grid RowDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0"
+              BackgroundColor="White"
+              Padding="20,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Label Text="服务详情"
+                   Grid.ColumnSpan="2"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   VerticalOptions="Center" />
+
+            <HorizontalStackLayout Grid.Column="1"
+                                    Spacing="12"
+                                    VerticalOptions="Center">
+                <Border StrokeThickness="1"
+                        Stroke="#E0E0E0"
+                        BackgroundColor="Transparent"
+                        Padding="10,4"
+                        HeightRequest="32">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <Label Text="..."
+                           FontSize="16"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Border>
+                <Border StrokeThickness="1"
+                        Stroke="#E0E0E0"
+                        BackgroundColor="Transparent"
+                        Padding="10,4"
+                        HeightRequest="32">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16" />
+                    </Border.StrokeShape>
+                    <Label Text="O"
+                           FontSize="16"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Border>
+            </HorizontalStackLayout>
+        </Grid>
+
+        <ScrollView Grid.Row="1"
+                    Padding="0,12,0,0">
+            <VerticalStackLayout Spacing="18"
+                                  Padding="20,0,20,120">
+                <Border HeightRequest="220"
+                        StrokeThickness="0"
+                        BackgroundColor="#D9D9D9"
+                        >
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="26" />
+                    </Border.StrokeShape>
+                    <Grid>
+                        <Image Source="{Binding SelectedService.ThumbnailUrl}"
+                               Aspect="AspectFill" />
+                        <Grid>
+                            <Grid.Background>
+                                <LinearGradientBrush StartPoint="0,0.4" EndPoint="0,1">
+                                    <GradientStop Color="#00000000" Offset="0" />
+                                    <GradientStop Color="#A6000000" Offset="1" />
+                                </LinearGradientBrush>
+                            </Grid.Background>
+                        </Grid>
+                        <VerticalStackLayout Spacing="6"
+                                              Padding="20,20,20,24"
+                                              VerticalOptions="End">
+                            <Label Text="{Binding SelectedService.GameName}"
+                                   FontSize="14"
+                                   TextColor="#F2F5FF"
+                                   Opacity="0.9" />
+                            <Label Text="{Binding SelectedService.Title}"
+                                   FontSize="22"
+                                   FontAttributes="Bold"
+                                   TextColor="White"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding SelectedService.ServiceType, StringFormat='服务类型: {0}'}"
+                                   FontSize="13"
+                                   TextColor="#F2F5FF"
+                                   Opacity="0.9" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="24" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="16">
+                        <HorizontalStackLayout Spacing="12"
+                                                VerticalOptions="Center">
+                            <Label Text="服务亮点"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+                            <Border BackgroundColor="#EEF0FF"
+                                    Padding="10,4"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border"
+                                                 Binding="{Binding SelectedService.Category}"
+                                                 Value="">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Border"
+                                                 Binding="{Binding SelectedService.Category}"
+                                                 Value="{x:Null}">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Label Text="{Binding SelectedService.Category}"
+                                       FontSize="13"
+                                       TextColor="#5B61FF"
+                                       FontAttributes="Bold" />
+                            </Border>
+                        </HorizontalStackLayout>
+
+                        <FlexLayout BindableLayout.ItemsSource="{Binding SelectedService.Tags}"
+                                   Wrap="Wrap"
+                                   AlignItems="Center"
+                                   AlignContent="Start"
+                                   JustifyContent="Start"
+                                   Margin="0">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BackgroundColor="#F5F6FB"
+                                            StrokeThickness="0"
+                                            Padding="12,6"
+                                            Margin="0,0,10,10">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="14" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding .}"
+                                               FontSize="13"
+                                               TextColor="#5B61FF" />
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+
+                        <Grid ColumnDefinitions="*,*"
+                              ColumnSpacing="18">
+                            <Border BackgroundColor="#F9FAFC"
+                                    Padding="16"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="18" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="评分"
+                                           FontSize="13"
+                                           TextColor="#727C8C" />
+                                    <Label Text="{Binding SelectedService.AverageRating, StringFormat='{0:F1}'}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="#1F1F1F" />
+                                    <Label Text="{Binding SelectedService.ReviewCount, StringFormat='{0}条评价'}"
+                                           FontSize="12"
+                                           TextColor="#9AA0AE" />
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Grid.Column="1"
+                                    BackgroundColor="#F9FAFC"
+                                    Padding="16"
+                                    StrokeThickness="0">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="18" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="成交"
+                                           FontSize="13"
+                                           TextColor="#727C8C" />
+                                    <Label Text="{Binding SelectedService.PurchaseCount, StringFormat='{0}人购买'}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="#1F1F1F" />
+                                    <Label Text="{Binding SelectedService.CompletedCount, StringFormat='已完成 {0} 单'}"
+                                           FontSize="12"
+                                           TextColor="#9AA0AE" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="24" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="服务介绍"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+                        <Label Text="{Binding SelectedService.Description}"
+                               FontSize="14"
+                               TextColor="#434A59"
+                               LineHeight="1.4" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid Grid.Row="2"
+              BackgroundColor="White"
+              Padding="20,12,20,24"
+              ColumnDefinitions="*,Auto">
+            <VerticalStackLayout Spacing="4"
+                                  VerticalOptions="Center">
+                <Label Text="当前价格"
+                       FontSize="12"
+                       TextColor="#7B8596" />
+                <Label Text="{Binding SelectedService.Price, StringFormat='¥{0:F0}'}"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       TextColor="#FF4D4F" />
+            </VerticalStackLayout>
+            <Button Grid.Column="1"
+                    Text="立即下单"
+                    HeightRequest="48"
+                    WidthRequest="160"
+                    CornerRadius="24"
+                    BackgroundColor="#5B61FF"
+                    TextColor="White"
+                    FontAttributes="Bold" />
+        </Grid>
+    </Grid>
+</ContentPage>
+】
+
 Views/ServiceDetailPage.xaml.cs:
-【using GamerLinkApp.ViewModels;
+【﻿using System;
+using GamerLinkApp.Services;
+using GamerLinkApp.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GamerLinkApp.Views;
 
+[QueryProperty(nameof(ServiceId), "id")]
 public partial class ServiceDetailPage : ContentPage
 {
+    private readonly ServiceDetailViewModel _viewModel;
+
+    public ServiceDetailPage() : this(ResolveViewModel())
+    {
+    }
+
     public ServiceDetailPage(ServiceDetailViewModel vm)
     {
         InitializeComponent();
-        BindingContext = vm;
+        _viewModel = vm;
+        BindingContext = _viewModel;
     }
-}】
+
+    private static ServiceDetailViewModel ResolveViewModel()
+    {
+        var services = Application.Current?.Handler?.MauiContext?.Services;
+        if (services is not null)
+        {
+            return services.GetRequiredService<ServiceDetailViewModel>();
+        }
+
+        // Fall back to mock data when the MAUI service provider isn't available (e.g. design-time).
+        return new ServiceDetailViewModel(new MockDataService());
+    }
+
+    public string? ServiceId
+    {
+        set
+        {
+            if (int.TryParse(value, out var id))
+            {
+                _viewModel.ServiceId = id;
+            }
+        }
+    }
+}
+】
+
+Views/ServiceListPage.xaml:
+【﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:GamerLinkApp.Models"
+             x:Class="GamerLinkApp.Views.ServiceListPage"
+             Title="服务列表"
+             BackgroundColor="#F5F6F9">
+    <ContentPage.Resources>
+        <Thickness x:Key="PagePadding">20,16,20,0</Thickness>
+    </ContentPage.Resources>
+
+    <CollectionView ItemsSource="{Binding Services}"
+                    SelectionMode="Single"
+                    SelectionChanged="OnServiceSelected"
+                    BackgroundColor="Transparent"
+                    ItemSizingStrategy="MeasureAllItems">
+        <CollectionView.ItemsLayout>
+            <LinearItemsLayout Orientation="Vertical"
+                               ItemSpacing="0" />
+        </CollectionView.ItemsLayout>
+
+        <CollectionView.Header>
+            <VerticalStackLayout Spacing="24"
+                                  Padding="{StaticResource PagePadding}">
+                <Frame Padding="14,12"
+                       CornerRadius="24"
+                       BackgroundColor="White"
+                       HasShadow="False"
+                       BorderColor="#EEEEEE">
+                    <HorizontalStackLayout Spacing="12"
+                                            HorizontalOptions="FillAndExpand"
+                                            VerticalOptions="Center">
+                        <Image HeightRequest="20"
+                               WidthRequest="20"
+                               VerticalOptions="Center"
+                               Source="https://img.icons8.com/ios-glyphs/30/9AA0B1/search--v1.png" />
+                        <Entry Placeholder="搜索大神或服务"
+                               PlaceholderColor="#9AA0B1"
+                               TextColor="#2A2F3C"
+                               FontSize="14"
+                               VerticalOptions="Center"
+                               HorizontalOptions="FillAndExpand"
+                               BackgroundColor="Transparent"
+                               Margin="0"
+                               IsTextPredictionEnabled="False"
+                               ReturnType="Search" />
+                    </HorizontalStackLayout>
+                </Frame>
+
+                <VerticalStackLayout Spacing="8">
+                    <CarouselView HeightRequest="165"
+                                  Loop="True"
+                                  IsBounceEnabled="False"
+                                  IndicatorView="{x:Reference BannerIndicators}">
+                        <CarouselView.ItemsSource>
+                            <x:Array Type="{x:Type x:String}">
+                                <x:String>banner1.png</x:String>
+                                <x:String>banner2.png</x:String>
+                                <x:String>banner3.png</x:String>
+                            </x:Array>
+                        </CarouselView.ItemsSource>
+                        <CarouselView.ItemTemplate>
+                            <DataTemplate>
+                                <Frame Padding="0"
+                                       HasShadow="False"
+                                       CornerRadius="18">
+                                    <Image Source="{Binding .}"
+                                           Aspect="AspectFill" />
+                                </Frame>
+                            </DataTemplate>
+                        </CarouselView.ItemTemplate>
+                    </CarouselView>
+                    <IndicatorView x:Name="BannerIndicators"
+                                   HorizontalOptions="Center"
+                                   IndicatorColor="#D9D9D9"
+                                   SelectedIndicatorColor="#5B61FF" />
+                </VerticalStackLayout>
+
+                <Grid ColumnDefinitions="*,*,*"
+                      ColumnSpacing="14">
+                    <Border BackgroundColor="White"
+                            StrokeShape="RoundRectangle 18"
+                            Padding="14,12"
+                            HeightRequest="90">
+                        <VerticalStackLayout Spacing="10"
+                                             HorizontalOptions="Center"
+                                             VerticalOptions="Center">
+                            <Image HeightRequest="28"
+                                   WidthRequest="28"
+                                   Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/sword.png" />
+                            <Label Text="英雄联盟"
+                                   FontSize="13"
+                                   TextColor="#2A2F3C"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            BackgroundColor="White"
+                            StrokeShape="RoundRectangle 18"
+                            Padding="14,12"
+                            HeightRequest="90">
+                        <VerticalStackLayout Spacing="10"
+                                             HorizontalOptions="Center"
+                                             VerticalOptions="Center">
+                            <Image HeightRequest="28"
+                                   WidthRequest="28"
+                                   Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/crown.png" />
+                            <Label Text="王者荣耀"
+                                   FontSize="13"
+                                   TextColor="#2A2F3C"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="2"
+                            BackgroundColor="White"
+                            StrokeShape="RoundRectangle 18"
+                            Padding="14,12"
+                            HeightRequest="90">
+                        <VerticalStackLayout Spacing="10"
+                                             HorizontalOptions="Center"
+                                             VerticalOptions="Center">
+                            <Image HeightRequest="28"
+                                   WidthRequest="28"
+                                   Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/medal.png" />
+                            <Label Text="金牌教学"
+                                   FontSize="13"
+                                   TextColor="#2A2F3C"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Label Text="精选推荐"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#2A2F3C" />
+            </VerticalStackLayout>
+        </CollectionView.Header>
+
+        <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="models:Service">
+                <Frame Margin="20,0,20,16"
+                       Padding="12"
+                       BackgroundColor="White"
+                       CornerRadius="18"
+                       HasShadow="False"
+                       BorderColor="#EEEEEE">
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="14">
+                        <Border  Grid.Column="0"
+                                WidthRequest="110"
+                                HeightRequest="88"
+                                StrokeShape="RoundRectangle 16"
+                                VerticalOptions="Center"
+                                >
+                            <Image Source="{Binding ThumbnailUrl}"
+                                   Aspect="AspectFill" />
+                        </Border>
+
+                        <VerticalStackLayout  Grid.Column="1" Spacing="6"
+                                             VerticalOptions="Center">
+                            <Label Text="{Binding Title}"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#2A2F3C"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding GameName}"
+                                   FontSize="13"
+                                   TextColor="#777D8C"
+                                   LineBreakMode="TailTruncation" />
+                            <HorizontalStackLayout Spacing="10">
+                                <Label Text="{Binding PurchaseCount, StringFormat='{0}人购买'}"
+                                       FontSize="12"
+                                       TextColor="#9AA0B1" />
+                                <Label Text="{Binding CompletedCount, StringFormat='已售{0}'}"
+                                       FontSize="12"
+                                       TextColor="#9AA0B1" />
+                            </HorizontalStackLayout>
+                            <Label Text="{Binding Price, StringFormat='¥{0:F0}'}"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#FF4D4F" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Frame>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
+    </CollectionView>
+</ContentPage>
+
+】
 
 Views/ServiceListPage.xaml.cs:
 【using GamerLinkApp.Models;
 using GamerLinkApp.ViewModels;
+using System.Collections.Generic;
 
 namespace GamerLinkApp.Views;
 
@@ -511,39 +1431,158 @@ public partial class ServiceListPage : ContentPage
     public ServiceListPage(ServiceListViewModel vm)
     {
         InitializeComponent();
-        BindingContext = vm; // Í¨¹ýÒÀÀµ×¢Èë°ó¶¨ ViewModel
+        BindingContext = vm; // ͨ������ע��� ViewModel
     }
 
-    // ÎÞ²ÎÊýµÄ¹¹Ôìº¯Êý¿ÉÒÔ±£Áô£¬ÒÔ±ãXAMLÔ¤ÀÀÆ÷Õý³£¹¤×÷
+    // �޲����Ĺ��캯�����Ա������Ա�XAMLԤ������������
     public ServiceListPage()
     {
         InitializeComponent();
     }
 
-    // ÐÂÔö: ´¦Àí·þÎñÏîÄ¿Ñ¡ÔñÊÂ¼þ
+    // ����: ����������Ŀѡ���¼�
     private async void OnServiceSelected(object sender, SelectionChangedEventArgs e)
     {
-        // È·±£ÓÐÏîÄ¿±»Ñ¡ÖÐ
         if (e.CurrentSelection.FirstOrDefault() is not Service selectedService)
             return;
 
-        // Ê¹ÓÃ Shell µ¼º½µ½ÏêÇéÒ³£¬²¢Í¨¹ý²éÑ¯²ÎÊý´«µÝ·þÎñID
-        // "id" ±ØÐëÓë ServiceDetailViewModel ÖÐµÄ QueryProperty Ãû³ÆÆ¥Åä
         await Shell.Current.GoToAsync($"{nameof(ServiceDetailPage)}?id={selectedService.Id}");
 
-        // È¡ÏûÑ¡ÖÐ£¬ÒÔ±ãÓÃ»§¿ÉÒÔÔÙ´ÎÑ¡ÔñÍ¬Ò»¸öÏîÄ¿
         ((CollectionView)sender).SelectedItem = null;
     }
-}】
+
+}
+】
+
+Views/ZonePage.xaml:
+【<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GamerLinkApp.Views.ZonePage"
+             Title="专区"
+             BackgroundColor="#F4F5F7">
+    <Grid RowDefinitions="Auto,*">
+        
+
+        <Grid Grid.Row="1"
+              ColumnDefinitions="130,*">
+            <VerticalStackLayout Grid.Column="0"
+                                 BackgroundColor="#EFEFF4"
+                                 Padding="0"
+                                 Spacing="0">
+                <Border BackgroundColor="White"
+                        Margin="0,12,0,0"
+                        Padding="0,6">
+                    <Grid ColumnDefinitions="4,*"
+                          VerticalOptions="Center"
+                          HeightRequest="48">
+                        <BoxView Grid.Column="0"
+                                 WidthRequest="4"
+                                 BackgroundColor="#00AEEF" />
+                        <Label Grid.Column="1"
+                               Text="英雄联盟"
+                               FontAttributes="Bold"
+                               FontSize="16"
+                               TextColor="#00AEEF"
+                               VerticalOptions="Center"
+                               Padding="16,0" />
+                    </Grid>
+                </Border>
+
+                <Border BackgroundColor="Transparent"
+                        Padding="16,14"
+                        HeightRequest="48">
+                    <Label Text="王者荣耀"
+                           FontSize="15"
+                           TextColor="#4D4D4D"
+                           VerticalOptions="Center" />
+                </Border>
+
+                <Border BackgroundColor="Transparent"
+                        Padding="16,14"
+                        HeightRequest="48">
+                    <Label Text="金铲铲之战"
+                           FontSize="15"
+                           TextColor="#4D4D4D"
+                           VerticalOptions="Center" />
+                </Border>
+            </VerticalStackLayout>
+
+            <ScrollView Grid.Column="1"
+                        BackgroundColor="White"
+                        Padding="0,12,0,0">
+                <VerticalStackLayout Padding="20,0,20,24"
+                                      Spacing="16">
+                    <Label Text="英雄联盟"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#1A1A1A" />
+
+                    <Border BackgroundColor="White"
+                            StrokeThickness="1"
+                            Stroke="#E5E5E5"
+                            Padding="16">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <Border.Shadow>
+                            <Shadow Brush="#1A000000"
+                                    Offset="0,4"
+                                    Radius="8" />
+                        </Border.Shadow>
+                        <Grid ColumnDefinitions="Auto,*"
+                              ColumnSpacing="16">
+                            <Border WidthRequest="80"
+                                    HeightRequest="80"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#F2F2F2">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12" />
+                                </Border.StrokeShape>
+                                <Image Source="dotnet_bot.png"
+                                       Aspect="AspectFill" />
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1"
+                                                  Spacing="6"
+                                                  VerticalOptions="Center">
+                                <Label Text="英雄联盟-钻石到大师"
+                                       FontAttributes="Bold"
+                                       FontSize="16"
+                                       TextColor="#1A1A1A" />
+                                <Label Text="已售45"
+                                       FontSize="13"
+                                       TextColor="#8F8F8F" />
+                                <Label Text="¥300"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#E53935" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+    </Grid>
+</ContentPage>
+】
 
 Views/ZonePage.xaml.cs:
-【namespace GamerLinkApp.Views;
+【using GamerLinkApp.ViewModels;
+
+namespace GamerLinkApp.Views;
 
 public partial class ZonePage : ContentPage
 {
 	public ZonePage()
 	{
 		InitializeComponent();
+	}
+	// 修改构造函数以接收 ViewModel
+	public ZonePage(ZoneViewModel vm)
+	{
+		InitializeComponent();
+		BindingContext = vm; // 设置数据上下文
 	}
 }】
 

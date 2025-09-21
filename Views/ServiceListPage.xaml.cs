@@ -1,5 +1,6 @@
 using GamerLinkApp.Models;
 using GamerLinkApp.ViewModels;
+using System.Collections.Generic;
 
 namespace GamerLinkApp.Views;
 
@@ -8,27 +9,24 @@ public partial class ServiceListPage : ContentPage
     public ServiceListPage(ServiceListViewModel vm)
     {
         InitializeComponent();
-        BindingContext = vm; // Í¨¹ıÒÀÀµ×¢Èë°ó¶¨ ViewModel
+        BindingContext = vm; // Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½ï¿½ ViewModel
     }
 
-    // ÎŞ²ÎÊıµÄ¹¹Ôìº¯Êı¿ÉÒÔ±£Áô£¬ÒÔ±ãXAMLÔ¤ÀÀÆ÷Õı³£¹¤×÷
+    // ï¿½Ş²ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½ï¿½ìº¯ï¿½ï¿½ï¿½ï¿½ï¿½Ô±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô±ï¿½XAMLÔ¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     public ServiceListPage()
     {
         InitializeComponent();
     }
 
-    // ĞÂÔö: ´¦Àí·şÎñÏîÄ¿Ñ¡ÔñÊÂ¼ş
+    // ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½ï¿½Â¼ï¿½
     private async void OnServiceSelected(object sender, SelectionChangedEventArgs e)
     {
-        // È·±£ÓĞÏîÄ¿±»Ñ¡ÖĞ
         if (e.CurrentSelection.FirstOrDefault() is not Service selectedService)
             return;
 
-        // Ê¹ÓÃ Shell µ¼º½µ½ÏêÇéÒ³£¬²¢Í¨¹ı²éÑ¯²ÎÊı´«µİ·şÎñID
-        // "id" ±ØĞëÓë ServiceDetailViewModel ÖĞµÄ QueryProperty Ãû³ÆÆ¥Åä
         await Shell.Current.GoToAsync($"{nameof(ServiceDetailPage)}?id={selectedService.Id}");
 
-        // È¡ÏûÑ¡ÖĞ£¬ÒÔ±ãÓÃ»§¿ÉÒÔÔÙ´ÎÑ¡ÔñÍ¬Ò»¸öÏîÄ¿
         ((CollectionView)sender).SelectedItem = null;
     }
+
 }

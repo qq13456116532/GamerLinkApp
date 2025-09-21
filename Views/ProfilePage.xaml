@@ -5,53 +5,7 @@
              Title="个人"
              BackgroundColor="#F4F5F7">
     <Grid RowDefinitions="Auto,*">
-        <Grid Grid.Row="0"
-              BackgroundColor="White"
-              Padding="20,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <Label Text="个人中心"
-                   Grid.ColumnSpan="2"
-                   FontSize="20"
-                   FontAttributes="Bold"
-                   HorizontalOptions="Center"
-                   HorizontalTextAlignment="Center"
-                   VerticalOptions="Center" />
-
-            <HorizontalStackLayout Grid.Column="1"
-                                    Spacing="12"
-                                    VerticalOptions="Center">
-                <Border StrokeThickness="1"
-                        Stroke="#E0E0E0"
-                        BackgroundColor="Transparent"
-                        Padding="10,4"
-                        HeightRequest="32">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16" />
-                    </Border.StrokeShape>
-                    <Label Text="..."
-                           FontSize="16"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                </Border>
-                <Border StrokeThickness="1"
-                        Stroke="#E0E0E0"
-                        BackgroundColor="Transparent"
-                        Padding="10,4"
-                        HeightRequest="32">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16" />
-                    </Border.StrokeShape>
-                    <Label Text="O"
-                           FontSize="16"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                </Border>
-            </HorizontalStackLayout>
-        </Grid>
+        
 
         <ScrollView Grid.Row="1"
                     Padding="0,12,0,24">
