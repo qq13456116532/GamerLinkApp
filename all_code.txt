@@ -120,10 +120,16 @@ namespace GamerLinkApp
 】
 
 ./MauiProgram.cs:
-【﻿using GamerLinkApp.Services;
-using Microsoft.Extensions.Logging;
+【﻿using System.IO;
+using GamerLinkApp.Data;
+using GamerLinkApp.Helpers;
+using GamerLinkApp.Services;
 using GamerLinkApp.ViewModels;
 using GamerLinkApp.Views;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Storage;
+
 namespace GamerLinkApp
 {
     public static class MauiProgram
@@ -140,16 +146,19 @@ namespace GamerLinkApp
                 });
 
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
-            // 注册服务
-            builder.Services.AddSingleton<IDataService, MockDataService>();
 
-            // 注册视图和视图模型
+            var databasePath = Path.Combine(FileSystem.AppDataDirectory, "gamerlink.db");
+            builder.Services.AddDbContextFactory<ServiceDbContext>(options =>
+                options.UseSqlite($"Data Source={databasePath}"));
+            builder.Services.AddSingleton<IDataService, SqliteDataService>();
+
+            // ע���б�ҳ����ͼģ��
             builder.Services.AddSingleton<ServiceListPage>();
             builder.Services.AddSingleton<ServiceListViewModel>();
 
-            // ... 注册其他页面和视图模型
+            // ע������ҳ����ͼģ��
             builder.Services.AddSingleton<ZonePage>();
             builder.Services.AddSingleton<ZoneViewModel>();
             builder.Services.AddSingleton<ProfilePage>();
@@ -158,7 +167,10 @@ namespace GamerLinkApp
             builder.Services.AddTransient<ServiceDetailPage>();
             builder.Services.AddTransient<ServiceDetailViewModel>();
 
-            return builder.Build();
+            var app = builder.Build();
+            ServiceHelper.Initialize(app.Services);
+
+            return app;
         }
     }
 }
@@ -424,10 +436,7 @@ namespace GamerLinkApp
 
 Services/IDataService.cs:
 【﻿using GamerLinkApp.Models;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace GamerLinkApp.Services
@@ -435,7 +444,11 @@ namespace GamerLinkApp.Services
     public interface IDataService
     {
         Task<List<Service>> GetServicesAsync();
-        // ... 其他数据操作方法
+        Task<Service?> GetServiceByIdAsync(int id);
+        Task<List<string>> GetGameNamesAsync();
+        Task<List<Service>> GetServicesByGameAsync(string gameName);
+        Task<User?> GetUserAsync(int id);
+        Task<List<Order>> GetOrdersByUserAsync(int userId);
     }
 }
 】
@@ -443,27 +456,344 @@ namespace GamerLinkApp.Services
 Services/MockDataService.cs:
 【﻿using GamerLinkApp.Models;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace GamerLinkApp.Services
 {
     public class MockDataService : IDataService
     {
+        private static readonly List<Service> ServicesSeed = new()
+        {
+            new Service
+            {
+                Id = 1,
+                Title = "王者荣耀-巅峰陪练团",
+                Description = "顶尖荣耀教练，全赛季陪练指点操作与意识，助你稳步上分。",
+                GameName = "王者荣耀",
+                Price = 58m,
+                ServiceType = "陪练",
+                Category = "MOBA",
+                SellerId = 1,
+                ThumbnailUrl = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=640&q=80",
+                ImageUrls = new List<string>
+                {
+                    "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1080&q=80",
+                    "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1080&q=80"
+                },
+                IsFeatured = true,
+                AverageRating = 4.9,
+                ReviewCount = 1280,
+                PurchaseCount = 1547,
+                CompletedCount = 120,
+                Tags = new List<string> { "打野上分", "意识训练", "赛后复盘" }
+            },
+            new Service
+            {
+                Id = 2,
+                Title = "英雄联盟-大师晋级导师",
+                Description = "前职业选手一对一定制上分方案，单双排/灵活全段位安全托管。",
+                GameName = "英雄联盟",
+                Price = 318m,
+                ServiceType = "代练",
+                Category = "MOBA",
+                SellerId = 2,
+                ThumbnailUrl = "https://images.unsplash.com/photo-1538485399081-7191377e8248?auto=format&fit=crop&w=640&q=80",
+                ImageUrls = new List<string>
+                {
+                    "https://images.unsplash.com/photo-1538485399081-7191377e8248?auto=format&fit=crop&w=1080&q=80",
+                    "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1080&q=80"
+                },
+                IsFeatured = true,
+                AverageRating = 4.8,
+                ReviewCount = 980,
+                PurchaseCount = 2300,
+                CompletedCount = 45,
+                Tags = new List<string> { "国服钻石", "全位置", "职业教练" }
+            },
+            new Service
+            {
+                Id = 3,
+                Title = "绝地求生-战术指挥官",
+                Description = "提供战术拆解、枪法训练与团队指挥复盘，让你每局都能精准吃鸡。",
+                GameName = "绝地求生",
+                Price = 126m,
+                ServiceType = "教学",
+                Category = "射击",
+                SellerId = 3,
+                ThumbnailUrl = "https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&fit=crop&w=640&q=80",
+                ImageUrls = new List<string>
+                {
+                    "https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&fit=crop&w=1080&q=80",
+                    "https://images.unsplash.com/photo-1529257414771-1960ab1ddb12?auto=format&fit=crop&w=1080&q=80"
+                },
+                IsFeatured = false,
+                AverageRating = 4.7,
+                ReviewCount = 560,
+                PurchaseCount = 860,
+                CompletedCount = 72,
+                Tags = new List<string> { "战术分析", "枪法提升", "团队配合" }
+            }
+        };
+
+        private static readonly User SeedUser = new()
+        {
+            Id = 1,
+            Username = "iharty",
+            Email = "iharty@example.com",
+            Nickname = "Irving",
+            AvatarUrl = "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=256&q=80"
+        };
+
+        private static readonly List<Order> SeedOrders = new()
+        {
+            new Order { Id = 1, ServiceId = 1, BuyerId = 1, OrderDate = System.DateTime.UtcNow.AddDays(-14), PaymentDate = System.DateTime.UtcNow.AddDays(-13), CompletionDate = System.DateTime.UtcNow.AddDays(-12), TotalPrice = 58m, Status = nameof(OrderStatus.Completed) },
+            new Order { Id = 2, ServiceId = 2, BuyerId = 1, OrderDate = System.DateTime.UtcNow.AddDays(-5), PaymentDate = System.DateTime.UtcNow.AddDays(-4), CompletionDate = System.DateTime.UtcNow.AddDays(-2), TotalPrice = 318m, Status = nameof(OrderStatus.PendingReview) },
+            new Order { Id = 3, ServiceId = 1, BuyerId = 1, OrderDate = System.DateTime.UtcNow.AddDays(-3), PaymentDate = System.DateTime.UtcNow.AddDays(-3), TotalPrice = 58m, Status = nameof(OrderStatus.Ongoing) },
+            new Order { Id = 4, ServiceId = 3, BuyerId = 1, OrderDate = System.DateTime.UtcNow.AddDays(-1), TotalPrice = 126m, Status = nameof(OrderStatus.PendingPayment) }
+        };
+
+        public Task<List<Service>> GetServicesAsync()
+        {
+            return Task.FromResult(CloneServices(ServicesSeed));
+        }
+
+        public Task<Service?> GetServiceByIdAsync(int id)
+        {
+            var service = CloneServices(ServicesSeed).FirstOrDefault(s => s.Id == id);
+            return Task.FromResult(service);
+        }
+
+        public Task<List<string>> GetGameNamesAsync()
+        {
+            var games = ServicesSeed
+                .Select(s => s.GameName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct()
+                .OrderBy(name => name)
+                .ToList();
+
+            return Task.FromResult(games);
+        }
+
+        public Task<List<Service>> GetServicesByGameAsync(string gameName)
+        {
+            var services = CloneServices(ServicesSeed)
+                .Where(s => s.GameName == gameName)
+                .OrderByDescending(s => s.IsFeatured)
+                .ThenBy(s => s.Price)
+                .ToList();
+
+            return Task.FromResult(services);
+        }
+
+        public Task<User?> GetUserAsync(int id)
+        {
+            return Task.FromResult(id == SeedUser.Id ? SeedUser : null);
+        }
+
+        public Task<List<Order>> GetOrdersByUserAsync(int userId)
+        {
+            var orders = SeedOrders
+                .Where(o => o.BuyerId == userId)
+                .Select(o => new Order
+                {
+                    Id = o.Id,
+                    ServiceId = o.ServiceId,
+                    BuyerId = o.BuyerId,
+                    OrderDate = o.OrderDate,
+                    PaymentDate = o.PaymentDate,
+                    CompletionDate = o.CompletionDate,
+                    RefundRequestDate = o.RefundRequestDate,
+                    TotalPrice = o.TotalPrice,
+                    Status = o.Status,
+                    ReviewId = o.ReviewId
+                })
+                .ToList();
+
+            return Task.FromResult(orders);
+        }
+
+        private static List<Service> CloneServices(IEnumerable<Service> source)
+        {
+            return source.Select(service => new Service
+            {
+                Id = service.Id,
+                Title = service.Title,
+                Description = service.Description,
+                GameName = service.GameName,
+                Price = service.Price,
+                ServiceType = service.ServiceType,
+                Category = service.Category,
+                SellerId = service.SellerId,
+                ThumbnailUrl = service.ThumbnailUrl,
+                ImageUrls = service.ImageUrls?.ToList() ?? new List<string>(),
+                IsFeatured = service.IsFeatured,
+                AverageRating = service.AverageRating,
+                ReviewCount = service.ReviewCount,
+                PurchaseCount = service.PurchaseCount,
+                CompletedCount = service.CompletedCount,
+                Tags = service.Tags?.ToList() ?? new List<string>()
+            }).ToList();
+        }
+    }
+}
+】
+
+Services/SqliteDataService.cs:
+【﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using GamerLinkApp.Data;
+using GamerLinkApp.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace GamerLinkApp.Services
+{
+    public class SqliteDataService : IDataService
+    {
+        private readonly IDbContextFactory<ServiceDbContext> _contextFactory;
+        private readonly SemaphoreSlim _initializationLock = new(1, 1);
+        private bool _initialized;
+
+        public SqliteDataService(IDbContextFactory<ServiceDbContext> contextFactory)
+        {
+            _contextFactory = contextFactory;
+        }
+
         public async Task<List<Service>> GetServicesAsync()
         {
-            await Task.Delay(500); // 模拟网络延迟
+            await EnsureInitializedAsync();
 
-            return new List<Service>
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var services = await context.Services.AsNoTracking().ToListAsync();
+
+            foreach (var service in services)
+            {
+                service.ImageUrls ??= new List<string>();
+                service.Tags ??= new List<string>();
+            }
+
+            return services;
+        }
+
+        public async Task<Service?> GetServiceByIdAsync(int id)
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var service = await context.Services.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
+            if (service is not null)
+            {
+                service.ImageUrls ??= new List<string>();
+                service.Tags ??= new List<string>();
+            }
+
+            return service;
+        }
+
+        public async Task<List<string>> GetGameNamesAsync()
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Services
+                .AsNoTracking()
+                .Select(s => s.GameName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct()
+                .OrderBy(name => name)
+                .ToListAsync();
+        }
+
+        public async Task<List<Service>> GetServicesByGameAsync(string gameName)
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var services = await context.Services
+                .AsNoTracking()
+                .Where(s => s.GameName == gameName)
+                .OrderByDescending(s => s.IsFeatured)
+                .ThenBy(s => s.Price)
+                .ToListAsync();
+
+            foreach (var service in services)
+            {
+                service.ImageUrls ??= new List<string>();
+                service.Tags ??= new List<string>();
+            }
+
+            return services;
+        }
+
+        public async Task<User?> GetUserAsync(int id)
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+        }
+
+        public async Task<List<Order>> GetOrdersByUserAsync(int userId)
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Orders
+                .AsNoTracking()
+                .Where(o => o.BuyerId == userId)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+        }
+
+        private async Task EnsureInitializedAsync()
+        {
+            if (_initialized)
+            {
+                return;
+            }
+
+            await _initializationLock.WaitAsync();
+            try
+            {
+                if (_initialized)
+                {
+                    return;
+                }
+
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                await context.Database.EnsureCreatedAsync();
+                await SeedDataAsync(context);
+                _initialized = true;
+            }
+            finally
+            {
+                _initializationLock.Release();
+            }
+        }
+
+        private static async Task SeedDataAsync(ServiceDbContext context)
+        {
+            if (await context.Services.AnyAsync())
+            {
+                return;
+            }
+
+            var services = new List<Service>
             {
                 new Service
                 {
                     Id = 1,
-                    Title = "王者荣耀-荣耀王者陪练",
-                    Description = "资深荣耀王者，全程语音指导，帮你稳步冲分。",
+                    Title = "王者荣耀-巅峰陪练团",
+                    Description = "顶尖荣耀教练，全赛季陪练指点操作与意识，助你稳步上分。",
                     GameName = "王者荣耀",
-                    Price = 50,
-                    ServiceType = "陪玩",
+                    Price = 58m,
+                    ServiceType = "陪练",
                     Category = "MOBA",
+                    SellerId = 1,
                     ThumbnailUrl = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=640&q=80",
                     ImageUrls = new List<string>
                     {
@@ -475,17 +805,18 @@ namespace GamerLinkApp.Services
                     ReviewCount = 1280,
                     PurchaseCount = 1547,
                     CompletedCount = 120,
-                    Tags = new List<string> { "大神陪练", "语音指导", "快速上分" }
+                    Tags = new List<string> { "打野上分", "意识训练", "赛后复盘" }
                 },
                 new Service
                 {
                     Id = 2,
-                    Title = "英雄联盟-钻石到大师",
-                    Description = "职业选手小号，提供双排/代练服务，安全稳定。",
+                    Title = "英雄联盟-大师晋级导师",
+                    Description = "前职业选手一对一定制上分方案，单双排/灵活全段位安全托管。",
                     GameName = "英雄联盟",
-                    Price = 300,
+                    Price = 318m,
                     ServiceType = "代练",
                     Category = "MOBA",
+                    SellerId = 2,
                     ThumbnailUrl = "https://images.unsplash.com/photo-1538485399081-7191377e8248?auto=format&fit=crop&w=640&q=80",
                     ImageUrls = new List<string>
                     {
@@ -497,17 +828,18 @@ namespace GamerLinkApp.Services
                     ReviewCount = 980,
                     PurchaseCount = 2300,
                     CompletedCount = 45,
-                    Tags = new List<string> { "极速上分", "全天在线", "职业大神" }
+                    Tags = new List<string> { "国服钻石", "全位置", "职业教练" }
                 },
                 new Service
                 {
                     Id = 3,
-                    Title = "绝地求生-战术教官",
-                    Description = "提供战术复盘、枪法训练、团队配合提升计划。",
+                    Title = "绝地求生-战术指挥官",
+                    Description = "提供战术拆解、枪法训练与团队指挥复盘，让你每局都能精准吃鸡。",
                     GameName = "绝地求生",
-                    Price = 120,
+                    Price = 126m,
                     ServiceType = "教学",
                     Category = "射击",
+                    SellerId = 3,
                     ThumbnailUrl = "https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&fit=crop&w=640&q=80",
                     ImageUrls = new List<string>
                     {
@@ -519,9 +851,69 @@ namespace GamerLinkApp.Services
                     ReviewCount = 560,
                     PurchaseCount = 860,
                     CompletedCount = 72,
-                    Tags = new List<string> { "战术复盘", "枪法提升", "团战配合" }
+                    Tags = new List<string> { "战术分析", "枪法提升", "团队配合" }
                 }
             };
+
+            var user = new User
+            {
+                Id = 1,
+                Username = "iharty",
+                Email = "iharty@example.com",
+                Nickname = "Irving",
+                AvatarUrl = "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=256&q=80"
+            };
+
+            var now = DateTime.UtcNow;
+            var orders = new List<Order>
+            {
+                new Order
+                {
+                    Id = 1,
+                    ServiceId = 1,
+                    BuyerId = user.Id,
+                    OrderDate = now.AddDays(-14),
+                    PaymentDate = now.AddDays(-13),
+                    CompletionDate = now.AddDays(-12),
+                    TotalPrice = 58m,
+                    Status = nameof(OrderStatus.Completed)
+                },
+                new Order
+                {
+                    Id = 2,
+                    ServiceId = 2,
+                    BuyerId = user.Id,
+                    OrderDate = now.AddDays(-5),
+                    PaymentDate = now.AddDays(-4),
+                    CompletionDate = now.AddDays(-2),
+                    TotalPrice = 318m,
+                    Status = nameof(OrderStatus.PendingReview)
+                },
+                new Order
+                {
+                    Id = 3,
+                    ServiceId = 1,
+                    BuyerId = user.Id,
+                    OrderDate = now.AddDays(-3),
+                    PaymentDate = now.AddDays(-3),
+                    TotalPrice = 58m,
+                    Status = nameof(OrderStatus.Ongoing)
+                },
+                new Order
+                {
+                    Id = 4,
+                    ServiceId = 3,
+                    BuyerId = user.Id,
+                    OrderDate = now.AddDays(-1),
+                    TotalPrice = 126m,
+                    Status = nameof(OrderStatus.PendingPayment)
+                }
+            };
+
+            await context.Services.AddRangeAsync(services);
+            await context.Users.AddAsync(user);
+            await context.Orders.AddRangeAsync(orders);
+            await context.SaveChangesAsync();
         }
     }
 }
@@ -545,24 +937,139 @@ namespace GamerLinkApp.ViewModels
 }】
 
 ViewModels/ProfileViewModel.cs:
-【using GamerLinkApp.ViewModels;
+【﻿using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+using GamerLinkApp.Models;
+using GamerLinkApp.Services;
 
 namespace GamerLinkApp.ViewModels
 {
     public class ProfileViewModel : BaseViewModel
     {
-        public ProfileViewModel()
+        private readonly IDataService _dataService;
+
+        private User? _currentUser;
+        public User? CurrentUser
         {
-            // ÔÚÕâÀï¿ÉÒÔ³õÊ¼»¯¸öÈËÒ³ÃæµÄÊý¾ÝºÍÃüÁî
+            get => _currentUser;
+            private set
+            {
+                if (_currentUser == value)
+                {
+                    return;
+                }
+
+                _currentUser = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private decimal _totalPaid;
+        public decimal TotalPaid
+        {
+            get => _totalPaid;
+            private set
+            {
+                if (_totalPaid == value)
+                {
+                    return;
+                }
+
+                _totalPaid = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private int _completedOrders;
+        public int CompletedOrders
+        {
+            get => _completedOrders;
+            private set
+            {
+                if (_completedOrders == value)
+                {
+                    return;
+                }
+
+                _completedOrders = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<OrderStatusItem> OrderStatuses { get; } = new();
+
+        public ProfileViewModel(IDataService dataService)
+        {
+            _dataService = dataService;
+            _ = LoadAsync();
+        }
+
+        private async Task LoadAsync()
+        {
+            try
+            {
+                var user = await _dataService.GetUserAsync(1);
+                CurrentUser = user;
+
+                if (user is null)
+                {
+                    return;
+                }
+
+                var orders = await _dataService.GetOrdersByUserAsync(user.Id);
+                TotalPaid = orders.Where(o => o.PaymentDate.HasValue).Sum(o => o.TotalPrice);
+                CompletedOrders = orders.Count(o => string.Equals(o.Status, nameof(OrderStatus.Completed), StringComparison.Ordinal));
+
+                var summaries = new[]
+                {
+                    new OrderStatusItem(nameof(OrderStatus.PendingPayment), "\u5f85\u652f\u4ed8", "\u00a5"),
+                    new OrderStatusItem(nameof(OrderStatus.Ongoing), "\u8fdb\u884c\u4e2d", "\u231b"),
+                    new OrderStatusItem(nameof(OrderStatus.PendingReview), "\u5f85\u8bc4\u4ef7", "\u270d"),
+                    new OrderStatusItem(nameof(OrderStatus.Completed), "\u5168\u90e8\u8ba2\u5355", "\U0001F5C2")
+                };
+
+                foreach (var summary in summaries)
+                {
+                    summary.Count = orders.Count(o => string.Equals(o.Status, summary.StatusKey, StringComparison.Ordinal));
+                }
+
+                OrderStatuses.Clear();
+                foreach (var summary in summaries)
+                {
+                    OrderStatuses.Add(summary);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load profile: {ex.Message}");
+            }
+        }
+
+        public class OrderStatusItem
+        {
+            public OrderStatusItem(string statusKey, string displayName, string symbol)
+            {
+                StatusKey = statusKey;
+                DisplayName = displayName;
+                Symbol = symbol;
+            }
+
+            public string StatusKey { get; }
+            public string DisplayName { get; }
+            public string Symbol { get; }
+            public int Count { get; set; }
         }
     }
-}】
+}
+】
 
 ViewModels/ServiceDetailViewModel.cs:
 【﻿using GamerLinkApp.Models;
 using GamerLinkApp.Services;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace GamerLinkApp.ViewModels
@@ -615,8 +1122,7 @@ namespace GamerLinkApp.ViewModels
 
             try
             {
-                var services = await _dataService.GetServicesAsync();
-                SelectedService = services.FirstOrDefault(s => s.Id == id);
+                SelectedService = await _dataService.GetServiceByIdAsync(id);
             }
             catch (Exception ex)
             {
@@ -625,6 +1131,8 @@ namespace GamerLinkApp.ViewModels
         }
     }
 }
+
+
 】
 
 ViewModels/ServiceListViewModel.cs:
@@ -669,32 +1177,126 @@ namespace GamerLinkApp.ViewModels
 】
 
 ViewModels/ZoneViewModel.cs:
-【using GamerLinkApp.ViewModels;
+【﻿using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+using GamerLinkApp.Models;
+using GamerLinkApp.Services;
 
 namespace GamerLinkApp.ViewModels
 {
     public class ZoneViewModel : BaseViewModel
     {
-        public ZoneViewModel()
+        private readonly IDataService _dataService;
+
+        public ObservableCollection<string> Games { get; } = new();
+        public ObservableCollection<Service> Services { get; } = new();
+
+        private string? _selectedGame;
+        public string? SelectedGame
         {
-            // 在这里可以初始化专区页面的数据和命令
+            get => _selectedGame;
+            set
+            {
+                if (_selectedGame == value)
+                {
+                    return;
+                }
+
+                _selectedGame = value;
+                OnPropertyChanged();
+                _ = LoadServicesForGameAsync(value);
+            }
+        }
+
+        private Service? _highlightedService;
+        public Service? HighlightedService
+        {
+            get => _highlightedService;
+            private set
+            {
+                if (_highlightedService == value)
+                {
+                    return;
+                }
+
+                _highlightedService = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ZoneViewModel(IDataService dataService)
+        {
+            _dataService = dataService;
+            _ = InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
+            try
+            {
+                var games = await _dataService.GetGameNamesAsync();
+                Games.Clear();
+                foreach (var game in games)
+                {
+                    Games.Add(game);
+                }
+
+                if (Games.Count > 0)
+                {
+                    SelectedGame = Games[0];
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load zone games: {ex.Message}");
+            }
+        }
+
+        private async Task LoadServicesForGameAsync(string? gameName)
+        {
+            if (string.IsNullOrWhiteSpace(gameName))
+            {
+                Services.Clear();
+                HighlightedService = null;
+                return;
+            }
+
+            try
+            {
+                var services = await _dataService.GetServicesByGameAsync(gameName);
+                Services.Clear();
+                foreach (var service in services)
+                {
+                    Services.Add(service);
+                }
+
+                HighlightedService = Services.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load services for {gameName}: {ex.Message}");
+            }
         }
     }
-}】
+}
+】
 
 Views/ProfilePage.xaml:
-【<?xml version="1.0" encoding="utf-8" ?>
+【﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
              x:Class="GamerLinkApp.Views.ProfilePage"
+             x:DataType="vm:ProfileViewModel"
              Title="个人"
              BackgroundColor="#F4F5F7">
     <Grid RowDefinitions="Auto,*">
-        
-
         <ScrollView Grid.Row="1"
                     Padding="0,12,0,24">
-            <VerticalStackLayout Spacing="16"
+            <VerticalStackLayout Spacing="18"
                                   Padding="20,0,20,0">
                 <Border Padding="24,32"
                         StrokeThickness="0"
@@ -708,7 +1310,7 @@ Views/ProfilePage.xaml:
                             <GradientStop Color="#FFE9F3" Offset="1" />
                         </LinearGradientBrush>
                     </Border.Background>
-                    <VerticalStackLayout Spacing="16"
+                    <VerticalStackLayout Spacing="14"
                                           HorizontalOptions="Center"
                                           VerticalOptions="Center">
                         <Border WidthRequest="96"
@@ -720,24 +1322,21 @@ Views/ProfilePage.xaml:
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="48" />
                             </Border.StrokeShape>
-                            <VerticalStackLayout VerticalOptions="Center"
-                                                  HorizontalOptions="Center"
-                                                  Spacing="0">
-                                <Label Text="IHARTY"
-                                       FontSize="14"
-                                       TextColor="White"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center" />
-                            </VerticalStackLayout>
+                            <Image Source="{Binding CurrentUser.AvatarUrl}"
+                                   Aspect="AspectFill" />
                         </Border>
-                        <Label Text="irving"
-                               FontSize="18"
+                        <Label Text="{Binding CurrentUser.Nickname}"
+                               FontSize="19"
                                FontAttributes="Bold"
                                TextColor="#1A1A1A"
                                HorizontalOptions="Center" />
-                        <Label Text="ID: 123456"
+                        <Label Text="{Binding CurrentUser.Username, StringFormat='ID: {0}'}"
                                FontSize="14"
                                TextColor="#666666"
+                               HorizontalOptions="Center" />
+                        <Label Text="{Binding TotalPaid, StringFormat='累计消费 ￥{0:F0}'}"
+                               FontSize="13"
+                               TextColor="#80869A"
                                HorizontalOptions="Center" />
                     </VerticalStackLayout>
                 </Border>
@@ -766,98 +1365,64 @@ Views/ProfilePage.xaml:
                                    TextColor="#00AEEF" />
                         </Grid>
 
-                        <Grid ColumnDefinitions="*,*,*,*"
-                              ColumnSpacing="18">
-                            <VerticalStackLayout Spacing="8"
-                                                  HorizontalOptions="Center"
-                                                  VerticalOptions="Center">
-                                <Border WidthRequest="48"
-                                        HeightRequest="48"
-                                        StrokeThickness="0"
-                                        BackgroundColor="#F5F7FA">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="24" />
-                                    </Border.StrokeShape>
-                                    <Label Text="¥"
-                                           FontSize="20"
-                                           TextColor="#1A1A1A"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-                                <Label Text="待付款"
-                                       FontSize="13"
-                                       TextColor="#444444"
-                                       HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
+                        <CollectionView ItemsSource="{Binding OrderStatuses}"
+                                        SelectionMode="None">
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Horizontal"
+                                                 Span="4"
+                                                 HorizontalItemSpacing="18" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ProfileViewModel+OrderStatusItem">
+                                    <VerticalStackLayout Spacing="8"
+                                                          HorizontalOptions="Center"
+                                                          VerticalOptions="Center">
+                                        <Border WidthRequest="52"
+                                                HeightRequest="52"
+                                                StrokeThickness="0"
+                                                BackgroundColor="#F5F7FA">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="26" />
+                                            </Border.StrokeShape>
+                                            <Label Text="{Binding Symbol}"
+                                                   FontSize="20"
+                                                   TextColor="#1A1A1A"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center"
+                                                   HorizontalTextAlignment="Center" />
+                                        </Border>
+                                        <Label Text="{Binding DisplayName}"
+                                               FontSize="13"
+                                               TextColor="#444444"
+                                               HorizontalOptions="Center"
+                                               HorizontalTextAlignment="Center" />
+                                        <Label Text="{Binding Count, StringFormat='({0})'}"
+                                               FontSize="12"
+                                               TextColor="#80869A"
+                                               HorizontalOptions="Center" />
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
 
-                            <VerticalStackLayout Grid.Column="1"
-                                                  Spacing="8"
-                                                  HorizontalOptions="Center"
-                                                  VerticalOptions="Center">
-                                <Border WidthRequest="48"
-                                        HeightRequest="48"
-                                        StrokeThickness="0"
-                                        BackgroundColor="#F5F7FA">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="24" />
-                                    </Border.StrokeShape>
-                                    <Label Text="⏳"
-                                           FontSize="20"
-                                           TextColor="#1A1A1A"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-                                <Label Text="进行中"
-                                       FontSize="13"
-                                       TextColor="#444444"
-                                       HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Grid.Column="2"
-                                                  Spacing="8"
-                                                  HorizontalOptions="Center"
-                                                  VerticalOptions="Center">
-                                <Border WidthRequest="48"
-                                        HeightRequest="48"
-                                        StrokeThickness="0"
-                                        BackgroundColor="#F5F7FA">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="24" />
-                                    </Border.StrokeShape>
-                                    <Label Text="★"
-                                           FontSize="20"
-                                           TextColor="#1A1A1A"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-                                <Label Text="待评价"
-                                       FontSize="13"
-                                       TextColor="#444444"
-                                       HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Grid.Column="3"
-                                                  Spacing="8"
-                                                  HorizontalOptions="Center"
-                                                  VerticalOptions="Center">
-                                <Border WidthRequest="48"
-                                        HeightRequest="48"
-                                        StrokeThickness="0"
-                                        BackgroundColor="#F5F7FA">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="24" />
-                                    </Border.StrokeShape>
-                                    <Label Text="🗂"
-                                           FontSize="20"
-                                           TextColor="#1A1A1A"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-                                <Label Text="全部订单"
-                                       FontSize="13"
-                                       TextColor="#444444"
-                                       HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="已完成服务"
+                                   FontSize="15"
+                                   TextColor="#1A1A1A" />
+                            <Label Text="{Binding CompletedOrders, StringFormat='{0} 个'}"
+                                   Grid.Column="1"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="#5B61FF" />
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
@@ -924,69 +1489,23 @@ public partial class ProfilePage : ContentPage
 }】
 
 Views/ServiceDetailPage.xaml:
-【<?xml version="1.0" encoding="utf-8" ?>
+【﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
              x:Class="GamerLinkApp.Views.ServiceDetailPage"
+             x:DataType="vm:ServiceDetailViewModel"
              Title="服务详情"
-             BackgroundColor="#F4F5F7">
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="False">
     <Grid RowDefinitions="Auto,*,Auto">
-        <Grid Grid.Row="0"
-              BackgroundColor="White"
-              Padding="20,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <Label Text="服务详情"
-                   Grid.ColumnSpan="2"
-                   FontSize="20"
-                   FontAttributes="Bold"
-                   HorizontalOptions="Center"
-                   HorizontalTextAlignment="Center"
-                   VerticalOptions="Center" />
-
-            <HorizontalStackLayout Grid.Column="1"
-                                    Spacing="12"
-                                    VerticalOptions="Center">
-                <Border StrokeThickness="1"
-                        Stroke="#E0E0E0"
-                        BackgroundColor="Transparent"
-                        Padding="10,4"
-                        HeightRequest="32">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16" />
-                    </Border.StrokeShape>
-                    <Label Text="..."
-                           FontSize="16"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                </Border>
-                <Border StrokeThickness="1"
-                        Stroke="#E0E0E0"
-                        BackgroundColor="Transparent"
-                        Padding="10,4"
-                        HeightRequest="32">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16" />
-                    </Border.StrokeShape>
-                    <Label Text="O"
-                           FontSize="16"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                </Border>
-            </HorizontalStackLayout>
-        </Grid>
-
         <ScrollView Grid.Row="1"
                     Padding="0,12,0,0">
             <VerticalStackLayout Spacing="18"
                                   Padding="20,0,20,120">
                 <Border HeightRequest="220"
                         StrokeThickness="0"
-                        BackgroundColor="#D9D9D9"
-                        >
+                        BackgroundColor="#D9D9D9">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="26" />
                     </Border.StrokeShape>
@@ -1064,13 +1583,13 @@ Views/ServiceDetailPage.xaml:
                                    AlignItems="Center"
                                    AlignContent="Start"
                                    JustifyContent="Start"
-                                   Margin="0">
+                                   Margin="0,4,0,0">
                             <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BackgroundColor="#F5F6FB"
-                                            StrokeThickness="0"
-                                            Padding="12,6"
-                                            Margin="0,0,10,10">
+                                <DataTemplate x:DataType="x:String">
+                                    <Border BackgroundColor="#F3F4FF"
+                                            Margin="0,0,8,8"
+                                            Padding="10,6"
+                                            StrokeThickness="0">
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="14" />
                                         </Border.StrokeShape>
@@ -1083,7 +1602,7 @@ Views/ServiceDetailPage.xaml:
                         </FlexLayout>
 
                         <Grid ColumnDefinitions="*,*"
-                              ColumnSpacing="18">
+                              ColumnSpacing="12">
                             <Border BackgroundColor="#F9FAFC"
                                     Padding="16"
                                     StrokeThickness="0">
@@ -1119,7 +1638,7 @@ Views/ServiceDetailPage.xaml:
                                            FontSize="18"
                                            FontAttributes="Bold"
                                            TextColor="#1F1F1F" />
-                                    <Label Text="{Binding SelectedService.CompletedCount, StringFormat='已完成 {0} 单'}"
+                                    <Label Text="{Binding SelectedService.CompletedCount, StringFormat='已完成{0}单'}"
                                            FontSize="12"
                                            TextColor="#9AA0AE" />
                                 </VerticalStackLayout>
@@ -1157,7 +1676,7 @@ Views/ServiceDetailPage.xaml:
                 <Label Text="当前价格"
                        FontSize="12"
                        TextColor="#7B8596" />
-                <Label Text="{Binding SelectedService.Price, StringFormat='¥{0:F0}'}"
+                <Label Text="{Binding SelectedService.Price, StringFormat='￥{0:F0}'}"
                        FontSize="22"
                        FontAttributes="Bold"
                        TextColor="#FF4D4F" />
@@ -1176,10 +1695,8 @@ Views/ServiceDetailPage.xaml:
 】
 
 Views/ServiceDetailPage.xaml.cs:
-【﻿using System;
-using GamerLinkApp.Services;
+【﻿using GamerLinkApp.Helpers;
 using GamerLinkApp.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GamerLinkApp.Views;
 
@@ -1188,7 +1705,8 @@ public partial class ServiceDetailPage : ContentPage
 {
     private readonly ServiceDetailViewModel _viewModel;
 
-    public ServiceDetailPage() : this(ResolveViewModel())
+    public ServiceDetailPage()
+        : this(ServiceHelper.GetRequiredService<ServiceDetailViewModel>())
     {
     }
 
@@ -1197,18 +1715,6 @@ public partial class ServiceDetailPage : ContentPage
         InitializeComponent();
         _viewModel = vm;
         BindingContext = _viewModel;
-    }
-
-    private static ServiceDetailViewModel ResolveViewModel()
-    {
-        var services = Application.Current?.Handler?.MauiContext?.Services;
-        if (services is not null)
-        {
-            return services.GetRequiredService<ServiceDetailViewModel>();
-        }
-
-        // Fall back to mock data when the MAUI service provider isn't available (e.g. design-time).
-        return new ServiceDetailViewModel(new MockDataService());
     }
 
     public string? ServiceId
@@ -1237,8 +1743,7 @@ Views/ServiceListPage.xaml:
     </ContentPage.Resources>
 
     <CollectionView ItemsSource="{Binding Services}"
-                    SelectionMode="Single"
-                    SelectionChanged="OnServiceSelected"
+                    SelectionMode="None"
                     BackgroundColor="Transparent"
                     ItemSizingStrategy="MeasureAllItems">
         <CollectionView.ItemsLayout>
@@ -1261,7 +1766,7 @@ Views/ServiceListPage.xaml:
                                WidthRequest="20"
                                VerticalOptions="Center"
                                Source="https://img.icons8.com/ios-glyphs/30/9AA0B1/search--v1.png" />
-                        <Entry Placeholder="搜索大神或服务"
+                        <Entry Placeholder="搜索服务或者向导"
                                PlaceholderColor="#9AA0B1"
                                TextColor="#2A2F3C"
                                FontSize="14"
@@ -1351,7 +1856,7 @@ Views/ServiceListPage.xaml:
                             <Image HeightRequest="28"
                                    WidthRequest="28"
                                    Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/medal.png" />
-                            <Label Text="金牌教学"
+                            <Label Text="绝地求生"
                                    FontSize="13"
                                    TextColor="#2A2F3C"
                                    HorizontalTextAlignment="Center" />
@@ -1374,20 +1879,23 @@ Views/ServiceListPage.xaml:
                        CornerRadius="18"
                        HasShadow="False"
                        BorderColor="#EEEEEE">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnServiceTapped" />
+                    </Frame.GestureRecognizers>
                     <Grid ColumnDefinitions="Auto,*"
                           ColumnSpacing="14">
-                        <Border  Grid.Column="0"
+                        <Border Grid.Column="0"
                                 WidthRequest="110"
                                 HeightRequest="88"
                                 StrokeShape="RoundRectangle 16"
-                                VerticalOptions="Center"
-                                >
+                                VerticalOptions="Center">
                             <Image Source="{Binding ThumbnailUrl}"
                                    Aspect="AspectFill" />
                         </Border>
 
-                        <VerticalStackLayout  Grid.Column="1" Spacing="6"
-                                             VerticalOptions="Center">
+                        <VerticalStackLayout Grid.Column="1"
+                                              Spacing="6"
+                                              VerticalOptions="Center">
                             <Label Text="{Binding Title}"
                                    FontSize="16"
                                    FontAttributes="Bold"
@@ -1401,11 +1909,11 @@ Views/ServiceListPage.xaml:
                                 <Label Text="{Binding PurchaseCount, StringFormat='{0}人购买'}"
                                        FontSize="12"
                                        TextColor="#9AA0B1" />
-                                <Label Text="{Binding CompletedCount, StringFormat='已售{0}'}"
+                                <Label Text="{Binding CompletedCount, StringFormat='完成{0}'}"
                                        FontSize="12"
                                        TextColor="#9AA0B1" />
                             </HorizontalStackLayout>
-                            <Label Text="{Binding Price, StringFormat='¥{0:F0}'}"
+                            <Label Text="{Binding Price, StringFormat='￥{0:F0}'}"
                                    FontSize="16"
                                    FontAttributes="Bold"
                                    TextColor="#FF4D4F" />
@@ -1416,7 +1924,6 @@ Views/ServiceListPage.xaml:
         </CollectionView.ItemTemplate>
     </CollectionView>
 </ContentPage>
-
 】
 
 Views/ServiceListPage.xaml.cs:
@@ -1441,79 +1948,70 @@ public partial class ServiceListPage : ContentPage
     }
 
     // ����: ����������Ŀѡ���¼�
-    private async void OnServiceSelected(object sender, SelectionChangedEventArgs e)
+    private async void OnServiceTapped(object sender, TappedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is not Service selectedService)
+        if ((sender as Element)?.BindingContext is not Service tappedService)
             return;
 
-        await Shell.Current.GoToAsync($"{nameof(ServiceDetailPage)}?id={selectedService.Id}");
-
-        ((CollectionView)sender).SelectedItem = null;
+        await Shell.Current.GoToAsync($"{nameof(ServiceDetailPage)}?id={tappedService.Id}");
     }
-
 }
 】
 
 Views/ZonePage.xaml:
-【<?xml version="1.0" encoding="utf-8" ?>
+【﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             xmlns:models="clr-namespace:GamerLinkApp.Models"
              x:Class="GamerLinkApp.Views.ZonePage"
+             x:DataType="vm:ZoneViewModel"
              Title="专区"
              BackgroundColor="#F4F5F7">
     <Grid RowDefinitions="Auto,*">
-        
-
         <Grid Grid.Row="1"
               ColumnDefinitions="130,*">
-            <VerticalStackLayout Grid.Column="0"
-                                 BackgroundColor="#EFEFF4"
-                                 Padding="0"
-                                 Spacing="0">
-                <Border BackgroundColor="White"
-                        Margin="0,12,0,0"
-                        Padding="0,6">
-                    <Grid ColumnDefinitions="4,*"
-                          VerticalOptions="Center"
-                          HeightRequest="48">
-                        <BoxView Grid.Column="0"
-                                 WidthRequest="4"
-                                 BackgroundColor="#00AEEF" />
-                        <Label Grid.Column="1"
-                               Text="英雄联盟"
-                               FontAttributes="Bold"
-                               FontSize="16"
-                               TextColor="#00AEEF"
-                               VerticalOptions="Center"
-                               Padding="16,0" />
-                    </Grid>
-                </Border>
-
-                <Border BackgroundColor="Transparent"
-                        Padding="16,14"
-                        HeightRequest="48">
-                    <Label Text="王者荣耀"
-                           FontSize="15"
-                           TextColor="#4D4D4D"
-                           VerticalOptions="Center" />
-                </Border>
-
-                <Border BackgroundColor="Transparent"
-                        Padding="16,14"
-                        HeightRequest="48">
-                    <Label Text="金铲铲之战"
-                           FontSize="15"
-                           TextColor="#4D4D4D"
-                           VerticalOptions="Center" />
-                </Border>
-            </VerticalStackLayout>
+            <CollectionView Grid.Column="0"
+                            ItemsSource="{Binding Games}"
+                            SelectionMode="Single"
+                            SelectedItem="{Binding SelectedGame, Mode=TwoWay}"
+                            BackgroundColor="#EFEFF4"
+                            Margin="0,12,0,0">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical"
+                                       ItemSpacing="4" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <Border Margin="0,0,0,4"
+                                Padding="16,14"
+                                BackgroundColor="Transparent">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup Name="CommonStates">
+                                    <VisualState Name="Normal" />
+                                    <VisualState Name="Selected">
+                                        <VisualState.Setters>
+                                            <Setter Property="BackgroundColor" Value="White" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <Label Text="{Binding .}"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="#1F1F1F"
+                                   VerticalOptions="Center" />
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
 
             <ScrollView Grid.Column="1"
                         BackgroundColor="White"
                         Padding="0,12,0,0">
                 <VerticalStackLayout Padding="20,0,20,24"
-                                      Spacing="16">
-                    <Label Text="英雄联盟"
+                                      Spacing="18">
+                    <Label Text="{Binding HighlightedService.GameName}"
                            FontSize="18"
                            FontAttributes="Bold"
                            TextColor="#1A1A1A" />
@@ -1532,34 +2030,88 @@ Views/ZonePage.xaml:
                         </Border.Shadow>
                         <Grid ColumnDefinitions="Auto,*"
                               ColumnSpacing="16">
-                            <Border WidthRequest="80"
-                                    HeightRequest="80"
+                            <Border WidthRequest="90"
+                                    HeightRequest="90"
                                     StrokeThickness="0"
                                     BackgroundColor="#F2F2F2">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="12" />
                                 </Border.StrokeShape>
-                                <Image Source="dotnet_bot.png"
+                                <Image Source="{Binding HighlightedService.ThumbnailUrl}"
                                        Aspect="AspectFill" />
                             </Border>
 
                             <VerticalStackLayout Grid.Column="1"
                                                   Spacing="6"
                                                   VerticalOptions="Center">
-                                <Label Text="英雄联盟-钻石到大师"
+                                <Label Text="{Binding HighlightedService.Title}"
                                        FontAttributes="Bold"
                                        FontSize="16"
-                                       TextColor="#1A1A1A" />
-                                <Label Text="已售45"
+                                       TextColor="#1A1A1A"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding HighlightedService.Description}"
                                        FontSize="13"
-                                       TextColor="#8F8F8F" />
-                                <Label Text="¥300"
+                                       TextColor="#6F7583"
+                                       LineHeight="1.2"
+                                       MaxLines="3" />
+                                <Label Text="{Binding HighlightedService.Price, StringFormat='￥{0:F0}'}"
                                        FontSize="16"
                                        FontAttributes="Bold"
                                        TextColor="#E53935" />
                             </VerticalStackLayout>
                         </Grid>
                     </Border>
+
+                    <CollectionView ItemsSource="{Binding Services}"
+                                    SelectionMode="None">
+                        <CollectionView.Header>
+                            <Label Text="更多服务"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A"
+                                   Margin="0,8,0,4" />
+                        </CollectionView.Header>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:Service">
+                                <Border Padding="14"
+                                        Margin="0,0,0,12"
+                                        StrokeThickness="1"
+                                        Stroke="#EEEEEE"
+                                        BackgroundColor="#FAFAFC">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="16" />
+                                    </Border.StrokeShape>
+                                    <Grid ColumnDefinitions="Auto,*"
+                                          ColumnSpacing="14">
+                                        <Border WidthRequest="72"
+                                                HeightRequest="72"
+                                                StrokeThickness="0"
+                                                BackgroundColor="#F0F0F0">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="10" />
+                                            </Border.StrokeShape>
+                                            <Image Source="{Binding ThumbnailUrl}" Aspect="AspectFill" />
+                                        </Border>
+                                        <VerticalStackLayout Grid.Column="1"
+                                                              Spacing="4"
+                                                              VerticalOptions="Center">
+                                            <Label Text="{Binding Title}"
+                                                   FontSize="15"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1A1A1A"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding Price, StringFormat='￥{0:F0}'}"
+                                                   FontSize="14"
+                                                   TextColor="#5B61FF" />
+                                            <Label Text="{Binding PurchaseCount, StringFormat='已售{0}'}"
+                                                   FontSize="12"
+                                                   TextColor="#80869A" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
                 </VerticalStackLayout>
             </ScrollView>
         </Grid>

@@ -1,66 +1,20 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
              x:Class="GamerLinkApp.Views.ServiceDetailPage"
+             x:DataType="vm:ServiceDetailViewModel"
              Title="服务详情"
-             BackgroundColor="#F4F5F7">
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="False">
     <Grid RowDefinitions="Auto,*,Auto">
-        <Grid Grid.Row="0"
-              BackgroundColor="White"
-              Padding="20,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <Label Text="服务详情"
-                   Grid.ColumnSpan="2"
-                   FontSize="20"
-                   FontAttributes="Bold"
-                   HorizontalOptions="Center"
-                   HorizontalTextAlignment="Center"
-                   VerticalOptions="Center" />
-
-            <HorizontalStackLayout Grid.Column="1"
-                                    Spacing="12"
-                                    VerticalOptions="Center">
-                <Border StrokeThickness="1"
-                        Stroke="#E0E0E0"
-                        BackgroundColor="Transparent"
-                        Padding="10,4"
-                        HeightRequest="32">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16" />
-                    </Border.StrokeShape>
-                    <Label Text="..."
-                           FontSize="16"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                </Border>
-                <Border StrokeThickness="1"
-                        Stroke="#E0E0E0"
-                        BackgroundColor="Transparent"
-                        Padding="10,4"
-                        HeightRequest="32">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="16" />
-                    </Border.StrokeShape>
-                    <Label Text="O"
-                           FontSize="16"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                </Border>
-            </HorizontalStackLayout>
-        </Grid>
-
         <ScrollView Grid.Row="1"
                     Padding="0,12,0,0">
             <VerticalStackLayout Spacing="18"
                                   Padding="20,0,20,120">
                 <Border HeightRequest="220"
                         StrokeThickness="0"
-                        BackgroundColor="#D9D9D9"
-                        >
+                        BackgroundColor="#D9D9D9">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="26" />
                     </Border.StrokeShape>
@@ -138,13 +92,13 @@
                                    AlignItems="Center"
                                    AlignContent="Start"
                                    JustifyContent="Start"
-                                   Margin="0">
+                                   Margin="0,4,0,0">
                             <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BackgroundColor="#F5F6FB"
-                                            StrokeThickness="0"
-                                            Padding="12,6"
-                                            Margin="0,0,10,10">
+                                <DataTemplate x:DataType="x:String">
+                                    <Border BackgroundColor="#F3F4FF"
+                                            Margin="0,0,8,8"
+                                            Padding="10,6"
+                                            StrokeThickness="0">
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="14" />
                                         </Border.StrokeShape>
@@ -157,7 +111,7 @@
                         </FlexLayout>
 
                         <Grid ColumnDefinitions="*,*"
-                              ColumnSpacing="18">
+                              ColumnSpacing="12">
                             <Border BackgroundColor="#F9FAFC"
                                     Padding="16"
                                     StrokeThickness="0">
@@ -193,7 +147,7 @@
                                            FontSize="18"
                                            FontAttributes="Bold"
                                            TextColor="#1F1F1F" />
-                                    <Label Text="{Binding SelectedService.CompletedCount, StringFormat='已完成 {0} 单'}"
+                                    <Label Text="{Binding SelectedService.CompletedCount, StringFormat='已完成{0}单'}"
                                            FontSize="12"
                                            TextColor="#9AA0AE" />
                                 </VerticalStackLayout>
@@ -231,7 +185,7 @@
                 <Label Text="当前价格"
                        FontSize="12"
                        TextColor="#7B8596" />
-                <Label Text="{Binding SelectedService.Price, StringFormat='¥{0:F0}'}"
+                <Label Text="{Binding SelectedService.Price, StringFormat='￥{0:F0}'}"
                        FontSize="22"
                        FontAttributes="Bold"
                        TextColor="#FF4D4F" />

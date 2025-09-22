@@ -1,8 +1,5 @@
 ﻿using GamerLinkApp.Models;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace GamerLinkApp.Services
@@ -10,6 +7,10 @@ namespace GamerLinkApp.Services
     public interface IDataService
     {
         Task<List<Service>> GetServicesAsync();
-        // ... 其他数据操作方法
+        Task<Service?> GetServiceByIdAsync(int id);
+        Task<List<string>> GetGameNamesAsync();
+        Task<List<Service>> GetServicesByGameAsync(string gameName);
+        Task<User?> GetUserAsync(int id);
+        Task<List<Order>> GetOrdersByUserAsync(int userId);
     }
 }

@@ -1,7 +1,13 @@
-﻿using GamerLinkApp.Services;
-using Microsoft.Extensions.Logging;
+﻿using System.IO;
+using GamerLinkApp.Data;
+using GamerLinkApp.Helpers;
+using GamerLinkApp.Services;
 using GamerLinkApp.ViewModels;
 using GamerLinkApp.Views;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Storage;
+
 namespace GamerLinkApp
 {
     public static class MauiProgram
@@ -18,16 +24,32 @@ namespace GamerLinkApp
                 });
 
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
-            // 注册服务
-            builder.Services.AddSingleton<IDataService, MockDataService>();
 
-            // 注册视图和视图模型
+            var databasePath = Path.Combine(FileSystem.AppDataDirectory, "gamerlink.db");
+
+#if DEBUG
+            if (File.Exists(databasePath))
+            {
+                File.Delete(databasePath);
+                Console.WriteLine($"数据库已删除: {databasePath}");
+            }
+            else
+            {
+                Console.WriteLine("数据库不存在。");
+            }
+#endif
+
+            builder.Services.AddDbContextFactory<ServiceDbContext>(options =>
+                options.UseSqlite($"Data Source={databasePath}"));
+            builder.Services.AddSingleton<IDataService, SqliteDataService>();
+
+            // ע���б�ҳ����ͼģ��
             builder.Services.AddSingleton<ServiceListPage>();
             builder.Services.AddSingleton<ServiceListViewModel>();
 
-            // ... 注册其他页面和视图模型
+            // ע������ҳ����ͼģ��
             builder.Services.AddSingleton<ZonePage>();
             builder.Services.AddSingleton<ZoneViewModel>();
             builder.Services.AddSingleton<ProfilePage>();
@@ -36,7 +58,10 @@ namespace GamerLinkApp
             builder.Services.AddTransient<ServiceDetailPage>();
             builder.Services.AddTransient<ServiceDetailViewModel>();
 
-            return builder.Build();
+            var app = builder.Build();
+            ServiceHelper.Initialize(app.Services);
+
+            return app;
         }
     }
 }

@@ -19,14 +19,11 @@ public partial class ServiceListPage : ContentPage
     }
 
     // ����: ����������Ŀѡ���¼�
-    private async void OnServiceSelected(object sender, SelectionChangedEventArgs e)
+    private async void OnServiceTapped(object sender, TappedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is not Service selectedService)
+        if ((sender as Element)?.BindingContext is not Service tappedService)
             return;
 
-        await Shell.Current.GoToAsync($"{nameof(ServiceDetailPage)}?id={selectedService.Id}");
-
-        ((CollectionView)sender).SelectedItem = null;
+        await Shell.Current.GoToAsync($"{nameof(ServiceDetailPage)}?id={tappedService.Id}");
     }
-
 }

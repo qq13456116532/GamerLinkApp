@@ -10,8 +10,7 @@
     </ContentPage.Resources>
 
     <CollectionView ItemsSource="{Binding Services}"
-                    SelectionMode="Single"
-                    SelectionChanged="OnServiceSelected"
+                    SelectionMode="None"
                     BackgroundColor="Transparent"
                     ItemSizingStrategy="MeasureAllItems">
         <CollectionView.ItemsLayout>
@@ -34,7 +33,7 @@
                                WidthRequest="20"
                                VerticalOptions="Center"
                                Source="https://img.icons8.com/ios-glyphs/30/9AA0B1/search--v1.png" />
-                        <Entry Placeholder="搜索大神或服务"
+                        <Entry Placeholder="搜索服务或者向导"
                                PlaceholderColor="#9AA0B1"
                                TextColor="#2A2F3C"
                                FontSize="14"
@@ -124,7 +123,7 @@
                             <Image HeightRequest="28"
                                    WidthRequest="28"
                                    Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/medal.png" />
-                            <Label Text="金牌教学"
+                            <Label Text="绝地求生"
                                    FontSize="13"
                                    TextColor="#2A2F3C"
                                    HorizontalTextAlignment="Center" />
@@ -147,20 +146,23 @@
                        CornerRadius="18"
                        HasShadow="False"
                        BorderColor="#EEEEEE">
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnServiceTapped" />
+                    </Frame.GestureRecognizers>
                     <Grid ColumnDefinitions="Auto,*"
                           ColumnSpacing="14">
-                        <Border  Grid.Column="0"
+                        <Border Grid.Column="0"
                                 WidthRequest="110"
                                 HeightRequest="88"
                                 StrokeShape="RoundRectangle 16"
-                                VerticalOptions="Center"
-                                >
+                                VerticalOptions="Center">
                             <Image Source="{Binding ThumbnailUrl}"
                                    Aspect="AspectFill" />
                         </Border>
 
-                        <VerticalStackLayout  Grid.Column="1" Spacing="6"
-                                             VerticalOptions="Center">
+                        <VerticalStackLayout Grid.Column="1"
+                                              Spacing="6"
+                                              VerticalOptions="Center">
                             <Label Text="{Binding Title}"
                                    FontSize="16"
                                    FontAttributes="Bold"
@@ -174,11 +176,11 @@
                                 <Label Text="{Binding PurchaseCount, StringFormat='{0}人购买'}"
                                        FontSize="12"
                                        TextColor="#9AA0B1" />
-                                <Label Text="{Binding CompletedCount, StringFormat='已售{0}'}"
+                                <Label Text="{Binding CompletedCount, StringFormat='完成{0}'}"
                                        FontSize="12"
                                        TextColor="#9AA0B1" />
                             </HorizontalStackLayout>
-                            <Label Text="{Binding Price, StringFormat='¥{0:F0}'}"
+                            <Label Text="{Binding Price, StringFormat='￥{0:F0}'}"
                                    FontSize="16"
                                    FontAttributes="Bold"
                                    TextColor="#FF4D4F" />
@@ -189,4 +191,3 @@
         </CollectionView.ItemTemplate>
     </CollectionView>
 </ContentPage>
-

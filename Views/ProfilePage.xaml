@@ -1,15 +1,15 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
              x:Class="GamerLinkApp.Views.ProfilePage"
+             x:DataType="vm:ProfileViewModel"
              Title="个人"
              BackgroundColor="#F4F5F7">
     <Grid RowDefinitions="Auto,*">
-        
-
         <ScrollView Grid.Row="1"
                     Padding="0,12,0,24">
-            <VerticalStackLayout Spacing="16"
+            <VerticalStackLayout Spacing="18"
                                   Padding="20,0,20,0">
                 <Border Padding="24,32"
                         StrokeThickness="0"
@@ -23,7 +23,7 @@
                             <GradientStop Color="#FFE9F3" Offset="1" />
                         </LinearGradientBrush>
                     </Border.Background>
-                    <VerticalStackLayout Spacing="16"
+                    <VerticalStackLayout Spacing="14"
                                           HorizontalOptions="Center"
                                           VerticalOptions="Center">
                         <Border WidthRequest="96"
@@ -35,24 +35,21 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="48" />
                             </Border.StrokeShape>
-                            <VerticalStackLayout VerticalOptions="Center"
-                                                  HorizontalOptions="Center"
-                                                  Spacing="0">
-                                <Label Text="IHARTY"
-                                       FontSize="14"
-                                       TextColor="White"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center" />
-                            </VerticalStackLayout>
+                            <Image Source="{Binding CurrentUser.AvatarUrl}"
+                                   Aspect="AspectFill" />
                         </Border>
-                        <Label Text="irving"
-                               FontSize="18"
+                        <Label Text="{Binding CurrentUser.Nickname}"
+                               FontSize="19"
                                FontAttributes="Bold"
                                TextColor="#1A1A1A"
                                HorizontalOptions="Center" />
-                        <Label Text="ID: 123456"
+                        <Label Text="{Binding CurrentUser.Username, StringFormat='ID: {0}'}"
                                FontSize="14"
                                TextColor="#666666"
+                               HorizontalOptions="Center" />
+                        <Label Text="{Binding TotalPaid, StringFormat='累计消费 ￥{0:F0}'}"
+                               FontSize="13"
+                               TextColor="#80869A"
                                HorizontalOptions="Center" />
                     </VerticalStackLayout>
                 </Border>
@@ -81,98 +78,64 @@
                                    TextColor="#00AEEF" />
                         </Grid>
 
-                        <Grid ColumnDefinitions="*,*,*,*"
-                              ColumnSpacing="18">
-                            <VerticalStackLayout Spacing="8"
-                                                  HorizontalOptions="Center"
-                                                  VerticalOptions="Center">
-                                <Border WidthRequest="48"
-                                        HeightRequest="48"
-                                        StrokeThickness="0"
-                                        BackgroundColor="#F5F7FA">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="24" />
-                                    </Border.StrokeShape>
-                                    <Label Text="¥"
-                                           FontSize="20"
-                                           TextColor="#1A1A1A"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-                                <Label Text="待付款"
-                                       FontSize="13"
-                                       TextColor="#444444"
-                                       HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
+                        <CollectionView ItemsSource="{Binding OrderStatuses}"
+                                        SelectionMode="None">
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Vertical"
+                                                 Span="4"
+                                                 HorizontalItemSpacing="18" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ProfileViewModel+OrderStatusItem">
+                                    <VerticalStackLayout Spacing="8"
+                                                          HorizontalOptions="Center"
+                                                          VerticalOptions="Center">
+                                        <Border WidthRequest="52"
+                                                HeightRequest="52"
+                                                StrokeThickness="0"
+                                                BackgroundColor="#F5F7FA">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="26" />
+                                            </Border.StrokeShape>
+                                            <Label Text="{Binding Symbol}"
+                                                   FontSize="20"
+                                                   TextColor="#1A1A1A"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center"
+                                                   HorizontalTextAlignment="Center" />
+                                        </Border>
+                                        <Label Text="{Binding DisplayName}"
+                                               FontSize="13"
+                                               TextColor="#444444"
+                                               HorizontalOptions="Center"
+                                               HorizontalTextAlignment="Center" />
+                                        <Label Text="{Binding Count, StringFormat='({0})'}"
+                                               FontSize="12"
+                                               TextColor="#80869A"
+                                               HorizontalOptions="Center" />
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
 
-                            <VerticalStackLayout Grid.Column="1"
-                                                  Spacing="8"
-                                                  HorizontalOptions="Center"
-                                                  VerticalOptions="Center">
-                                <Border WidthRequest="48"
-                                        HeightRequest="48"
-                                        StrokeThickness="0"
-                                        BackgroundColor="#F5F7FA">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="24" />
-                                    </Border.StrokeShape>
-                                    <Label Text="⏳"
-                                           FontSize="20"
-                                           TextColor="#1A1A1A"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-                                <Label Text="进行中"
-                                       FontSize="13"
-                                       TextColor="#444444"
-                                       HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Grid.Column="2"
-                                                  Spacing="8"
-                                                  HorizontalOptions="Center"
-                                                  VerticalOptions="Center">
-                                <Border WidthRequest="48"
-                                        HeightRequest="48"
-                                        StrokeThickness="0"
-                                        BackgroundColor="#F5F7FA">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="24" />
-                                    </Border.StrokeShape>
-                                    <Label Text="★"
-                                           FontSize="20"
-                                           TextColor="#1A1A1A"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-                                <Label Text="待评价"
-                                       FontSize="13"
-                                       TextColor="#444444"
-                                       HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Grid.Column="3"
-                                                  Spacing="8"
-                                                  HorizontalOptions="Center"
-                                                  VerticalOptions="Center">
-                                <Border WidthRequest="48"
-                                        HeightRequest="48"
-                                        StrokeThickness="0"
-                                        BackgroundColor="#F5F7FA">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="24" />
-                                    </Border.StrokeShape>
-                                    <Label Text="🗂"
-                                           FontSize="20"
-                                           TextColor="#1A1A1A"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center" />
-                                </Border>
-                                <Label Text="全部订单"
-                                       FontSize="13"
-                                       TextColor="#444444"
-                                       HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="已完成服务"
+                                   FontSize="15"
+                                   TextColor="#1A1A1A" />
+                            <Label Text="{Binding CompletedOrders, StringFormat='{0} 个'}"
+                                   Grid.Column="1"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="#5B61FF" />
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
@@ -218,3 +181,4 @@
         </ScrollView>
     </Grid>
 </ContentPage>
+

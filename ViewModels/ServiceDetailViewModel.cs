@@ -1,7 +1,6 @@
 ﻿using GamerLinkApp.Models;
 using GamerLinkApp.Services;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace GamerLinkApp.ViewModels
@@ -54,8 +53,7 @@ namespace GamerLinkApp.ViewModels
 
             try
             {
-                var services = await _dataService.GetServicesAsync();
-                SelectedService = services.FirstOrDefault(s => s.Id == id);
+                SelectedService = await _dataService.GetServiceByIdAsync(id);
             }
             catch (Exception ex)
             {
@@ -64,3 +62,5 @@ namespace GamerLinkApp.ViewModels
         }
     }
 }
+
+
