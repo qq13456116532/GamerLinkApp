@@ -150,15 +150,26 @@ namespace GamerLinkApp
 #endif
 
             var databasePath = Path.Combine(FileSystem.AppDataDirectory, "gamerlink.db");
+
+#if DEBUG
+            if (File.Exists(databasePath))
+            {
+                File.Delete(databasePath);
+                Console.WriteLine($"数据库已删除: {databasePath}");
+            }
+            else
+            {
+                Console.WriteLine("数据库不存在。");
+            }
+#endif
+
             builder.Services.AddDbContextFactory<ServiceDbContext>(options =>
                 options.UseSqlite($"Data Source={databasePath}"));
             builder.Services.AddSingleton<IDataService, SqliteDataService>();
 
-            // ע���б�ҳ����ͼģ��
             builder.Services.AddSingleton<ServiceListPage>();
             builder.Services.AddSingleton<ServiceListViewModel>();
 
-            // ע������ҳ����ͼģ��
             builder.Services.AddSingleton<ZonePage>();
             builder.Services.AddSingleton<ZoneViewModel>();
             builder.Services.AddSingleton<ProfilePage>();
@@ -172,6 +183,156 @@ namespace GamerLinkApp
 
             return app;
         }
+    }
+}
+】
+
+Data/ServiceDbContext.cs:
+【﻿using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using GamerLinkApp.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+
+namespace GamerLinkApp.Data
+{
+    public class ServiceDbContext : DbContext
+    {
+        private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+        {
+            WriteIndented = false
+        };
+
+        private static readonly ValueConverter<List<string>, string> ListConverter = new(
+            list => JsonSerializer.Serialize(list ?? new List<string>(), JsonOptions),
+            json => string.IsNullOrWhiteSpace(json)
+                ? new List<string>()
+                : JsonSerializer.Deserialize<List<string>>(json, JsonOptions) ?? new List<string>()
+        );
+
+        private static readonly ValueComparer<List<string>> ListComparer = new(
+            (left, right) => AreListsEqual(left, right),
+            list => GetListHashCode(list),
+            list => CloneList(list)
+        );
+
+        public ServiceDbContext(DbContextOptions<ServiceDbContext> options)
+            : base(options)
+        {
+        }
+
+        public DbSet<Service> Services => Set<Service>();
+        public DbSet<User> Users => Set<User>();
+        public DbSet<Order> Orders => Set<Order>();
+        public DbSet<Review> Reviews => Set<Review>();
+        public DbSet<Banner> Banners => Set<Banner>();
+        public DbSet<Category> Categories => Set<Category>();
+        public DbSet<Favorite> Favorites => Set<Favorite>();
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            ConfigureService(modelBuilder);
+        }
+
+        private static void ConfigureService(ModelBuilder modelBuilder)
+        {
+            var entity = modelBuilder.Entity<Service>();
+
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.Title).IsRequired();
+            entity.Property(s => s.Description).IsRequired(false);
+            entity.Property(s => s.GameName).IsRequired(false);
+            entity.Property(s => s.ServiceType).IsRequired(false);
+            entity.Property(s => s.Category).IsRequired(false);
+            entity.Property(s => s.ThumbnailUrl).IsRequired(false);
+
+            entity.Property(s => s.ImageUrls)
+                .HasConversion(ListConverter)
+                .Metadata.SetValueComparer(ListComparer);
+
+            entity.Property(s => s.Tags)
+                .HasConversion(ListConverter)
+                .Metadata.SetValueComparer(ListComparer);
+        }
+
+        private static bool AreListsEqual(List<string>? left, List<string>? right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return true;
+            }
+
+            if (left is null || right is null)
+            {
+                return left is null && right is null;
+            }
+
+            if (left.Count != right.Count)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < left.Count; i++)
+            {
+                if (!string.Equals(left[i], right[i], StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static int GetListHashCode(List<string>? list)
+        {
+            if (list is null || list.Count == 0)
+            {
+                return 0;
+            }
+
+            var hash = new HashCode();
+            for (var i = 0; i < list.Count; i++)
+            {
+                hash.Add(list[i], StringComparer.Ordinal);
+            }
+
+            return hash.ToHashCode();
+        }
+
+        private static List<string> CloneList(List<string>? list)
+        {
+            return list is null ? new List<string>() : new List<string>(list);
+        }
+    }
+}
+】
+
+Helpers/ServiceHelper.cs:
+【﻿using System;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace GamerLinkApp.Helpers;
+
+public static class ServiceHelper
+{
+    private static IServiceProvider? _serviceProvider;
+
+    public static void Initialize(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+
+    public static T GetRequiredService<T>() where T : notnull
+    {
+        if (_serviceProvider is null)
+        {
+            throw new InvalidOperationException("Service provider is not initialized.");
+        }
+
+        return _serviceProvider.GetRequiredService<T>();
     }
 }
 】
@@ -434,6 +595,158 @@ namespace GamerLinkApp
 }
 】
 
+Resources/Raw/seed_data.json:
+【{
+  "Services": [
+    {
+      "Id": 1,
+      "Title": "王者荣耀-巅峰陪练团",
+      "Description": "顶尖荣耀教练，全赛季陪练指点操作与意识，助你稳步上分。",
+      "GameName": "王者荣耀",
+      "Price": 58,
+      "ServiceType": "陪练",
+      "Category": "MOBA",
+      "SellerId": 1,
+      "ThumbnailUrl": "banner1.png",
+      "ImageUrls": [
+        "banner1.png",
+        "banner2.png"
+      ],
+      "IsFeatured": true,
+      "AverageRating": 4.9,
+      "ReviewCount": 1280,
+      "PurchaseCount": 1547,
+      "CompletedCount": 120,
+      "Tags": ["打野上分", "意识训练", "赛后复盘"]
+    },
+    {
+      "Id": 2,
+      "Title": "英雄联盟-大师晋级导师",
+      "Description": "前职业选手一对一定制上分方案，单双排/灵活全段位安全托管。",
+      "GameName": "英雄联盟",
+      "Price": 318,
+      "ServiceType": "代练",
+      "Category": "MOBA",
+      "SellerId": 2,
+      "ThumbnailUrl": "banner1.png",
+      "ImageUrls": [
+        "banner1.png",
+        "banner2.png"
+      ],
+      "IsFeatured": true,
+      "AverageRating": 4.8,
+      "ReviewCount": 980,
+      "PurchaseCount": 2300,
+      "CompletedCount": 45,
+      "Tags": ["国服钻石", "全位置", "职业教练"]
+    },
+    {
+      "Id": 3,
+      "Title": "绝地求生-战术指挥官",
+      "Description": "提供战术拆解、枪法训练与团队指挥复盘，让你每局都能精准吃鸡。",
+      "GameName": "绝地求生",
+      "Price": 126,
+      "ServiceType": "教学",
+      "Category": "射击",
+      "SellerId": 3,
+      "ThumbnailUrl": "banner1.png",
+      "ImageUrls": [
+        "banner1.png",
+        "banner2.png"
+      ],
+      "IsFeatured": false,
+      "AverageRating": 4.7,
+      "ReviewCount": 560,
+      "PurchaseCount": 860,
+      "CompletedCount": 72,
+      "Tags": ["战术分析", "枪法提升", "团队配合"]
+    },
+    {
+      "Id": 4,
+      "Title": "CS:GO 高手陪练",
+      "Description": "职业枪法指导，带你练习压枪与道具运用。",
+      "GameName": "CS:GO",
+      "Price": 99,
+      "ServiceType": "陪练",
+      "Category": "射击",
+      "SellerId": 4,
+      "ThumbnailUrl": "banner1.png",
+      "ImageUrls": ["banner1.png"],
+      "IsFeatured": true,
+      "AverageRating": 4.6,
+      "ReviewCount": 340,
+      "PurchaseCount": 620,
+      "CompletedCount": 500,
+      "Tags": ["压枪训练", "团队战术"]
+    }
+  ],
+  "Users": [
+    {
+      "Id": 1,
+      "Username": "iharty",
+      "Email": "iharty@example.com",
+      "Nickname": "Irving",
+      "AvatarUrl": "banner1.png"
+    },
+    {
+      "Id": 2,
+      "Username": "proplayer",
+      "Email": "pro@example.com",
+      "Nickname": "职业选手",
+      "AvatarUrl": "banner2.png"
+    }
+  ],
+  "Orders": [
+    {
+      "Id": 1,
+      "ServiceId": 1,
+      "BuyerId": 1,
+      "OrderDate": "2023-10-01T10:00:00Z",
+      "PaymentDate": "2023-10-01T11:00:00Z",
+      "CompletionDate": "2023-10-02T10:00:00Z",
+      "TotalPrice": 58,
+      "Status": "Completed"
+    },
+    {
+      "Id": 2,
+      "ServiceId": 2,
+      "BuyerId": 1,
+      "OrderDate": "2023-11-01T10:00:00Z",
+      "PaymentDate": "2023-11-01T12:00:00Z",
+      "TotalPrice": 318,
+      "Status": "PendingReview"
+    },
+    {
+      "Id": 3,
+      "ServiceId": 3,
+      "BuyerId": 1,
+      "OrderDate": "2023-12-01T10:00:00Z",
+      "PaymentDate": "2023-12-01T11:00:00Z",
+      "TotalPrice": 126,
+      "Status": "Ongoing"
+    },
+    {
+      "Id": 4,
+      "ServiceId": 4,
+      "BuyerId": 2,
+      "OrderDate": "2024-01-01T10:00:00Z",
+      "TotalPrice": 99,
+      "Status": "PendingPayment"
+    }
+  ],
+  "Categories": [
+    { "Id": 1, "Name": "MOBA", "IconUrl": "banner1.png" },
+    { "Id": 2, "Name": "射击", "IconUrl": "banner2.png" },
+    { "Id": 3, "Name": "RPG", "IconUrl": "banner3.png" }
+  ],
+  "Banners": [
+    { "Id": 1, "ImageUrl": "banner1.png", "TargetUrl": "/ServiceDetail/1" },
+    { "Id": 2, "ImageUrl": "banner2.png", "TargetUrl": "/ServiceDetail/2" },
+    { "Id": 3, "ImageUrl": "banner3.png", "TargetUrl": "/ServiceDetail/3" }
+  ]
+}
+】
+
 Services/IDataService.cs:
 【﻿using GamerLinkApp.Models;
 using System.Collections.Generic;
@@ -445,197 +758,10 @@ namespace GamerLinkApp.Services
     {
         Task<List<Service>> GetServicesAsync();
         Task<Service?> GetServiceByIdAsync(int id);
-        Task<List<string>> GetGameNamesAsync();
-        Task<List<Service>> GetServicesByGameAsync(string gameName);
+        Task<List<Category>> GetCategoriesAsync();
+        Task<List<Service>> GetServicesByCategoryAsync(Category category);
         Task<User?> GetUserAsync(int id);
         Task<List<Order>> GetOrdersByUserAsync(int userId);
-    }
-}
-】
-
-Services/MockDataService.cs:
-【﻿using GamerLinkApp.Models;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace GamerLinkApp.Services
-{
-    public class MockDataService : IDataService
-    {
-        private static readonly List<Service> ServicesSeed = new()
-        {
-            new Service
-            {
-                Id = 1,
-                Title = "王者荣耀-巅峰陪练团",
-                Description = "顶尖荣耀教练，全赛季陪练指点操作与意识，助你稳步上分。",
-                GameName = "王者荣耀",
-                Price = 58m,
-                ServiceType = "陪练",
-                Category = "MOBA",
-                SellerId = 1,
-                ThumbnailUrl = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=640&q=80",
-                ImageUrls = new List<string>
-                {
-                    "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1080&q=80",
-                    "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1080&q=80"
-                },
-                IsFeatured = true,
-                AverageRating = 4.9,
-                ReviewCount = 1280,
-                PurchaseCount = 1547,
-                CompletedCount = 120,
-                Tags = new List<string> { "打野上分", "意识训练", "赛后复盘" }
-            },
-            new Service
-            {
-                Id = 2,
-                Title = "英雄联盟-大师晋级导师",
-                Description = "前职业选手一对一定制上分方案，单双排/灵活全段位安全托管。",
-                GameName = "英雄联盟",
-                Price = 318m,
-                ServiceType = "代练",
-                Category = "MOBA",
-                SellerId = 2,
-                ThumbnailUrl = "https://images.unsplash.com/photo-1538485399081-7191377e8248?auto=format&fit=crop&w=640&q=80",
-                ImageUrls = new List<string>
-                {
-                    "https://images.unsplash.com/photo-1538485399081-7191377e8248?auto=format&fit=crop&w=1080&q=80",
-                    "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1080&q=80"
-                },
-                IsFeatured = true,
-                AverageRating = 4.8,
-                ReviewCount = 980,
-                PurchaseCount = 2300,
-                CompletedCount = 45,
-                Tags = new List<string> { "国服钻石", "全位置", "职业教练" }
-            },
-            new Service
-            {
-                Id = 3,
-                Title = "绝地求生-战术指挥官",
-                Description = "提供战术拆解、枪法训练与团队指挥复盘，让你每局都能精准吃鸡。",
-                GameName = "绝地求生",
-                Price = 126m,
-                ServiceType = "教学",
-                Category = "射击",
-                SellerId = 3,
-                ThumbnailUrl = "https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&fit=crop&w=640&q=80",
-                ImageUrls = new List<string>
-                {
-                    "https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&fit=crop&w=1080&q=80",
-                    "https://images.unsplash.com/photo-1529257414771-1960ab1ddb12?auto=format&fit=crop&w=1080&q=80"
-                },
-                IsFeatured = false,
-                AverageRating = 4.7,
-                ReviewCount = 560,
-                PurchaseCount = 860,
-                CompletedCount = 72,
-                Tags = new List<string> { "战术分析", "枪法提升", "团队配合" }
-            }
-        };
-
-        private static readonly User SeedUser = new()
-        {
-            Id = 1,
-            Username = "iharty",
-            Email = "iharty@example.com",
-            Nickname = "Irving",
-            AvatarUrl = "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=256&q=80"
-        };
-
-        private static readonly List<Order> SeedOrders = new()
-        {
-            new Order { Id = 1, ServiceId = 1, BuyerId = 1, OrderDate = System.DateTime.UtcNow.AddDays(-14), PaymentDate = System.DateTime.UtcNow.AddDays(-13), CompletionDate = System.DateTime.UtcNow.AddDays(-12), TotalPrice = 58m, Status = nameof(OrderStatus.Completed) },
-            new Order { Id = 2, ServiceId = 2, BuyerId = 1, OrderDate = System.DateTime.UtcNow.AddDays(-5), PaymentDate = System.DateTime.UtcNow.AddDays(-4), CompletionDate = System.DateTime.UtcNow.AddDays(-2), TotalPrice = 318m, Status = nameof(OrderStatus.PendingReview) },
-            new Order { Id = 3, ServiceId = 1, BuyerId = 1, OrderDate = System.DateTime.UtcNow.AddDays(-3), PaymentDate = System.DateTime.UtcNow.AddDays(-3), TotalPrice = 58m, Status = nameof(OrderStatus.Ongoing) },
-            new Order { Id = 4, ServiceId = 3, BuyerId = 1, OrderDate = System.DateTime.UtcNow.AddDays(-1), TotalPrice = 126m, Status = nameof(OrderStatus.PendingPayment) }
-        };
-
-        public Task<List<Service>> GetServicesAsync()
-        {
-            return Task.FromResult(CloneServices(ServicesSeed));
-        }
-
-        public Task<Service?> GetServiceByIdAsync(int id)
-        {
-            var service = CloneServices(ServicesSeed).FirstOrDefault(s => s.Id == id);
-            return Task.FromResult(service);
-        }
-
-        public Task<List<string>> GetGameNamesAsync()
-        {
-            var games = ServicesSeed
-                .Select(s => s.GameName)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Distinct()
-                .OrderBy(name => name)
-                .ToList();
-
-            return Task.FromResult(games);
-        }
-
-        public Task<List<Service>> GetServicesByGameAsync(string gameName)
-        {
-            var services = CloneServices(ServicesSeed)
-                .Where(s => s.GameName == gameName)
-                .OrderByDescending(s => s.IsFeatured)
-                .ThenBy(s => s.Price)
-                .ToList();
-
-            return Task.FromResult(services);
-        }
-
-        public Task<User?> GetUserAsync(int id)
-        {
-            return Task.FromResult(id == SeedUser.Id ? SeedUser : null);
-        }
-
-        public Task<List<Order>> GetOrdersByUserAsync(int userId)
-        {
-            var orders = SeedOrders
-                .Where(o => o.BuyerId == userId)
-                .Select(o => new Order
-                {
-                    Id = o.Id,
-                    ServiceId = o.ServiceId,
-                    BuyerId = o.BuyerId,
-                    OrderDate = o.OrderDate,
-                    PaymentDate = o.PaymentDate,
-                    CompletionDate = o.CompletionDate,
-                    RefundRequestDate = o.RefundRequestDate,
-                    TotalPrice = o.TotalPrice,
-                    Status = o.Status,
-                    ReviewId = o.ReviewId
-                })
-                .ToList();
-
-            return Task.FromResult(orders);
-        }
-
-        private static List<Service> CloneServices(IEnumerable<Service> source)
-        {
-            return source.Select(service => new Service
-            {
-                Id = service.Id,
-                Title = service.Title,
-                Description = service.Description,
-                GameName = service.GameName,
-                Price = service.Price,
-                ServiceType = service.ServiceType,
-                Category = service.Category,
-                SellerId = service.SellerId,
-                ThumbnailUrl = service.ThumbnailUrl,
-                ImageUrls = service.ImageUrls?.ToList() ?? new List<string>(),
-                IsFeatured = service.IsFeatured,
-                AverageRating = service.AverageRating,
-                ReviewCount = service.ReviewCount,
-                PurchaseCount = service.PurchaseCount,
-                CompletedCount = service.CompletedCount,
-                Tags = service.Tags?.ToList() ?? new List<string>()
-            }).ToList();
-        }
     }
 }
 】
@@ -644,6 +770,7 @@ Services/SqliteDataService.cs:
 【﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using GamerLinkApp.Data;
@@ -694,40 +821,18 @@ namespace GamerLinkApp.Services
             return service;
         }
 
-        public async Task<List<string>> GetGameNamesAsync()
+        public async Task<List<Category>> GetCategoriesAsync()
         {
             await EnsureInitializedAsync();
 
             await using var context = await _contextFactory.CreateDbContextAsync();
-            return await context.Services
+            return await context.Categories
                 .AsNoTracking()
-                .Select(s => s.GameName)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct()
-                .OrderBy(name => name)
+                .OrderBy(Name => Name)
                 .ToListAsync();
         }
 
-        public async Task<List<Service>> GetServicesByGameAsync(string gameName)
-        {
-            await EnsureInitializedAsync();
-
-            await using var context = await _contextFactory.CreateDbContextAsync();
-            var services = await context.Services
-                .AsNoTracking()
-                .Where(s => s.GameName == gameName)
-                .OrderByDescending(s => s.IsFeatured)
-                .ThenBy(s => s.Price)
-                .ToListAsync();
-
-            foreach (var service in services)
-            {
-                service.ImageUrls ??= new List<string>();
-                service.Tags ??= new List<string>();
-            }
-
-            return services;
-        }
 
         public async Task<User?> GetUserAsync(int id)
         {
@@ -777,144 +882,73 @@ namespace GamerLinkApp.Services
 
         private static async Task SeedDataAsync(ServiceDbContext context)
         {
-            if (await context.Services.AnyAsync())
+            // 如果已经有数据，就不再初始化
+            if (await context.Services.AnyAsync() ||
+                await context.Users.AnyAsync() ||
+                await context.Orders.AnyAsync() ||
+                await context.Categories.AnyAsync() ||
+                await context.Banners.AnyAsync())
             {
                 return;
             }
 
-            var services = new List<Service>
+            try
             {
-                new Service
+                // 读取 JSON 文件
+                using var stream = await FileSystem.OpenAppPackageFileAsync("seed_data.json");
+                using var reader = new StreamReader(stream);
+                var json = await reader.ReadToEndAsync();
+
+                // 反序列化
+                var options = new JsonSerializerOptions
                 {
-                    Id = 1,
-                    Title = "王者荣耀-巅峰陪练团",
-                    Description = "顶尖荣耀教练，全赛季陪练指点操作与意识，助你稳步上分。",
-                    GameName = "王者荣耀",
-                    Price = 58m,
-                    ServiceType = "陪练",
-                    Category = "MOBA",
-                    SellerId = 1,
-                    ThumbnailUrl = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=640&q=80",
-                    ImageUrls = new List<string>
-                    {
-                        "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1080&q=80",
-                        "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1080&q=80"
-                    },
-                    IsFeatured = true,
-                    AverageRating = 4.9,
-                    ReviewCount = 1280,
-                    PurchaseCount = 1547,
-                    CompletedCount = 120,
-                    Tags = new List<string> { "打野上分", "意识训练", "赛后复盘" }
-                },
-                new Service
+                    PropertyNameCaseInsensitive = true
+                };
+                var seedData = JsonSerializer.Deserialize<SeedData>(json, options);
+
+                if (seedData != null)
                 {
-                    Id = 2,
-                    Title = "英雄联盟-大师晋级导师",
-                    Description = "前职业选手一对一定制上分方案，单双排/灵活全段位安全托管。",
-                    GameName = "英雄联盟",
-                    Price = 318m,
-                    ServiceType = "代练",
-                    Category = "MOBA",
-                    SellerId = 2,
-                    ThumbnailUrl = "https://images.unsplash.com/photo-1538485399081-7191377e8248?auto=format&fit=crop&w=640&q=80",
-                    ImageUrls = new List<string>
-                    {
-                        "https://images.unsplash.com/photo-1538485399081-7191377e8248?auto=format&fit=crop&w=1080&q=80",
-                        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1080&q=80"
-                    },
-                    IsFeatured = true,
-                    AverageRating = 4.8,
-                    ReviewCount = 980,
-                    PurchaseCount = 2300,
-                    CompletedCount = 45,
-                    Tags = new List<string> { "国服钻石", "全位置", "职业教练" }
-                },
-                new Service
-                {
-                    Id = 3,
-                    Title = "绝地求生-战术指挥官",
-                    Description = "提供战术拆解、枪法训练与团队指挥复盘，让你每局都能精准吃鸡。",
-                    GameName = "绝地求生",
-                    Price = 126m,
-                    ServiceType = "教学",
-                    Category = "射击",
-                    SellerId = 3,
-                    ThumbnailUrl = "https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&fit=crop&w=640&q=80",
-                    ImageUrls = new List<string>
-                    {
-                        "https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&fit=crop&w=1080&q=80",
-                        "https://images.unsplash.com/photo-1529257414771-1960ab1ddb12?auto=format&fit=crop&w=1080&q=80"
-                    },
-                    IsFeatured = false,
-                    AverageRating = 4.7,
-                    ReviewCount = 560,
-                    PurchaseCount = 860,
-                    CompletedCount = 72,
-                    Tags = new List<string> { "战术分析", "枪法提升", "团队配合" }
+                    if (seedData.Services?.Any() == true)
+                        await context.Services.AddRangeAsync(seedData.Services);
+
+                    if (seedData.Users?.Any() == true)
+                        await context.Users.AddRangeAsync(seedData.Users);
+
+                    if (seedData.Orders?.Any() == true)
+                        await context.Orders.AddRangeAsync(seedData.Orders);
+
+                    if (seedData.Categories?.Any() == true)
+                        await context.Categories.AddRangeAsync(seedData.Categories);
+
+                    if (seedData.Banners?.Any() == true)
+                        await context.Banners.AddRangeAsync(seedData.Banners);
+
+                    await context.SaveChangesAsync();
                 }
-            };
-
-            var user = new User
+            }
+            catch (Exception ex)
             {
-                Id = 1,
-                Username = "iharty",
-                Email = "iharty@example.com",
-                Nickname = "Irving",
-                AvatarUrl = "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=256&q=80"
-            };
-
-            var now = DateTime.UtcNow;
-            var orders = new List<Order>
-            {
-                new Order
-                {
-                    Id = 1,
-                    ServiceId = 1,
-                    BuyerId = user.Id,
-                    OrderDate = now.AddDays(-14),
-                    PaymentDate = now.AddDays(-13),
-                    CompletionDate = now.AddDays(-12),
-                    TotalPrice = 58m,
-                    Status = nameof(OrderStatus.Completed)
-                },
-                new Order
-                {
-                    Id = 2,
-                    ServiceId = 2,
-                    BuyerId = user.Id,
-                    OrderDate = now.AddDays(-5),
-                    PaymentDate = now.AddDays(-4),
-                    CompletionDate = now.AddDays(-2),
-                    TotalPrice = 318m,
-                    Status = nameof(OrderStatus.PendingReview)
-                },
-                new Order
-                {
-                    Id = 3,
-                    ServiceId = 1,
-                    BuyerId = user.Id,
-                    OrderDate = now.AddDays(-3),
-                    PaymentDate = now.AddDays(-3),
-                    TotalPrice = 58m,
-                    Status = nameof(OrderStatus.Ongoing)
-                },
-                new Order
-                {
-                    Id = 4,
-                    ServiceId = 3,
-                    BuyerId = user.Id,
-                    OrderDate = now.AddDays(-1),
-                    TotalPrice = 126m,
-                    Status = nameof(OrderStatus.PendingPayment)
-                }
-            };
-
-            await context.Services.AddRangeAsync(services);
-            await context.Users.AddAsync(user);
-            await context.Orders.AddRangeAsync(orders);
-            await context.SaveChangesAsync();
+                Console.WriteLine($"SeedData 初始化失败: {ex.Message}");
+            }
         }
+
+        public async Task<List<Service>> GetServicesByCategoryAsync(Category category)
+        {
+            await EnsureInitializedAsync();
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Services.AsNoTracking().Where(s => s.Category == category.Name).ToListAsync();
+
+        }
+
+        public class SeedData
+        {
+            public List<Service> Services { get; set; } = new();
+            public List<User> Users { get; set; } = new();
+            public List<Order> Orders { get; set; } = new();
+            public List<Category> Categories { get; set; } = new();
+            public List<Banner> Banners { get; set; } = new();
+        }
+
     }
 }
 】
@@ -1191,23 +1225,23 @@ namespace GamerLinkApp.ViewModels
     {
         private readonly IDataService _dataService;
 
-        public ObservableCollection<string> Games { get; } = new();
+        public ObservableCollection<Category> Categories { get; } = new();
         public ObservableCollection<Service> Services { get; } = new();
 
-        private string? _selectedGame;
-        public string? SelectedGame
+        private Category? _selectedCategory;
+        public Category? SelectedCategory
         {
-            get => _selectedGame;
+            get => _selectedCategory;
             set
             {
-                if (_selectedGame == value)
+                if (_selectedCategory == value)
                 {
                     return;
                 }
 
-                _selectedGame = value;
+                _selectedCategory = value;
                 OnPropertyChanged();
-                _ = LoadServicesForGameAsync(value);
+                _ = LoadServicesForCategoryAsync(value);
             }
         }
 
@@ -1237,16 +1271,16 @@ namespace GamerLinkApp.ViewModels
         {
             try
             {
-                var games = await _dataService.GetGameNamesAsync();
-                Games.Clear();
-                foreach (var game in games)
+                var categories = await _dataService.GetCategoriesAsync();
+                Categories.Clear();
+                foreach (var ca in categories)
                 {
-                    Games.Add(game);
+                    Categories.Add(ca);
                 }
 
-                if (Games.Count > 0)
+                if (Categories.Count > 0)
                 {
-                    SelectedGame = Games[0];
+                    SelectedCategory = Categories[0];
                 }
             }
             catch (Exception ex)
@@ -1255,9 +1289,9 @@ namespace GamerLinkApp.ViewModels
             }
         }
 
-        private async Task LoadServicesForGameAsync(string? gameName)
+        private async Task LoadServicesForCategoryAsync(Category? cate)
         {
-            if (string.IsNullOrWhiteSpace(gameName))
+            if (cate==null)
             {
                 Services.Clear();
                 HighlightedService = null;
@@ -1266,18 +1300,26 @@ namespace GamerLinkApp.ViewModels
 
             try
             {
-                var services = await _dataService.GetServicesByGameAsync(gameName);
+                var services = await _dataService.GetServicesByCategoryAsync(cate);
                 Services.Clear();
                 foreach (var service in services)
                 {
                     Services.Add(service);
                 }
 
-                HighlightedService = Services.FirstOrDefault();
+                if (services.Any())
+                {
+                    HighlightedService = services.FirstOrDefault();
+                }
+                else
+                {
+                    HighlightedService = null;
+                }
+
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to load services for {gameName}: {ex.Message}");
+                Debug.WriteLine($"Failed to load services for {cate.Name}: {ex.Message}");
             }
         }
     }
@@ -1368,7 +1410,7 @@ Views/ProfilePage.xaml:
                         <CollectionView ItemsSource="{Binding OrderStatuses}"
                                         SelectionMode="None">
                             <CollectionView.ItemsLayout>
-                                <GridItemsLayout Orientation="Horizontal"
+                                <GridItemsLayout Orientation="Vertical"
                                                  Span="4"
                                                  HorizontalItemSpacing="18" />
                             </CollectionView.ItemsLayout>
@@ -1468,6 +1510,7 @@ Views/ProfilePage.xaml:
         </ScrollView>
     </Grid>
 </ContentPage>
+
 】
 
 Views/ProfilePage.xaml.cs:
@@ -1963,158 +2006,163 @@ Views/ZonePage.xaml:
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
-             xmlns:models="clr-namespace:GamerLinkApp.Models"
              x:Class="GamerLinkApp.Views.ZonePage"
              x:DataType="vm:ZoneViewModel"
-             Title="专区"
-             BackgroundColor="#F4F5F7">
-    <Grid RowDefinitions="Auto,*">
-        <Grid Grid.Row="1"
-              ColumnDefinitions="130,*">
-            <CollectionView Grid.Column="0"
-                            ItemsSource="{Binding Games}"
+             xmlns:model="clr-namespace:GamerLinkApp.Models"
+             Title="Game Zone"
+             BackgroundColor="#FFFFFF">
+    <Grid ColumnDefinitions="140,*">
+        <Border Grid.Column="0"
+                Padding="0,24,0,0"
+                BackgroundColor="#F5F6F8"
+                StrokeThickness="0">
+            <CollectionView ItemsSource="{Binding Categories}"
                             SelectionMode="Single"
-                            SelectedItem="{Binding SelectedGame, Mode=TwoWay}"
-                            BackgroundColor="#EFEFF4"
-                            Margin="0,12,0,0">
+                            SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                            Margin="0"
+                            BackgroundColor="Transparent">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical"
-                                       ItemSpacing="4" />
+                                       ItemSpacing="0"/>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="x:String">
-                        <Border Margin="0,0,0,4"
-                                Padding="16,14"
-                                BackgroundColor="Transparent">
+                        <Grid ColumnDefinitions="6,*"
+                              Padding="0,14"
+                              BackgroundColor="Transparent">
+                            <BoxView x:Name="SelectionIndicator"
+                                     WidthRequest="6"
+                                     BackgroundColor="Transparent"
+                                     HorizontalOptions="Fill"
+                                     VerticalOptions="Fill"/>
+                            <Label x:Name="CategoryLabel"
+                                   Grid.Column="1"
+                                   Text="{Binding Name}"
+                                   FontSize="16"
+                                   TextColor="#5F6473"
+                                   VerticalOptions="Center"
+                                   Padding="18,0"
+                                   LineBreakMode="TailTruncation"/>
                             <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup Name="CommonStates">
-                                    <VisualState Name="Normal" />
+                                <VisualStateGroup Name="SelectionStates">
+                                    <VisualState Name="Normal">
+                                        <VisualState.Setters>
+                                            <Setter TargetName="SelectionIndicator"
+                                                    Property="BoxView.BackgroundColor"
+                                                    Value="Transparent"/>
+                                            <Setter TargetName="CategoryLabel"
+                                                    Property="Label.TextColor"
+                                                    Value="#5F6473"/>
+                                            <Setter TargetName="CategoryLabel"
+                                                    Property="Label.FontAttributes"
+                                                    Value="None"/>
+                                            <Setter Property="BackgroundColor"
+                                                    Value="Transparent"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
                                     <VisualState Name="Selected">
                                         <VisualState.Setters>
-                                            <Setter Property="BackgroundColor" Value="White" />
+                                            <Setter TargetName="SelectionIndicator"
+                                                    Property="BoxView.BackgroundColor"
+                                                    Value="#3478F6"/>
+                                            <Setter TargetName="CategoryLabel"
+                                                    Property="Label.TextColor"
+                                                    Value="#3478F6"/>
+                                            <Setter TargetName="CategoryLabel"
+                                                    Property="Label.FontAttributes"
+                                                    Value="Bold"/>
+                                            <Setter Property="BackgroundColor"
+                                                    Value="#EAF1FF"/>
                                         </VisualState.Setters>
                                     </VisualState>
                                 </VisualStateGroup>
                             </VisualStateManager.VisualStateGroups>
-                            <Label Text="{Binding .}"
-                                   FontSize="15"
-                                   FontAttributes="Bold"
-                                   TextColor="#1F1F1F"
-                                   VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Border>
+
+        <VerticalStackLayout Grid.Column="1"
+                             Padding="32,24"
+                             Spacing="24"
+                             BackgroundColor="#FFFFFF">
+            <Label Text="{Binding SelectedGame, FallbackValue='Game Zone'}"
+                   FontSize="22"
+                   FontAttributes="Bold"
+                   TextColor="#1F1F1F"/>
+
+            <Label Text="No services available"
+                   FontSize="14"
+                   TextColor="#8E94A2"
+                   HorizontalOptions="Center"
+                   IsVisible="False">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label"
+                                 Binding="{Binding HighlightedService}"
+                                 Value="{x:Null}">
+                        <Setter Property="IsVisible"
+                                Value="True"/>
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+            <CollectionView ItemsSource="{Binding Services}"
+                            SelectionMode="None"
+                            Margin="0"
+                            BackgroundColor="Transparent">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical"
+                            ItemSpacing="12"/>
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="model:Service">
+                        <Border Padding="16"
+                                BackgroundColor="#FFFFFF"
+                                StrokeThickness="1"
+                                Stroke="#E5E7EB"
+                                Margin="0,0,0,12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16"/>
+                            </Border.StrokeShape>
+
+                            <Grid ColumnDefinitions="Auto,*"
+                                  ColumnSpacing="16">
+                                <Border WidthRequest="84"
+                                        HeightRequest="84"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#F2F4F8">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12"/>
+                                    </Border.StrokeShape>
+                                    <Image Source="{Binding ThumbnailUrl}"
+                                            Aspect="AspectFill"/>
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Spacing="8"
+                                                     VerticalOptions="Center">
+                                    <Label Text="{Binding Title}"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           TextColor="#1F1F1F"
+                                           LineBreakMode="TailTruncation"/>
+                                    <Label Text="{Binding PurchaseCount, StringFormat='Sold {0}'}"
+                                           FontSize="12"
+                                           TextColor="#8E94A2"/>
+                                    <Label Text="{Binding Price, StringFormat='{0:C0}'}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="#E53935"/>
+                                </VerticalStackLayout>
+                            </Grid>
                         </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <ScrollView Grid.Column="1"
-                        BackgroundColor="White"
-                        Padding="0,12,0,0">
-                <VerticalStackLayout Padding="20,0,20,24"
-                                      Spacing="18">
-                    <Label Text="{Binding HighlightedService.GameName}"
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#1A1A1A" />
 
-                    <Border BackgroundColor="White"
-                            StrokeThickness="1"
-                            Stroke="#E5E5E5"
-                            Padding="16">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16" />
-                        </Border.StrokeShape>
-                        <Border.Shadow>
-                            <Shadow Brush="#1A000000"
-                                    Offset="0,4"
-                                    Radius="8" />
-                        </Border.Shadow>
-                        <Grid ColumnDefinitions="Auto,*"
-                              ColumnSpacing="16">
-                            <Border WidthRequest="90"
-                                    HeightRequest="90"
-                                    StrokeThickness="0"
-                                    BackgroundColor="#F2F2F2">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="12" />
-                                </Border.StrokeShape>
-                                <Image Source="{Binding HighlightedService.ThumbnailUrl}"
-                                       Aspect="AspectFill" />
-                            </Border>
-
-                            <VerticalStackLayout Grid.Column="1"
-                                                  Spacing="6"
-                                                  VerticalOptions="Center">
-                                <Label Text="{Binding HighlightedService.Title}"
-                                       FontAttributes="Bold"
-                                       FontSize="16"
-                                       TextColor="#1A1A1A"
-                                       LineBreakMode="TailTruncation" />
-                                <Label Text="{Binding HighlightedService.Description}"
-                                       FontSize="13"
-                                       TextColor="#6F7583"
-                                       LineHeight="1.2"
-                                       MaxLines="3" />
-                                <Label Text="{Binding HighlightedService.Price, StringFormat='￥{0:F0}'}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       TextColor="#E53935" />
-                            </VerticalStackLayout>
-                        </Grid>
-                    </Border>
-
-                    <CollectionView ItemsSource="{Binding Services}"
-                                    SelectionMode="None">
-                        <CollectionView.Header>
-                            <Label Text="更多服务"
-                                   FontSize="16"
-                                   FontAttributes="Bold"
-                                   TextColor="#1A1A1A"
-                                   Margin="0,8,0,4" />
-                        </CollectionView.Header>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="models:Service">
-                                <Border Padding="14"
-                                        Margin="0,0,0,12"
-                                        StrokeThickness="1"
-                                        Stroke="#EEEEEE"
-                                        BackgroundColor="#FAFAFC">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="16" />
-                                    </Border.StrokeShape>
-                                    <Grid ColumnDefinitions="Auto,*"
-                                          ColumnSpacing="14">
-                                        <Border WidthRequest="72"
-                                                HeightRequest="72"
-                                                StrokeThickness="0"
-                                                BackgroundColor="#F0F0F0">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="10" />
-                                            </Border.StrokeShape>
-                                            <Image Source="{Binding ThumbnailUrl}" Aspect="AspectFill" />
-                                        </Border>
-                                        <VerticalStackLayout Grid.Column="1"
-                                                              Spacing="4"
-                                                              VerticalOptions="Center">
-                                            <Label Text="{Binding Title}"
-                                                   FontSize="15"
-                                                   FontAttributes="Bold"
-                                                   TextColor="#1A1A1A"
-                                                   LineBreakMode="TailTruncation" />
-                                            <Label Text="{Binding Price, StringFormat='￥{0:F0}'}"
-                                                   FontSize="14"
-                                                   TextColor="#5B61FF" />
-                                            <Label Text="{Binding PurchaseCount, StringFormat='已售{0}'}"
-                                                   FontSize="12"
-                                                   TextColor="#80869A" />
-                                        </VerticalStackLayout>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-                </VerticalStackLayout>
-            </ScrollView>
-        </Grid>
+        </VerticalStackLayout>
     </Grid>
 </ContentPage>
 】

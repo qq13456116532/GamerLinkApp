@@ -6,7 +6,9 @@ INCLUDE_DIRS = {
     "Services",
     "ViewModels",
     "Views",
-    "Platforms/Android"
+    "Platforms/Android",
+    "Data",
+    "Helpers"
 }
 
 # 只导出的文件（相对路径或文件名）
@@ -15,7 +17,7 @@ INCLUDE_FILES = {
     "App.xml", "App.xml.cs",
     "AppShell.xaml", "AppShell.xaml.cs",
     "MainPage.xaml", "MainPage.xaml.cs",
-    "MauiProgram.cs"
+    "MauiProgram.cs","Resources/Raw/seed_data.json"
 }
 
 def export_to_txt(output_file="all_code.txt"):

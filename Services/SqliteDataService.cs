@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using GamerLinkApp.Data;
@@ -51,40 +52,18 @@ namespace GamerLinkApp.Services
             return service;
         }
 
-        public async Task<List<string>> GetGameNamesAsync()
+        public async Task<List<Category>> GetCategoriesAsync()
         {
             await EnsureInitializedAsync();
 
             await using var context = await _contextFactory.CreateDbContextAsync();
-            return await context.Services
+            return await context.Categories
                 .AsNoTracking()
-                .Select(s => s.GameName)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct()
-                .OrderBy(name => name)
+                .OrderBy(Name => Name)
                 .ToListAsync();
         }
 
-        public async Task<List<Service>> GetServicesByGameAsync(string gameName)
-        {
-            await EnsureInitializedAsync();
-
-            await using var context = await _contextFactory.CreateDbContextAsync();
-            var services = await context.Services
-                .AsNoTracking()
-                .Where(s => s.GameName == gameName)
-                .OrderByDescending(s => s.IsFeatured)
-                .ThenBy(s => s.Price)
-                .ToListAsync();
-
-            foreach (var service in services)
-            {
-                service.ImageUrls ??= new List<string>();
-                service.Tags ??= new List<string>();
-            }
-
-            return services;
-        }
 
         public async Task<User?> GetUserAsync(int id)
         {
@@ -134,143 +113,72 @@ namespace GamerLinkApp.Services
 
         private static async Task SeedDataAsync(ServiceDbContext context)
         {
-            if (await context.Services.AnyAsync())
+            // 如果已经有数据，就不再初始化
+            if (await context.Services.AnyAsync() ||
+                await context.Users.AnyAsync() ||
+                await context.Orders.AnyAsync() ||
+                await context.Categories.AnyAsync() ||
+                await context.Banners.AnyAsync())
             {
                 return;
             }
 
-            var services = new List<Service>
+            try
             {
-                new Service
+                // 读取 JSON 文件
+                using var stream = await FileSystem.OpenAppPackageFileAsync("seed_data.json");
+                using var reader = new StreamReader(stream);
+                var json = await reader.ReadToEndAsync();
+
+                // 反序列化
+                var options = new JsonSerializerOptions
                 {
-                    Id = 1,
-                    Title = "王者荣耀-巅峰陪练团",
-                    Description = "顶尖荣耀教练，全赛季陪练指点操作与意识，助你稳步上分。",
-                    GameName = "王者荣耀",
-                    Price = 58m,
-                    ServiceType = "陪练",
-                    Category = "MOBA",
-                    SellerId = 1,
-                    ThumbnailUrl = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=640&q=80",
-                    ImageUrls = new List<string>
-                    {
-                        "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1080&q=80",
-                        "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1080&q=80"
-                    },
-                    IsFeatured = true,
-                    AverageRating = 4.9,
-                    ReviewCount = 1280,
-                    PurchaseCount = 1547,
-                    CompletedCount = 120,
-                    Tags = new List<string> { "打野上分", "意识训练", "赛后复盘" }
-                },
-                new Service
+                    PropertyNameCaseInsensitive = true
+                };
+                var seedData = JsonSerializer.Deserialize<SeedData>(json, options);
+
+                if (seedData != null)
                 {
-                    Id = 2,
-                    Title = "英雄联盟-大师晋级导师",
-                    Description = "前职业选手一对一定制上分方案，单双排/灵活全段位安全托管。",
-                    GameName = "英雄联盟",
-                    Price = 318m,
-                    ServiceType = "代练",
-                    Category = "MOBA",
-                    SellerId = 2,
-                    ThumbnailUrl = "https://images.unsplash.com/photo-1538485399081-7191377e8248?auto=format&fit=crop&w=640&q=80",
-                    ImageUrls = new List<string>
-                    {
-                        "https://images.unsplash.com/photo-1538485399081-7191377e8248?auto=format&fit=crop&w=1080&q=80",
-                        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1080&q=80"
-                    },
-                    IsFeatured = true,
-                    AverageRating = 4.8,
-                    ReviewCount = 980,
-                    PurchaseCount = 2300,
-                    CompletedCount = 45,
-                    Tags = new List<string> { "国服钻石", "全位置", "职业教练" }
-                },
-                new Service
-                {
-                    Id = 3,
-                    Title = "绝地求生-战术指挥官",
-                    Description = "提供战术拆解、枪法训练与团队指挥复盘，让你每局都能精准吃鸡。",
-                    GameName = "绝地求生",
-                    Price = 126m,
-                    ServiceType = "教学",
-                    Category = "射击",
-                    SellerId = 3,
-                    ThumbnailUrl = "https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&fit=crop&w=640&q=80",
-                    ImageUrls = new List<string>
-                    {
-                        "https://images.unsplash.com/photo-1605902711622-cfb43c44367f?auto=format&fit=crop&w=1080&q=80",
-                        "https://images.unsplash.com/photo-1529257414771-1960ab1ddb12?auto=format&fit=crop&w=1080&q=80"
-                    },
-                    IsFeatured = false,
-                    AverageRating = 4.7,
-                    ReviewCount = 560,
-                    PurchaseCount = 860,
-                    CompletedCount = 72,
-                    Tags = new List<string> { "战术分析", "枪法提升", "团队配合" }
+                    if (seedData.Services?.Any() == true)
+                        await context.Services.AddRangeAsync(seedData.Services);
+
+                    if (seedData.Users?.Any() == true)
+                        await context.Users.AddRangeAsync(seedData.Users);
+
+                    if (seedData.Orders?.Any() == true)
+                        await context.Orders.AddRangeAsync(seedData.Orders);
+
+                    if (seedData.Categories?.Any() == true)
+                        await context.Categories.AddRangeAsync(seedData.Categories);
+
+                    if (seedData.Banners?.Any() == true)
+                        await context.Banners.AddRangeAsync(seedData.Banners);
+
+                    await context.SaveChangesAsync();
                 }
-            };
-
-            var user = new User
+            }
+            catch (Exception ex)
             {
-                Id = 1,
-                Username = "iharty",
-                Email = "iharty@example.com",
-                Nickname = "Irving",
-                AvatarUrl = "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=256&q=80"
-            };
-
-            var now = DateTime.UtcNow;
-            var orders = new List<Order>
-            {
-                new Order
-                {
-                    Id = 1,
-                    ServiceId = 1,
-                    BuyerId = user.Id,
-                    OrderDate = now.AddDays(-14),
-                    PaymentDate = now.AddDays(-13),
-                    CompletionDate = now.AddDays(-12),
-                    TotalPrice = 58m,
-                    Status = nameof(OrderStatus.Completed)
-                },
-                new Order
-                {
-                    Id = 2,
-                    ServiceId = 2,
-                    BuyerId = user.Id,
-                    OrderDate = now.AddDays(-5),
-                    PaymentDate = now.AddDays(-4),
-                    CompletionDate = now.AddDays(-2),
-                    TotalPrice = 318m,
-                    Status = nameof(OrderStatus.PendingReview)
-                },
-                new Order
-                {
-                    Id = 3,
-                    ServiceId = 1,
-                    BuyerId = user.Id,
-                    OrderDate = now.AddDays(-3),
-                    PaymentDate = now.AddDays(-3),
-                    TotalPrice = 58m,
-                    Status = nameof(OrderStatus.Ongoing)
-                },
-                new Order
-                {
-                    Id = 4,
-                    ServiceId = 3,
-                    BuyerId = user.Id,
-                    OrderDate = now.AddDays(-1),
-                    TotalPrice = 126m,
-                    Status = nameof(OrderStatus.PendingPayment)
-                }
-            };
-
-            await context.Services.AddRangeAsync(services);
-            await context.Users.AddAsync(user);
-            await context.Orders.AddRangeAsync(orders);
-            await context.SaveChangesAsync();
+                Console.WriteLine($"SeedData 初始化失败: {ex.Message}");
+            }
         }
+
+        public async Task<List<Service>> GetServicesByCategoryAsync(Category category)
+        {
+            await EnsureInitializedAsync();
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Services.AsNoTracking().Where(s => s.Category == category.Name).ToListAsync();
+
+        }
+
+        public class SeedData
+        {
+            public List<Service> Services { get; set; } = new();
+            public List<User> Users { get; set; } = new();
+            public List<Order> Orders { get; set; } = new();
+            public List<Category> Categories { get; set; } = new();
+            public List<Banner> Banners { get; set; } = new();
+        }
+
     }
 }

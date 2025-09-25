@@ -45,11 +45,9 @@ namespace GamerLinkApp
                 options.UseSqlite($"Data Source={databasePath}"));
             builder.Services.AddSingleton<IDataService, SqliteDataService>();
 
-            // ע���б�ҳ����ͼģ��
             builder.Services.AddSingleton<ServiceListPage>();
             builder.Services.AddSingleton<ServiceListViewModel>();
 
-            // ע������ҳ����ͼģ��
             builder.Services.AddSingleton<ZonePage>();
             builder.Services.AddSingleton<ZoneViewModel>();
             builder.Services.AddSingleton<ProfilePage>();

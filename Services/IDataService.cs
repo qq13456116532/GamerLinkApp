@@ -8,8 +8,8 @@ namespace GamerLinkApp.Services
     {
         Task<List<Service>> GetServicesAsync();
         Task<Service?> GetServiceByIdAsync(int id);
-        Task<List<string>> GetGameNamesAsync();
-        Task<List<Service>> GetServicesByGameAsync(string gameName);
+        Task<List<Category>> GetCategoriesAsync();
+        Task<List<Service>> GetServicesByCategoryAsync(Category category);
         Task<User?> GetUserAsync(int id);
         Task<List<Order>> GetOrdersByUserAsync(int userId);
     }

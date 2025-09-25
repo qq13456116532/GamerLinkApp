@@ -12,23 +12,23 @@ namespace GamerLinkApp.ViewModels
     {
         private readonly IDataService _dataService;
 
-        public ObservableCollection<string> Games { get; } = new();
+        public ObservableCollection<Category> Categories { get; } = new();
         public ObservableCollection<Service> Services { get; } = new();
 
-        private string? _selectedGame;
-        public string? SelectedGame
+        private Category? _selectedCategory;
+        public Category? SelectedCategory
         {
-            get => _selectedGame;
+            get => _selectedCategory;
             set
             {
-                if (_selectedGame == value)
+                if (_selectedCategory == value)
                 {
                     return;
                 }
 
-                _selectedGame = value;
+                _selectedCategory = value;
                 OnPropertyChanged();
-                _ = LoadServicesForGameAsync(value);
+                _ = LoadServicesForCategoryAsync(value);
             }
         }
 
@@ -58,16 +58,16 @@ namespace GamerLinkApp.ViewModels
         {
             try
             {
-                var games = await _dataService.GetGameNamesAsync();
-                Games.Clear();
-                foreach (var game in games)
+                var categories = await _dataService.GetCategoriesAsync();
+                Categories.Clear();
+                foreach (var ca in categories)
                 {
-                    Games.Add(game);
+                    Categories.Add(ca);
                 }
 
-                if (Games.Count > 0)
+                if (Categories.Count > 0)
                 {
-                    SelectedGame = Games[0];
+                    SelectedCategory = Categories[0];
                 }
             }
             catch (Exception ex)
@@ -76,9 +76,9 @@ namespace GamerLinkApp.ViewModels
             }
         }
 
-        private async Task LoadServicesForGameAsync(string? gameName)
+        private async Task LoadServicesForCategoryAsync(Category? cate)
         {
-            if (string.IsNullOrWhiteSpace(gameName))
+            if (cate==null)
             {
                 Services.Clear();
                 HighlightedService = null;
@@ -87,18 +87,26 @@ namespace GamerLinkApp.ViewModels
 
             try
             {
-                var services = await _dataService.GetServicesByGameAsync(gameName);
+                var services = await _dataService.GetServicesByCategoryAsync(cate);
                 Services.Clear();
                 foreach (var service in services)
                 {
                     Services.Add(service);
                 }
 
-                HighlightedService = Services.FirstOrDefault();
+                if (services.Any())
+                {
+                    HighlightedService = services.FirstOrDefault();
+                }
+                else
+                {
+                    HighlightedService = null;
+                }
+
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to load services for {gameName}: {ex.Message}");
+                Debug.WriteLine($"Failed to load services for {cate.Name}: {ex.Message}");
             }
         }
     }

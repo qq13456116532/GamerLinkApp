@@ -1,0 +1,149 @@
+{
+  "Services": [
+    {
+      "Id": 1,
+      "Title": "王者荣耀-巅峰陪练团",
+      "Description": "顶尖荣耀教练，全赛季陪练指点操作与意识，助你稳步上分。",
+      "GameName": "王者荣耀",
+      "Price": 58,
+      "ServiceType": "陪练",
+      "Category": "MOBA",
+      "SellerId": 1,
+      "ThumbnailUrl": "banner1.png",
+      "ImageUrls": [
+        "banner1.png",
+        "banner2.png"
+      ],
+      "IsFeatured": true,
+      "AverageRating": 4.9,
+      "ReviewCount": 1280,
+      "PurchaseCount": 1547,
+      "CompletedCount": 120,
+      "Tags": ["打野上分", "意识训练", "赛后复盘"]
+    },
+    {
+      "Id": 2,
+      "Title": "英雄联盟-大师晋级导师",
+      "Description": "前职业选手一对一定制上分方案，单双排/灵活全段位安全托管。",
+      "GameName": "英雄联盟",
+      "Price": 318,
+      "ServiceType": "代练",
+      "Category": "MOBA",
+      "SellerId": 2,
+      "ThumbnailUrl": "banner1.png",
+      "ImageUrls": [
+        "banner1.png",
+        "banner2.png"
+      ],
+      "IsFeatured": true,
+      "AverageRating": 4.8,
+      "ReviewCount": 980,
+      "PurchaseCount": 2300,
+      "CompletedCount": 45,
+      "Tags": ["国服钻石", "全位置", "职业教练"]
+    },
+    {
+      "Id": 3,
+      "Title": "绝地求生-战术指挥官",
+      "Description": "提供战术拆解、枪法训练与团队指挥复盘，让你每局都能精准吃鸡。",
+      "GameName": "绝地求生",
+      "Price": 126,
+      "ServiceType": "教学",
+      "Category": "射击",
+      "SellerId": 3,
+      "ThumbnailUrl": "banner1.png",
+      "ImageUrls": [
+        "banner1.png",
+        "banner2.png"
+      ],
+      "IsFeatured": false,
+      "AverageRating": 4.7,
+      "ReviewCount": 560,
+      "PurchaseCount": 860,
+      "CompletedCount": 72,
+      "Tags": ["战术分析", "枪法提升", "团队配合"]
+    },
+    {
+      "Id": 4,
+      "Title": "CS:GO 高手陪练",
+      "Description": "职业枪法指导，带你练习压枪与道具运用。",
+      "GameName": "CS:GO",
+      "Price": 99,
+      "ServiceType": "陪练",
+      "Category": "射击",
+      "SellerId": 4,
+      "ThumbnailUrl": "banner1.png",
+      "ImageUrls": ["banner1.png"],
+      "IsFeatured": true,
+      "AverageRating": 4.6,
+      "ReviewCount": 340,
+      "PurchaseCount": 620,
+      "CompletedCount": 500,
+      "Tags": ["压枪训练", "团队战术"]
+    }
+  ],
+  "Users": [
+    {
+      "Id": 1,
+      "Username": "iharty",
+      "Email": "iharty@example.com",
+      "Nickname": "Irving",
+      "AvatarUrl": "banner1.png"
+    },
+    {
+      "Id": 2,
+      "Username": "proplayer",
+      "Email": "pro@example.com",
+      "Nickname": "职业选手",
+      "AvatarUrl": "banner2.png"
+    }
+  ],
+  "Orders": [
+    {
+      "Id": 1,
+      "ServiceId": 1,
+      "BuyerId": 1,
+      "OrderDate": "2023-10-01T10:00:00Z",
+      "PaymentDate": "2023-10-01T11:00:00Z",
+      "CompletionDate": "2023-10-02T10:00:00Z",
+      "TotalPrice": 58,
+      "Status": "Completed"
+    },
+    {
+      "Id": 2,
+      "ServiceId": 2,
+      "BuyerId": 1,
+      "OrderDate": "2023-11-01T10:00:00Z",
+      "PaymentDate": "2023-11-01T12:00:00Z",
+      "TotalPrice": 318,
+      "Status": "PendingReview"
+    },
+    {
+      "Id": 3,
+      "ServiceId": 3,
+      "BuyerId": 1,
+      "OrderDate": "2023-12-01T10:00:00Z",
+      "PaymentDate": "2023-12-01T11:00:00Z",
+      "TotalPrice": 126,
+      "Status": "Ongoing"
+    },
+    {
+      "Id": 4,
+      "ServiceId": 4,
+      "BuyerId": 2,
+      "OrderDate": "2024-01-01T10:00:00Z",
+      "TotalPrice": 99,
+      "Status": "PendingPayment"
+    }
+  ],
+  "Categories": [
+    { "Id": 1, "Name": "MOBA", "IconUrl": "banner1.png" },
+    { "Id": 2, "Name": "射击", "IconUrl": "banner2.png" },
+    { "Id": 3, "Name": "RPG", "IconUrl": "banner3.png" }
+  ],
+  "Banners": [
+    { "Id": 1, "ImageUrl": "banner1.png", "TargetUrl": "/ServiceDetail/1" },
+    { "Id": 2, "ImageUrl": "banner2.png", "TargetUrl": "/ServiceDetail/2" },
+    { "Id": 3, "ImageUrl": "banner3.png", "TargetUrl": "/ServiceDetail/3" }
+  ]
+}

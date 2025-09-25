@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
              x:Class="GamerLinkApp.Views.ZonePage"
              x:DataType="vm:ZoneViewModel"
+             xmlns:model="clr-namespace:GamerLinkApp.Models"
              Title="Game Zone"
              BackgroundColor="#FFFFFF">
     <Grid ColumnDefinitions="140,*">
@@ -11,17 +12,17 @@
                 Padding="0,24,0,0"
                 BackgroundColor="#F5F6F8"
                 StrokeThickness="0">
-            <CollectionView ItemsSource="{Binding Games}"
+            <CollectionView ItemsSource="{Binding Categories}"
                             SelectionMode="Single"
-                            SelectedItem="{Binding SelectedGame, Mode=TwoWay}"
+                            SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
                             Margin="0"
                             BackgroundColor="Transparent">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical"
-                                       ItemSpacing="0" />
+                                       ItemSpacing="0"/>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="x:String">
+                    <DataTemplate x:DataType="model:Category">
                         <Grid ColumnDefinitions="6,*"
                               Padding="0,14"
                               BackgroundColor="Transparent">
@@ -29,45 +30,45 @@
                                      WidthRequest="6"
                                      BackgroundColor="Transparent"
                                      HorizontalOptions="Fill"
-                                     VerticalOptions="Fill" />
-                            <Label x:Name="GameLabel"
+                                     VerticalOptions="Fill"/>
+                            <Label x:Name="CategoryLabel"
                                    Grid.Column="1"
-                                   Text="{Binding .}"
+                                   Text="{Binding Name}"
                                    FontSize="16"
                                    TextColor="#5F6473"
                                    VerticalOptions="Center"
                                    Padding="18,0"
-                                   LineBreakMode="TailTruncation" />
+                                   LineBreakMode="TailTruncation"/>
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup Name="SelectionStates">
                                     <VisualState Name="Normal">
                                         <VisualState.Setters>
                                             <Setter TargetName="SelectionIndicator"
                                                     Property="BoxView.BackgroundColor"
-                                                    Value="Transparent" />
-                                            <Setter TargetName="GameLabel"
+                                                    Value="Transparent"/>
+                                            <Setter TargetName="CategoryLabel"
                                                     Property="Label.TextColor"
-                                                    Value="#5F6473" />
-                                            <Setter TargetName="GameLabel"
+                                                    Value="#5F6473"/>
+                                            <Setter TargetName="CategoryLabel"
                                                     Property="Label.FontAttributes"
-                                                    Value="None" />
+                                                    Value="None"/>
                                             <Setter Property="BackgroundColor"
-                                                    Value="Transparent" />
+                                                    Value="Transparent"/>
                                         </VisualState.Setters>
                                     </VisualState>
                                     <VisualState Name="Selected">
                                         <VisualState.Setters>
                                             <Setter TargetName="SelectionIndicator"
                                                     Property="BoxView.BackgroundColor"
-                                                    Value="#3478F6" />
-                                            <Setter TargetName="GameLabel"
+                                                    Value="#3478F6"/>
+                                            <Setter TargetName="CategoryLabel"
                                                     Property="Label.TextColor"
-                                                    Value="#3478F6" />
-                                            <Setter TargetName="GameLabel"
+                                                    Value="#3478F6"/>
+                                            <Setter TargetName="CategoryLabel"
                                                     Property="Label.FontAttributes"
-                                                    Value="Bold" />
+                                                    Value="Bold"/>
                                             <Setter Property="BackgroundColor"
-                                                    Value="#EAF1FF" />
+                                                    Value="#EAF1FF"/>
                                         </VisualState.Setters>
                                     </VisualState>
                                 </VisualStateGroup>
@@ -79,13 +80,13 @@
         </Border>
 
         <VerticalStackLayout Grid.Column="1"
-                              Padding="32,24"
-                              Spacing="24"
-                              BackgroundColor="#FFFFFF">
-            <Label Text="{Binding SelectedGame, FallbackValue='Game Zone'}"
+                             Padding="32,24"
+                             Spacing="24"
+                             BackgroundColor="#FFFFFF">
+            <Label Text="{Binding SelectedCategory.Name, FallbackValue='Game Zone'}"
                    FontSize="22"
                    FontAttributes="Bold"
-                   TextColor="#1F1F1F" />
+                   TextColor="#1F1F1F"/>
 
             <Label Text="No services available"
                    FontSize="14"
@@ -96,56 +97,67 @@
                     <DataTrigger TargetType="Label"
                                  Binding="{Binding HighlightedService}"
                                  Value="{x:Null}">
-                        <Setter Property="IsVisible" Value="True" />
+                        <Setter Property="IsVisible"
+                                Value="True"/>
                     </DataTrigger>
                 </Label.Triggers>
             </Label>
+            <CollectionView ItemsSource="{Binding Services}"
+                            SelectionMode="None"
+                            Margin="0"
+                            BackgroundColor="Transparent">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical"
+                            ItemSpacing="12"/>
+                </CollectionView.ItemsLayout>
 
-            <Border Padding="16"
-                    BackgroundColor="#FFFFFF"
-                    StrokeThickness="1"
-                    Stroke="#E5E7EB"
-                    IsVisible="True">
-                <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="16" />
-                </Border.StrokeShape>
-                <Border.Triggers>
-                    <DataTrigger TargetType="Border"
-                                 Binding="{Binding HighlightedService}"
-                                 Value="{x:Null}">
-                        <Setter Property="IsVisible" Value="False" />
-                    </DataTrigger>
-                </Border.Triggers>
-                <Grid ColumnDefinitions="Auto,*"
-                      ColumnSpacing="16">
-                    <Border WidthRequest="84"
-                            HeightRequest="84"
-                            StrokeThickness="0"
-                            BackgroundColor="#F2F4F8">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="12" />
-                        </Border.StrokeShape>
-                        <Image Source="{Binding HighlightedService.ThumbnailUrl}"
-                               Aspect="AspectFill" />
-                    </Border>
-                    <VerticalStackLayout Grid.Column="1"
-                                          Spacing="8"
-                                          VerticalOptions="Center">
-                        <Label Text="{Binding HighlightedService.Title}"
-                               FontSize="16"
-                               FontAttributes="Bold"
-                               TextColor="#1F1F1F"
-                               LineBreakMode="TailTruncation" />
-                        <Label Text="{Binding HighlightedService.PurchaseCount, StringFormat='Sold {0}'}"
-                               FontSize="12"
-                               TextColor="#8E94A2" />
-                        <Label Text="{Binding HighlightedService.Price, StringFormat='{0:C0}'}"
-                               FontSize="18"
-                               FontAttributes="Bold"
-                               TextColor="#E53935" />
-                    </VerticalStackLayout>
-                </Grid>
-            </Border>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="model:Service">
+                        <Border Padding="16"
+                                BackgroundColor="#FFFFFF"
+                                StrokeThickness="1"
+                                Stroke="#E5E7EB"
+                                Margin="0,0,0,12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16"/>
+                            </Border.StrokeShape>
+
+                            <Grid ColumnDefinitions="Auto,*"
+                                  ColumnSpacing="16">
+                                <Border WidthRequest="84"
+                                        HeightRequest="84"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#F2F4F8">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12"/>
+                                    </Border.StrokeShape>
+                                    <Image Source="{Binding ThumbnailUrl}"
+                                            Aspect="AspectFill"/>
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Spacing="8"
+                                                     VerticalOptions="Center">
+                                    <Label Text="{Binding Title}"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           TextColor="#1F1F1F"
+                                           LineBreakMode="TailTruncation"/>
+                                    <Label Text="{Binding PurchaseCount, StringFormat='Sold {0}'}"
+                                           FontSize="12"
+                                           TextColor="#8E94A2"/>
+                                    <Label Text="{Binding Price, StringFormat='{0:C0}'}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="#E53935"/>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+
         </VerticalStackLayout>
     </Grid>
 </ContentPage>
