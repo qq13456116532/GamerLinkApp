@@ -37,7 +37,7 @@
 】
 
 ./AppShell.xaml.cs:
-【﻿using GamerLinkApp.Views;
+【using GamerLinkApp.Views;
 
 namespace GamerLinkApp
 {
@@ -46,8 +46,10 @@ namespace GamerLinkApp
         public AppShell()
         {
             InitializeComponent();
-            // 为服务详情页注册路由, 以便导航服务可以找到
             Routing.RegisterRoute(nameof(ServiceDetailPage), typeof(ServiceDetailPage));
+            Routing.RegisterRoute(nameof(OrderListPage), typeof(OrderListPage));
+            Routing.RegisterRoute(nameof(OrderPaymentPage), typeof(OrderPaymentPage));
+            Routing.RegisterRoute(nameof(OrderReviewPage), typeof(OrderReviewPage));
         }
     }
 }
@@ -120,7 +122,7 @@ namespace GamerLinkApp
 】
 
 ./MauiProgram.cs:
-【﻿using System.IO;
+【using System.IO;
 using GamerLinkApp.Data;
 using GamerLinkApp.Helpers;
 using GamerLinkApp.Services;
@@ -155,11 +157,11 @@ namespace GamerLinkApp
             if (File.Exists(databasePath))
             {
                 File.Delete(databasePath);
-                Console.WriteLine($"数据库已删除: {databasePath}");
+                Console.WriteLine($"Êý¾Ý¿âÒÑÉ¾³ý: {databasePath}");
             }
             else
             {
-                Console.WriteLine("数据库不存在。");
+                Console.WriteLine("Êý¾Ý¿â²»´æÔÚ¡£");
             }
 #endif
 
@@ -175,8 +177,14 @@ namespace GamerLinkApp
             builder.Services.AddSingleton<ProfilePage>();
             builder.Services.AddSingleton<ProfileViewModel>();
 
+            builder.Services.AddTransient<OrderListPage>();
+            builder.Services.AddTransient<OrderListViewModel>();
+            builder.Services.AddTransient<OrderPaymentPage>();
+            builder.Services.AddTransient<OrderPaymentViewModel>();
             builder.Services.AddTransient<ServiceDetailPage>();
             builder.Services.AddTransient<ServiceDetailViewModel>();
+            builder.Services.AddTransient<OrderReviewPage>();
+            builder.Services.AddTransient<OrderReviewViewModel>();
 
             var app = builder.Build();
             ServiceHelper.Initialize(app.Services);
@@ -185,6 +193,8 @@ namespace GamerLinkApp
         }
     }
 }
+
+
 】
 
 Data/ServiceDbContext.cs:
@@ -457,6 +467,36 @@ namespace GamerLinkApp.Models
 }
 】
 
+Models/ServiceReviewInfo.cs:
+【using System;
+
+namespace GamerLinkApp.Models
+{
+    /// <summary>
+    /// 展示在服务详情页的评论信息（包含用户资料）
+    /// </summary>
+    public class ServiceReviewInfo
+    {
+        public int Id { get; set; }
+        public int ServiceId { get; set; }
+        public int OrderId { get; set; }
+        public int Rating { get; set; }
+        public string Comment { get; set; } = string.Empty;
+        public DateTime ReviewDate { get; set; }
+
+        public int UserId { get; set; }
+        public string UserNickname { get; set; } = string.Empty;
+        public string? UserAvatarUrl { get; set; }
+
+        public string ReviewDateDisplay => ReviewDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+        public string UserInitial => string.IsNullOrWhiteSpace(UserNickname)
+            ? "匿"
+            : UserNickname.Substring(0, 1);
+    }
+}
+】
+
 Models/User.cs:
 【﻿using System;
 using System.Collections.Generic;
@@ -617,7 +657,11 @@ Resources/Raw/seed_data.json:
       "ReviewCount": 1280,
       "PurchaseCount": 1547,
       "CompletedCount": 120,
-      "Tags": ["打野上分", "意识训练", "赛后复盘"]
+      "Tags": [
+        "打野上分",
+        "意识训练",
+        "赛后复盘"
+      ]
     },
     {
       "Id": 2,
@@ -638,7 +682,11 @@ Resources/Raw/seed_data.json:
       "ReviewCount": 980,
       "PurchaseCount": 2300,
       "CompletedCount": 45,
-      "Tags": ["国服钻石", "全位置", "职业教练"]
+      "Tags": [
+        "国服钻石",
+        "全位置",
+        "职业教练"
+      ]
     },
     {
       "Id": 3,
@@ -659,7 +707,11 @@ Resources/Raw/seed_data.json:
       "ReviewCount": 560,
       "PurchaseCount": 860,
       "CompletedCount": 72,
-      "Tags": ["战术分析", "枪法提升", "团队配合"]
+      "Tags": [
+        "战术分析",
+        "枪法提升",
+        "团队配合"
+      ]
     },
     {
       "Id": 4,
@@ -671,13 +723,18 @@ Resources/Raw/seed_data.json:
       "Category": "射击",
       "SellerId": 4,
       "ThumbnailUrl": "banner1.png",
-      "ImageUrls": ["banner1.png"],
+      "ImageUrls": [
+        "banner1.png"
+      ],
       "IsFeatured": true,
       "AverageRating": 4.6,
       "ReviewCount": 340,
       "PurchaseCount": 620,
       "CompletedCount": 500,
-      "Tags": ["压枪训练", "团队战术"]
+      "Tags": [
+        "压枪训练",
+        "团队战术"
+      ]
     }
   ],
   "Users": [
@@ -705,7 +762,8 @@ Resources/Raw/seed_data.json:
       "PaymentDate": "2023-10-01T11:00:00Z",
       "CompletionDate": "2023-10-02T10:00:00Z",
       "TotalPrice": 58,
-      "Status": "Completed"
+      "Status": "Completed",
+      "ReviewId": 1
     },
     {
       "Id": 2,
@@ -732,23 +790,97 @@ Resources/Raw/seed_data.json:
       "OrderDate": "2024-01-01T10:00:00Z",
       "TotalPrice": 99,
       "Status": "PendingPayment"
+    },
+    {
+      "Id": 5,
+      "ServiceId": 1,
+      "BuyerId": 2,
+      "OrderDate": "2023-10-10T09:30:00Z",
+      "PaymentDate": "2023-10-10T09:45:00Z",
+      "CompletionDate": "2023-10-10T11:30:00Z",
+      "TotalPrice": 58,
+      "Status": "Completed",
+      "ReviewId": 2
+    },
+    {
+      "Id": 6,
+      "ServiceId": 2,
+      "BuyerId": 1,
+      "OrderDate": "2023-11-02T09:10:00Z",
+      "PaymentDate": "2023-11-02T09:20:00Z",
+      "CompletionDate": "2023-11-04T18:00:00Z",
+      "TotalPrice": 318,
+      "Status": "Completed",
+      "ReviewId": 3
     }
   ],
   "Categories": [
-    { "Id": 1, "Name": "MOBA", "IconUrl": "banner1.png" },
-    { "Id": 2, "Name": "射击", "IconUrl": "banner2.png" },
-    { "Id": 3, "Name": "RPG", "IconUrl": "banner3.png" }
+    {
+      "Id": 1,
+      "Name": "MOBA",
+      "IconUrl": "banner1.png"
+    },
+    {
+      "Id": 2,
+      "Name": "射击",
+      "IconUrl": "banner2.png"
+    },
+    {
+      "Id": 3,
+      "Name": "RPG",
+      "IconUrl": "banner3.png"
+    }
   ],
   "Banners": [
-    { "Id": 1, "ImageUrl": "banner1.png", "TargetUrl": "/ServiceDetail/1" },
-    { "Id": 2, "ImageUrl": "banner2.png", "TargetUrl": "/ServiceDetail/2" },
-    { "Id": 3, "ImageUrl": "banner3.png", "TargetUrl": "/ServiceDetail/3" }
+    {
+      "Id": 1,
+      "ImageUrl": "banner1.png",
+      "TargetUrl": "/ServiceDetail/1"
+    },
+    {
+      "Id": 2,
+      "ImageUrl": "banner2.png",
+      "TargetUrl": "/ServiceDetail/2"
+    },
+    {
+      "Id": 3,
+      "ImageUrl": "banner3.png",
+      "TargetUrl": "/ServiceDetail/3"
+    }
+  ],
+  "Reviews": [
+    {
+      "Id": 1,
+      "ServiceId": 1,
+      "OrderId": 1,
+      "UserId": 1,
+      "Rating": 5,
+      "Comment": "教练很专业，战术细节讲得很清楚。",
+      "ReviewDate": "2023-10-02T15:30:00Z"
+    },
+    {
+      "Id": 2,
+      "ServiceId": 1,
+      "OrderId": 5,
+      "UserId": 2,
+      "Rating": 4,
+      "Comment": "陪练氛围轻松愉快，就是排位有点卡。",
+      "ReviewDate": "2023-10-10T12:05:00Z"
+    },
+    {
+      "Id": 3,
+      "ServiceId": 2,
+      "OrderId": 6,
+      "UserId": 1,
+      "Rating": 5,
+      "Comment": "上分方案非常针对性，两天就晋级了！",
+      "ReviewDate": "2023-11-05T08:15:00Z"
+    }
   ]
-}
-】
+}】
 
 Services/IDataService.cs:
-【﻿using GamerLinkApp.Models;
+【using GamerLinkApp.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -761,13 +893,20 @@ namespace GamerLinkApp.Services
         Task<List<Category>> GetCategoriesAsync();
         Task<List<Service>> GetServicesByCategoryAsync(Category category);
         Task<User?> GetUserAsync(int id);
+        Task<Order> CreateOrderAsync(Order order);
+        Task<Order?> GetOrderByIdAsync(int id);
+        Task<Order?> MarkOrderAsPaidAsync(int orderId);
         Task<List<Order>> GetOrdersByUserAsync(int userId);
+        Task<Review?> GetReviewByOrderIdAsync(int orderId);
+        Task<List<ServiceReviewInfo>> GetServiceReviewsAsync(int serviceId);
+        Task<(Order? Order, Review? Review, string? ErrorMessage)> SubmitReviewAsync(int orderId, int userId, int rating, string comment);
+
     }
 }
 】
 
 Services/SqliteDataService.cs:
-【﻿using System;
+【using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -776,6 +915,7 @@ using System.Threading.Tasks;
 using GamerLinkApp.Data;
 using GamerLinkApp.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Maui.Storage;
 
 namespace GamerLinkApp.Services
 {
@@ -842,6 +982,52 @@ namespace GamerLinkApp.Services
             return await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
         }
 
+        public async Task<Order> CreateOrderAsync(Order order)
+        {
+            ArgumentNullException.ThrowIfNull(order);
+
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+
+            if (order.OrderDate == default)
+            {
+                order.OrderDate = DateTime.UtcNow;
+            }
+
+            context.Orders.Add(order);
+            await context.SaveChangesAsync();
+
+            return order;
+        }
+
+        public async Task<Order?> GetOrderByIdAsync(int id)
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id);
+        }
+
+        public async Task<Order?> MarkOrderAsPaidAsync(int orderId)
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order is null)
+            {
+                return null;
+            }
+
+            order.Status = nameof(OrderStatus.Ongoing);
+            order.PaymentDate = DateTime.UtcNow;
+
+            await context.SaveChangesAsync();
+
+            return order;
+        }
+
         public async Task<List<Order>> GetOrdersByUserAsync(int userId)
         {
             await EnsureInitializedAsync();
@@ -854,7 +1040,131 @@ namespace GamerLinkApp.Services
                 .ToListAsync();
         }
 
-        private async Task EnsureInitializedAsync()
+        public async Task<Review?> GetReviewByOrderIdAsync(int orderId)
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Reviews.AsNoTracking().FirstOrDefaultAsync(r => r.OrderId == orderId);
+        }
+
+        public async Task<List<ServiceReviewInfo>> GetServiceReviewsAsync(int serviceId)
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+
+            var reviews = await (from review in context.Reviews.AsNoTracking()
+                                 where review.ServiceId == serviceId
+                                 orderby review.ReviewDate descending
+                                 join user in context.Users.AsNoTracking() on review.UserId equals user.Id into userGroup
+                                 from user in userGroup.DefaultIfEmpty()
+                                 select new ServiceReviewInfo
+                                 {
+                                     Id = review.Id,
+                                     ServiceId = review.ServiceId,
+                                     OrderId = review.OrderId,
+                                     Rating = review.Rating,
+                                     Comment = review.Comment ?? string.Empty,
+                                     ReviewDate = review.ReviewDate,
+                                     UserId = user.Id,
+                                     UserNickname = string.IsNullOrWhiteSpace(user.Nickname)
+                                         ? (string.IsNullOrWhiteSpace(user.Username) ? "匿名玩家" : user!.Username!)
+                                         : user!.Nickname!,
+                                     UserAvatarUrl = user.AvatarUrl
+                                 }).ToListAsync();
+
+            return reviews;
+        }
+
+        public async Task<(Order? Order, Review? Review, string? ErrorMessage)> SubmitReviewAsync(int orderId, int userId, int rating, string comment)
+        {
+            await EnsureInitializedAsync();
+
+            if (rating < 1 || rating > 5)
+            {
+                return (null, null, "锟斤拷锟街憋拷锟斤拷锟斤拷 1 锟斤拷 5 之锟斤拷");
+            }
+
+            comment = comment?.Trim() ?? string.Empty;
+            if (comment.Length < 5)
+            {
+                return (null, null, "锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷要 5 锟斤拷锟街凤拷");
+            }
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order is null || order.BuyerId != userId)
+            {
+                return (null, null, "未锟揭碉拷锟斤拷锟斤拷锟桔的讹拷锟斤拷");
+            }
+
+            if (order.ReviewId.HasValue)
+            {
+                var existingReview = await context.Reviews.AsNoTracking().FirstOrDefaultAsync(r => r.Id == order.ReviewId.Value);
+                return (order, existingReview, "锟矫讹拷锟斤拷锟斤拷锟斤拷锟斤拷");
+            }
+
+            if (!string.Equals(order.Status, nameof(OrderStatus.PendingReview), StringComparison.Ordinal))
+            {
+                return (order, null, "锟斤拷前锟斤拷锟斤拷状态锟斤拷锟斤拷锟斤拷锟斤拷");
+            }
+
+            var review = new Review
+            {
+                OrderId = order.Id,
+                ServiceId = order.ServiceId,
+                UserId = userId,
+                Rating = rating,
+                Comment = comment,
+                ReviewDate = DateTime.UtcNow
+            };
+
+            context.Reviews.Add(review);
+            await context.SaveChangesAsync();
+
+            order.Status = nameof(OrderStatus.Completed);
+            order.ReviewId = review.Id;
+            order.CompletionDate ??= DateTime.UtcNow;
+
+            await UpdateServiceReviewStatsAsync(context, order.ServiceId);
+
+            await context.SaveChangesAsync();
+
+            var updatedOrder = await context.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == orderId);
+            var createdReview = await context.Reviews.AsNoTracking().FirstOrDefaultAsync(r => r.Id == review.Id);
+
+            return (updatedOrder, createdReview, null);
+        }
+
+        private static async Task UpdateServiceReviewStatsAsync(ServiceDbContext context, int serviceId)
+        {
+            var service = await context.Services.FirstOrDefaultAsync(s => s.Id == serviceId);
+            if (service is null)
+            {
+                return;
+            }
+
+            var stats = await context.Reviews
+                .Where(r => r.ServiceId == serviceId)
+                .GroupBy(r => 1)
+                .Select(g => new
+                {
+                    Count = g.Count(),
+                    Average = g.Average(r => r.Rating)
+                })
+                .FirstOrDefaultAsync();
+
+            if (stats is null)
+            {
+                service.ReviewCount = 0;
+                service.AverageRating = 0;
+                return;
+            }
+
+            service.ReviewCount = stats.Count;
+            service.AverageRating = Math.Round(stats.Average, 1);
+        }        private async Task EnsureInitializedAsync()
         {
             if (_initialized)
             {
@@ -882,7 +1192,7 @@ namespace GamerLinkApp.Services
 
         private static async Task SeedDataAsync(ServiceDbContext context)
         {
-            // 如果已经有数据，就不再初始化
+            // 锟斤拷锟斤拷丫锟斤拷锟斤拷锟斤拷荩锟斤拷筒锟斤拷俪锟绞硷拷锟?
             if (await context.Services.AnyAsync() ||
                 await context.Users.AnyAsync() ||
                 await context.Orders.AnyAsync() ||
@@ -894,12 +1204,12 @@ namespace GamerLinkApp.Services
 
             try
             {
-                // 读取 JSON 文件
+                // 锟斤拷取 JSON 锟侥硷拷
                 using var stream = await FileSystem.OpenAppPackageFileAsync("seed_data.json");
                 using var reader = new StreamReader(stream);
                 var json = await reader.ReadToEndAsync();
 
-                // 反序列化
+                // 锟斤拷锟斤拷锟叫伙拷
                 var options = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -917,6 +1227,9 @@ namespace GamerLinkApp.Services
                     if (seedData.Orders?.Any() == true)
                         await context.Orders.AddRangeAsync(seedData.Orders);
 
+                    if (seedData.Reviews?.Any() == true)
+                        await context.Reviews.AddRangeAsync(seedData.Reviews);
+
                     if (seedData.Categories?.Any() == true)
                         await context.Categories.AddRangeAsync(seedData.Categories);
 
@@ -928,7 +1241,7 @@ namespace GamerLinkApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"SeedData 初始化失败: {ex.Message}");
+                Console.WriteLine($"SeedData 锟斤拷始锟斤拷失锟斤拷: {ex.Message}");
             }
         }
 
@@ -945,12 +1258,15 @@ namespace GamerLinkApp.Services
             public List<Service> Services { get; set; } = new();
             public List<User> Users { get; set; } = new();
             public List<Order> Orders { get; set; } = new();
+            public List<Review> Reviews { get; set; } = new();
             public List<Category> Categories { get; set; } = new();
             public List<Banner> Banners { get; set; } = new();
         }
 
     }
 }
+
+
 】
 
 ViewModels/BaseViewModel.cs:
@@ -970,14 +1286,1873 @@ namespace GamerLinkApp.ViewModels
     }
 }】
 
+ViewModels/OrderListViewModel.cs:
+【using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
+using GamerLinkApp.Models;
+using GamerLinkApp.Services;
+
+namespace GamerLinkApp.ViewModels
+{
+    public class OrderListViewModel : BaseViewModel
+    {
+        private readonly IDataService _dataService;
+        private readonly List<OrderListItem> _allOrders = new();
+
+        private OrderFilterOption? _selectedFilter;
+        private bool _isLoading;
+
+        public ObservableCollection<OrderFilterOption> StatusFilters { get; } = new();
+        public ObservableCollection<OrderListItem> Orders { get; } = new();
+
+        public OrderFilterOption? SelectedFilter
+        {
+            get => _selectedFilter;
+            set
+            {
+                if (_selectedFilter == value)
+                {
+                    return;
+                }
+
+                _selectedFilter = value;
+                OnPropertyChanged();
+                ApplyFilter();
+            }
+        }
+
+        public bool IsLoading
+        {
+            get => _isLoading;
+            private set
+            {
+                if (_isLoading == value)
+                {
+                    return;
+                }
+
+                _isLoading = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool HasOrders => Orders.Count > 0;
+
+        public OrderListViewModel(IDataService dataService)
+        {
+            _dataService = dataService;
+            InitializeFilters();
+            _ = LoadAsync();
+        }
+
+        private void InitializeFilters()
+        {
+            StatusFilters.Clear();
+            StatusFilters.Add(new OrderFilterOption(null, "È«²¿¶©µ¥"));
+            StatusFilters.Add(new OrderFilterOption(nameof(OrderStatus.PendingPayment), "´ýÖ§¸¶"));
+            StatusFilters.Add(new OrderFilterOption(nameof(OrderStatus.Ongoing), "½øÐÐÖÐ"));
+            StatusFilters.Add(new OrderFilterOption(nameof(OrderStatus.PendingReview), "´ýÆÀ¼Û"));
+            StatusFilters.Add(new OrderFilterOption(nameof(OrderStatus.Completed), "ÒÑÍê³É"));
+            StatusFilters.Add(new OrderFilterOption(nameof(OrderStatus.RefundRequested), "ÍË¿îÉêÇë"));
+            StatusFilters.Add(new OrderFilterOption(nameof(OrderStatus.Cancelled), "ÒÑÈ¡Ïû"));
+
+            SelectedFilter = StatusFilters.FirstOrDefault();
+        }
+        // ¨¨¨ ÔÚÀàµÄ×îºóÌí¼ÓÕâ¸öÐÂ·½·¨ ¨¨¨
+        public void SetInitialFilter(string statusKey)
+        {
+            if (string.IsNullOrEmpty(statusKey))
+            {
+                return;
+            }
+
+            var filterToSelect = StatusFilters.FirstOrDefault(f => f.StatusKey == statusKey);
+            if (filterToSelect != null)
+            {
+                SelectedFilter = filterToSelect;
+            }
+        }
+        // ¡ø¡ø¡ø Ìí¼Ó½áÊø ¡ø¡ø¡ø
+
+
+        public Task RefreshAsync()
+        {
+            return LoadAsync();
+        }
+        private async Task LoadAsync()
+        {
+            if (IsLoading)
+            {
+                return;
+            }
+
+            IsLoading = true;
+
+            try
+            {
+                var user = await _dataService.GetUserAsync(1);
+                if (user is null)
+                {
+                    return;
+                }
+
+                var orders = await _dataService.GetOrdersByUserAsync(user.Id);
+                var items = new List<OrderListItem>(orders.Count);
+
+                foreach (var order in orders)
+                {
+                    Service? service = null;
+
+                    try
+                    {
+                        service = await _dataService.GetServiceByIdAsync(order.ServiceId);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Failed to load service for order {order.Id}: {ex.Message}");
+                    }
+
+                    items.Add(CreateOrderItem(order, service));
+                }
+
+                _allOrders.Clear();
+                _allOrders.AddRange(items);
+
+                UpdateFilterCounts();
+                ApplyFilter();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to load orders: {ex.Message}");
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        private void ApplyFilter()
+        {
+            IEnumerable<OrderListItem> filtered = _allOrders;
+
+            var statusKey = SelectedFilter?.StatusKey;
+            if (!string.IsNullOrEmpty(statusKey))
+            {
+                filtered = filtered.Where(item => string.Equals(item.StatusKey, statusKey, StringComparison.Ordinal));
+            }
+
+            Orders.Clear();
+            foreach (var item in filtered)
+            {
+                Orders.Add(item);
+            }
+
+            OnPropertyChanged(nameof(HasOrders));
+        }
+
+        private void UpdateFilterCounts()
+        {
+            foreach (var filter in StatusFilters)
+            {
+                if (string.IsNullOrEmpty(filter.StatusKey))
+                {
+                    filter.Count = _allOrders.Count;
+                }
+                else
+                {
+                    filter.Count = _allOrders.Count(item => string.Equals(item.StatusKey, filter.StatusKey, StringComparison.Ordinal));
+                }
+            }
+        }
+
+        private static OrderListItem CreateOrderItem(Order order, Service? service)
+        {
+            var statusKey = order.Status ?? string.Empty;
+            var statusDisplay = GetStatusDisplay(statusKey);
+            var colors = GetStatusColors(statusKey);
+
+            return new OrderListItem(
+                order.Id,
+                service?.Title ?? "·þÎñÒÑÏÂ¼Ü",
+                service?.ThumbnailUrl,
+                statusKey,
+                statusDisplay,
+                colors.badgeColor,
+                colors.textColor,
+                order.OrderDate,
+                FormatOrderDate(order.OrderDate),
+                order.TotalPrice,
+                $"£¤{order.TotalPrice:F2}");
+        }
+
+        private static string FormatOrderDate(DateTime dateTime)
+        {
+            return dateTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+        }
+
+        private static string GetStatusDisplay(string statusKey)
+        {
+            return statusKey switch
+            {
+                nameof(OrderStatus.PendingPayment) => "´ýÖ§¸¶",
+                nameof(OrderStatus.Ongoing) => "½øÐÐÖÐ",
+                nameof(OrderStatus.PendingReview) => "´ýÆÀ¼Û",
+                nameof(OrderStatus.Completed) => "ÒÑÍê³É",
+                nameof(OrderStatus.RefundRequested) => "ÍË¿îÉêÇë",
+                nameof(OrderStatus.Cancelled) => "ÒÑÈ¡Ïû",
+                _ => "Î´Öª×´Ì¬"
+            };
+        }
+
+        private static (string badgeColor, string textColor) GetStatusColors(string statusKey)
+        {
+            return statusKey switch
+            {
+                nameof(OrderStatus.PendingPayment) => ("#FFF3E0", "#FF8A00"),
+                nameof(OrderStatus.Ongoing) => ("#E5F1FF", "#3478F6"),
+                nameof(OrderStatus.PendingReview) => ("#F3E8FF", "#8E24AA"),
+                nameof(OrderStatus.Completed) => ("#E6F8EE", "#2DBE60"),
+                nameof(OrderStatus.RefundRequested) => ("#FFE7E7", "#FF4D4F"),
+                nameof(OrderStatus.Cancelled) => ("#EEF1F5", "#6B7280"),
+                _ => ("#EEF1F5", "#6B7280")
+            };
+        }
+
+        public class OrderFilterOption : BaseViewModel
+        {
+            public OrderFilterOption(string? statusKey, string displayName)
+            {
+                StatusKey = statusKey;
+                DisplayName = displayName;
+            }
+
+            public string? StatusKey { get; }
+            public string DisplayName { get; }
+
+            private int _count;
+            public int Count
+            {
+                get => _count;
+                set
+                {
+                    if (_count == value)
+                    {
+                        return;
+                    }
+
+                    _count = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CountDisplay));
+                }
+            }
+
+            public string CountDisplay => $"({Count})";
+        }
+
+        public class OrderListItem
+        {
+            public OrderListItem(
+                int orderId,
+                string serviceTitle,
+                string? thumbnailUrl,
+                string statusKey,
+                string statusDisplay,
+                string statusBadgeColor,
+                string statusTextColor,
+                DateTime orderDate,
+                string orderDateDisplay,
+                decimal totalPrice,
+                string totalPriceDisplay)
+            {
+                OrderId = orderId;
+                ServiceTitle = serviceTitle;
+                ThumbnailUrl = thumbnailUrl;
+                StatusKey = statusKey;
+                StatusDisplay = statusDisplay;
+                StatusBadgeColor = statusBadgeColor;
+                StatusTextColor = statusTextColor;
+                OrderDate = orderDate;
+                OrderDateDisplay = orderDateDisplay;
+                TotalPrice = totalPrice;
+                TotalPriceDisplay = totalPriceDisplay;
+            }
+
+            public int OrderId { get; }
+            public string OrderNumberDisplay => $"¶©µ¥ºÅ£º{OrderId:D6}";
+            public string ServiceTitle { get; }
+            public string? ThumbnailUrl { get; }
+            public string StatusKey { get; }
+            public string StatusDisplay { get; }
+            public string StatusBadgeColor { get; }
+            public string StatusTextColor { get; }
+            public DateTime OrderDate { get; }
+            public string OrderDateDisplay { get; }
+            public decimal TotalPrice { get; }
+            public string TotalPriceDisplay { get; }
+            public bool IsPendingPayment => string.Equals(StatusKey, nameof(OrderStatus.PendingPayment), StringComparison.Ordinal);
+            public bool CanReview => string.Equals(StatusKey, nameof(OrderStatus.PendingReview), StringComparison.Ordinal);
+        }
+    }
+}
+
+
+】
+
+ViewModels/OrderPaymentViewModel.cs:
+【﻿using System;
+using System.Threading.Tasks;
+using GamerLinkApp.Models;
+using GamerLinkApp.Services;
+
+namespace GamerLinkApp.ViewModels
+{
+    public class OrderPaymentViewModel : BaseViewModel
+    {
+        private readonly IDataService _dataService;
+
+        private Order? _order;
+        public Order? Order
+        {
+            get => _order;
+            private set
+            {
+                if (_order == value)
+                {
+                    return;
+                }
+
+                _order = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasOrder));
+                OnPropertyChanged(nameof(CanPay));
+                OnPropertyChanged(nameof(PaymentAmountDisplay));
+                OnPropertyChanged(nameof(OrderStatusDisplay));
+                OnPropertyChanged(nameof(OrderNumberDisplay));
+                OnPropertyChanged(nameof(OrderDateDisplay));
+            }
+        }
+
+        private Service? _service;
+        public Service? Service
+        {
+            get => _service;
+            private set
+            {
+                if (_service == value)
+                {
+                    return;
+                }
+
+                _service = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ServiceName));
+            }
+        }
+
+        private bool _isLoading;
+        public bool IsLoading
+        {
+            get => _isLoading;
+            private set
+            {
+                if (_isLoading == value)
+                {
+                    return;
+                }
+
+                _isLoading = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _isPaying;
+        public bool IsPaying
+        {
+            get => _isPaying;
+            private set
+            {
+                if (_isPaying == value)
+                {
+                    return;
+                }
+
+                _isPaying = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanPay));
+            }
+        }
+
+        public bool HasOrder => Order is not null;
+
+        public bool CanPay => !IsPaying && Order?.Status == nameof(OrderStatus.PendingPayment);
+
+        public string PaymentAmountDisplay => Order is null ? string.Empty : $"￥{Order.TotalPrice:F2}";
+
+        public string OrderStatusDisplay
+        {
+            get
+            {
+                if (Order?.Status is null)
+                {
+                    return "未知状态";
+                }
+
+                return Order.Status switch
+                {
+                    nameof(OrderStatus.PendingPayment) => "待支付",
+                    nameof(OrderStatus.Ongoing) => "服务中",
+                    nameof(OrderStatus.PendingReview) => "待评价",
+                    nameof(OrderStatus.Completed) => "已完成",
+                    nameof(OrderStatus.RefundRequested) => "退款申请中",
+                    nameof(OrderStatus.Cancelled) => "已取消",
+                    _ => "未知状态"
+                };
+            }
+        }
+
+        public string OrderNumberDisplay => Order is null ? string.Empty : $"订单号：{Order.Id:D6}";
+
+        public string OrderDateDisplay => Order is null ? string.Empty : Order.OrderDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+        public string ServiceName => Service?.Title ?? "未知服务";
+
+        public OrderPaymentViewModel(IDataService dataService)
+        {
+            _dataService = dataService;
+        }
+
+        public async Task LoadAsync(int orderId)
+        {
+            if (orderId <= 0)
+            {
+                Order = null;
+                Service = null;
+                return;
+            }
+
+            if (IsLoading)
+            {
+                return;
+            }
+
+            IsLoading = true;
+
+            try
+            {
+                var order = await _dataService.GetOrderByIdAsync(orderId);
+                Order = order;
+
+                if (order is not null)
+                {
+                    Service = await _dataService.GetServiceByIdAsync(order.ServiceId);
+                }
+                else
+                {
+                    Service = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to load order for payment: {ex.Message}");
+                Order = null;
+                Service = null;
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        public async Task<(bool Success, string? ErrorMessage)> PayAsync()
+        {
+            if (Order is null)
+            {
+                return (false, "订单不存在或已失效。");
+            }
+
+            if (Order.Status != nameof(OrderStatus.PendingPayment))
+            {
+                return (false, "订单已处理，无需支付。");
+            }
+
+            if (IsPaying)
+            {
+                return (false, null);
+            }
+
+            IsPaying = true;
+
+            try
+            {
+                var updated = await _dataService.MarkOrderAsPaidAsync(Order.Id);
+                if (updated is null)
+                {
+                    return (false, "支付失败，订单不存在。");
+                }
+
+                Order = updated;
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to mark order paid: {ex.Message}");
+                return (false, "支付失败，请稍后再试。");
+            }
+            finally
+            {
+                IsPaying = false;
+            }
+        }
+    }
+}
+】
+
+ViewModels/OrderReviewViewModel.cs:
+【﻿using System;
+
+
+
+using System.Collections.Generic;
+
+
+
+using System.Collections.ObjectModel;
+
+
+
+using System.Diagnostics;
+
+
+
+using System.Threading.Tasks;
+
+
+
+using System.Windows.Input;
+
+
+
+using GamerLinkApp.Models;
+
+
+
+using GamerLinkApp.Services;
+
+
+
+namespace GamerLinkApp.ViewModels
+
+
+
+{
+
+
+
+    public class OrderReviewViewModel : BaseViewModel
+
+
+
+    {
+
+
+
+        private const int MinimumCommentLength = 5;
+
+
+
+        public ObservableCollection<RatingStarItem> RatingStars { get; }
+
+
+
+        private readonly IDataService _dataService;
+
+
+
+        private Order? _order;
+
+
+
+        public Order? Order
+
+
+
+        {
+
+
+
+            get => _order;
+
+
+
+            private set
+
+
+
+            {
+
+
+
+                if (_order == value)
+
+
+
+                {
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                _order = value;
+
+
+
+                OnPropertyChanged();
+
+
+
+                OnPropertyChanged(nameof(HasOrder));
+
+
+
+                OnPropertyChanged(nameof(OrderNumberDisplay));
+
+
+
+                OnPropertyChanged(nameof(OrderDateDisplay));
+
+
+
+                OnPropertyChanged(nameof(OrderStatusDisplay));
+
+
+
+                OnPropertyChanged(nameof(CanSubmit));
+
+
+
+                OnPropertyChanged(nameof(SubmitButtonText));
+
+
+
+            }
+
+
+
+        }
+
+
+
+        private Service? _service;
+
+
+
+        public Service? Service
+
+
+
+        {
+
+
+
+            get => _service;
+
+
+
+            private set
+
+
+
+            {
+
+
+
+                if (_service == value)
+
+
+
+                {
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                _service = value;
+
+
+
+                OnPropertyChanged();
+
+
+
+                OnPropertyChanged(nameof(ServiceName));
+
+
+
+            }
+
+
+
+        }
+
+
+
+        private Review? _existingReview;
+
+
+
+        public Review? ExistingReview
+
+
+
+        {
+
+
+
+            get => _existingReview;
+
+
+
+            private set
+
+
+
+            {
+
+
+
+                if (_existingReview == value)
+
+
+
+                {
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                _existingReview = value;
+
+
+
+                OnPropertyChanged();
+
+
+
+                OnPropertyChanged(nameof(IsAlreadyReviewed));
+
+
+
+                OnPropertyChanged(nameof(CanSubmit));
+
+
+
+                OnPropertyChanged(nameof(IsCommentReadOnly));
+
+
+
+                OnPropertyChanged(nameof(IsRatingReadOnly));
+
+
+
+                OnPropertyChanged(nameof(SubmitButtonText));
+
+
+
+            }
+
+
+
+        }
+
+
+
+        private bool _isLoading;
+
+
+
+        public bool IsLoading
+
+
+
+        {
+
+
+
+            get => _isLoading;
+
+
+
+            private set
+
+
+
+            {
+
+
+
+                if (_isLoading == value)
+
+
+
+                {
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                _isLoading = value;
+
+
+
+                OnPropertyChanged();
+
+
+
+                OnPropertyChanged(nameof(IsBusy));
+
+
+
+            }
+
+
+
+        }
+
+
+
+        private bool _isSubmitting;
+
+
+
+        public bool IsSubmitting
+
+
+
+        {
+
+
+
+            get => _isSubmitting;
+
+
+
+            private set
+
+
+
+            {
+
+
+
+                if (_isSubmitting == value)
+
+
+
+                {
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                _isSubmitting = value;
+
+
+
+                OnPropertyChanged();
+
+
+
+                OnPropertyChanged(nameof(CanSubmit));
+
+
+
+                OnPropertyChanged(nameof(SubmitButtonText));
+
+
+
+                OnPropertyChanged(nameof(IsBusy));
+
+
+
+            }
+
+
+
+        }
+
+
+
+        private int _rating = 5;
+
+
+
+        public int Rating
+
+
+
+        {
+
+
+
+            get => _rating;
+
+
+
+            set
+
+
+
+            {
+
+
+
+                var clamped = Math.Clamp(value, 1, 5);
+
+
+
+                if (_rating == clamped)
+
+
+
+                {
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                _rating = clamped;
+
+
+
+                OnPropertyChanged();
+
+
+
+                OnPropertyChanged(nameof(RatingDisplay));
+
+
+
+                OnPropertyChanged(nameof(CanSubmit));
+
+
+
+                UpdateRatingStars();
+
+
+
+            }
+
+
+
+        }
+
+
+
+        public string RatingDisplay => $"{Rating} 分";
+
+
+
+        private void UpdateRatingStars()
+
+
+
+        {
+
+
+
+            foreach (var star in RatingStars)
+
+
+
+            {
+
+
+
+                star.IsFilled = star.Value <= Rating;
+
+
+
+            }
+
+
+
+        }
+
+
+
+        private string _comment = string.Empty;
+
+
+
+        public string Comment
+
+
+
+        {
+
+
+
+            get => _comment;
+
+
+
+            set
+
+
+
+            {
+
+
+
+                var newValue = value ?? string.Empty;
+
+
+
+                if (string.Equals(_comment, newValue, StringComparison.Ordinal))
+
+
+
+                {
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                _comment = newValue;
+
+
+
+                OnPropertyChanged();
+
+
+
+                OnPropertyChanged(nameof(CommentLengthIndicator));
+
+
+
+                OnPropertyChanged(nameof(CanSubmit));
+
+
+
+            }
+
+
+
+        }
+
+
+
+        public string CommentLengthIndicator => $"{Math.Min(Comment.Trim().Length, 200)}/200";
+
+
+
+        public bool HasOrder => Order is not null;
+
+
+
+        public bool IsAlreadyReviewed => ExistingReview is not null;
+
+
+
+        public bool IsCommentReadOnly => IsAlreadyReviewed;
+
+
+
+        public bool IsRatingReadOnly => IsAlreadyReviewed;
+
+
+
+        public string SubmitButtonText => IsAlreadyReviewed ? "已完成评价" : (IsSubmitting ? "提交中..." : "提交评价");
+
+
+
+        public bool IsBusy => IsLoading || IsSubmitting;
+
+
+
+        private bool IsPendingReview => string.Equals(Order?.Status, nameof(OrderStatus.PendingReview), StringComparison.Ordinal);
+
+
+
+        public bool CanSubmit
+
+
+
+        {
+
+
+
+            get
+
+
+
+            {
+
+
+
+                if (!HasOrder)
+
+
+
+                {
+
+
+
+                    return false;
+
+
+
+                }
+
+
+
+                if (IsAlreadyReviewed)
+
+
+
+                {
+
+
+
+                    return false;
+
+
+
+                }
+
+
+
+                if (IsSubmitting)
+
+
+
+                {
+
+
+
+                    return false;
+
+
+
+                }
+
+
+
+                if (!IsPendingReview)
+
+
+
+                {
+
+
+
+                    return false;
+
+
+
+                }
+
+
+
+                return Comment.Trim().Length >= MinimumCommentLength && Rating >= 1 && Rating <= 5;
+
+
+
+            }
+
+
+
+        }
+
+
+
+        public string ServiceName => Service?.Title ?? "未知服务";
+
+
+
+        public string OrderNumberDisplay => Order is null ? string.Empty : $"订单号：{Order.Id:D6}";
+
+
+
+        public string OrderDateDisplay => Order is null ? string.Empty : Order.OrderDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+
+
+        public string OrderStatusDisplay => Order?.Status switch
+
+
+
+        {
+
+
+
+            nameof(OrderStatus.PendingPayment) => "待支付",
+
+
+
+            nameof(OrderStatus.Ongoing) => "进行中",
+
+
+
+            nameof(OrderStatus.PendingReview) => "待评价",
+
+
+
+            nameof(OrderStatus.Completed) => "已完成",
+
+
+
+            nameof(OrderStatus.RefundRequested) => "申请退款",
+
+
+
+            nameof(OrderStatus.Cancelled) => "已取消",
+
+
+
+            _ => "未知状态"
+
+
+
+        };
+
+
+
+        public OrderReviewViewModel(IDataService dataService)
+
+
+
+        {
+
+
+
+            _dataService = dataService;
+
+
+
+            RatingStars = new ObservableCollection<RatingStarItem>();
+
+
+
+            for (var i = 1; i <= 5; i++)
+
+
+
+            {
+
+
+
+                RatingStars.Add(new RatingStarItem(i));
+
+
+
+            }
+
+
+
+            UpdateRatingStars();
+
+
+
+        }
+
+
+
+        public async Task LoadAsync(int orderId)
+
+
+
+        {
+
+
+
+            if (orderId <= 0)
+
+
+
+            {
+
+
+
+                Order = null;
+
+
+
+                Service = null;
+
+
+
+                ExistingReview = null;
+
+
+
+                Rating = 5;
+
+
+
+                Comment = string.Empty;
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            if (IsLoading)
+
+
+
+            {
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            IsLoading = true;
+
+
+
+            try
+
+
+
+            {
+
+
+
+                var order = await _dataService.GetOrderByIdAsync(orderId);
+
+
+
+                Order = order;
+
+
+
+                if (order is null)
+
+
+
+                {
+
+
+
+                    Service = null;
+
+
+
+                    ExistingReview = null;
+
+
+
+                    Rating = 5;
+
+
+
+                    Comment = string.Empty;
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                Service = await _dataService.GetServiceByIdAsync(order.ServiceId);
+
+
+
+                var review = await _dataService.GetReviewByOrderIdAsync(order.Id);
+
+
+
+                ExistingReview = review;
+
+
+
+                if (review is not null)
+
+
+
+                {
+
+
+
+                    Rating = review.Rating;
+
+
+
+                    Comment = review.Comment;
+
+
+
+                }
+
+
+
+                else
+
+
+
+                {
+
+
+
+                    Rating = 5;
+
+
+
+                    Comment = string.Empty;
+
+
+
+                }
+
+
+
+            }
+
+
+
+            catch (Exception ex)
+
+
+
+            {
+
+
+
+                Debug.WriteLine($"Failed to load review data: {ex.Message}");
+
+
+
+                Order = null;
+
+
+
+                Service = null;
+
+
+
+                ExistingReview = null;
+
+
+
+                Rating = 5;
+
+
+
+                Comment = string.Empty;
+
+
+
+            }
+
+
+
+            finally
+
+
+
+            {
+
+
+
+                IsLoading = false;
+
+
+
+            }
+
+
+
+        }
+
+
+
+        public async Task<(bool Success, string? ErrorMessage)> SubmitAsync()
+
+
+
+        {
+
+
+
+            if (!HasOrder)
+
+
+
+            {
+
+
+
+                return (false, "未找到订单");
+
+
+
+            }
+
+
+
+            if (IsAlreadyReviewed)
+
+
+
+            {
+
+
+
+                return (false, "该订单已经评价过");
+
+
+
+            }
+
+
+
+            var trimmedComment = Comment.Trim();
+
+
+
+            if (trimmedComment.Length < MinimumCommentLength)
+
+
+
+            {
+
+
+
+                return (false, $"评价内容至少需要 {MinimumCommentLength} 个字符");
+
+
+
+            }
+
+
+
+            if (Rating < 1 || Rating > 5)
+
+
+
+            {
+
+
+
+                return (false, "评分无效");
+
+
+
+            }
+
+
+
+            if (!IsPendingReview)
+
+
+
+            {
+
+
+
+                return (false, "当前状态暂不支持评价");
+
+
+
+            }
+
+
+
+            if (IsSubmitting)
+
+
+
+            {
+
+
+
+                return (false, null);
+
+
+
+            }
+
+
+
+            IsSubmitting = true;
+
+
+
+            try
+
+
+
+            {
+
+
+
+                var (updatedOrder, createdReview, errorMessage) = await _dataService.SubmitReviewAsync(Order!.Id, Order.BuyerId, Rating, trimmedComment);
+
+
+
+                if (!string.IsNullOrEmpty(errorMessage))
+
+
+
+                {
+
+
+
+                    return (false, errorMessage);
+
+
+
+                }
+
+
+
+                Order = updatedOrder;
+
+
+
+                ExistingReview = createdReview;
+
+
+
+                if (createdReview is not null)
+
+
+
+                {
+
+
+
+                    Rating = createdReview.Rating;
+
+
+
+                    Comment = createdReview.Comment;
+
+
+
+                }
+
+
+
+                return (true, null);
+
+
+
+            }
+
+
+
+            catch (Exception ex)
+
+
+
+            {
+
+
+
+                Debug.WriteLine($"Failed to submit review: {ex.Message}");
+
+
+
+                return (false, "评价提交失败，请稍后再试。");
+
+
+
+            }
+
+
+
+            finally
+
+
+
+            {
+
+
+
+                IsSubmitting = false;
+
+
+
+            }
+
+
+
+        }
+
+
+
+        public class RatingStarItem : BaseViewModel
+
+
+
+        {
+
+
+
+            public RatingStarItem(int value)
+
+
+
+            {
+
+
+
+                Value = value;
+
+
+
+            }
+
+
+
+            public int Value { get; }
+
+
+
+            private bool _isFilled;
+
+
+
+            public bool IsFilled
+
+
+
+            {
+
+
+
+                get => _isFilled;
+
+
+
+                set
+
+
+
+                {
+
+
+
+                    if (_isFilled == value)
+
+
+
+                    {
+
+
+
+                        return;
+
+
+
+                    }
+
+
+
+                    _isFilled = value;
+
+
+
+                    OnPropertyChanged();
+
+
+
+                }
+
+
+
+            }
+
+
+
+        }
+
+
+
+    }
+
+
+
+}
+
+
+
+】
+
 ViewModels/ProfileViewModel.cs:
 【﻿using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using GamerLinkApp.Models;
 using GamerLinkApp.Services;
+using GamerLinkApp.Views;
+using Microsoft.Maui.Controls;
 
 namespace GamerLinkApp.ViewModels
 {
@@ -1034,10 +3209,12 @@ namespace GamerLinkApp.ViewModels
         }
 
         public ObservableCollection<OrderStatusItem> OrderStatuses { get; } = new();
+        public ICommand OrderStatusTappedCommand { get; }
 
         public ProfileViewModel(IDataService dataService)
         {
             _dataService = dataService;
+            OrderStatusTappedCommand = new Command<OrderStatusItem>(async (item) => await OnOrderStatusTapped(item));
             _ = LoadAsync();
         }
 
@@ -1059,15 +3236,18 @@ namespace GamerLinkApp.ViewModels
 
                 var summaries = new[]
                 {
-                    new OrderStatusItem(nameof(OrderStatus.PendingPayment), "\u5f85\u652f\u4ed8", "\u00a5"),
-                    new OrderStatusItem(nameof(OrderStatus.Ongoing), "\u8fdb\u884c\u4e2d", "\u231b"),
-                    new OrderStatusItem(nameof(OrderStatus.PendingReview), "\u5f85\u8bc4\u4ef7", "\u270d"),
-                    new OrderStatusItem(nameof(OrderStatus.Completed), "\u5168\u90e8\u8ba2\u5355", "\U0001F5C2")
+                    new OrderStatusItem(nameof(OrderStatus.PendingPayment), "待支付", "¥"),
+                    new OrderStatusItem(nameof(OrderStatus.Ongoing), "进行中", "⌛"),
+                    new OrderStatusItem(nameof(OrderStatus.PendingReview), "待评价", "✍"),
+                    new OrderStatusItem(null, "全部订单", "📄") // 修正: null key 代表全部订单
                 };
 
                 foreach (var summary in summaries)
                 {
-                    summary.Count = orders.Count(o => string.Equals(o.Status, summary.StatusKey, StringComparison.Ordinal));
+                    // 修正: 如果 StatusKey 为 null，则统计所有订单数量
+                    summary.Count = string.IsNullOrEmpty(summary.StatusKey)
+                        ? orders.Count
+                        : orders.Count(o => string.Equals(o.Status, summary.StatusKey, StringComparison.Ordinal));
                 }
 
                 OrderStatuses.Clear();
@@ -1081,6 +3261,21 @@ namespace GamerLinkApp.ViewModels
                 Debug.WriteLine($"Failed to load profile: {ex.Message}");
             }
         }
+
+        private async Task OnOrderStatusTapped(OrderStatusItem item)
+        {
+            if (item is null)
+                return;
+
+            // 根据点击的项构建导航路由
+            // 如果 StatusKey 为空 (代表"全部订单"), 则不传递参数
+            var route = string.IsNullOrEmpty(item.StatusKey)
+                ? $"{nameof(OrderListPage)}"
+                : $"{nameof(OrderListPage)}?status={item.StatusKey}";
+
+            await Shell.Current.GoToAsync(route);
+        }
+
 
         public class OrderStatusItem
         {
@@ -1097,20 +3292,52 @@ namespace GamerLinkApp.ViewModels
             public int Count { get; set; }
         }
     }
-}
-】
+}】
 
 ViewModels/ServiceDetailViewModel.cs:
-【﻿using GamerLinkApp.Models;
-using GamerLinkApp.Services;
-using System;
+【using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
+using GamerLinkApp.Models;
+using GamerLinkApp.Services;
 
 namespace GamerLinkApp.ViewModels
 {
     public class ServiceDetailViewModel : BaseViewModel
     {
         private readonly IDataService _dataService;
+
+        public ObservableCollection<ServiceReviewInfo> Reviews { get; } = new();
+
+        private bool _isReviewsLoading;
+        public bool IsReviewsLoading
+        {
+            get => _isReviewsLoading;
+            private set
+            {
+                if (_isReviewsLoading == value)
+                {
+                    return;
+                }
+
+                _isReviewsLoading = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsReviewsEmpty));
+            }
+        }
+
+        public bool HasReviews => Reviews.Count > 0;
+
+        public bool IsReviewsEmpty => !IsReviewsLoading && !HasReviews;
+
+        public int ReviewCount => Reviews.Count;
+
+        public string ReviewCountDisplay => HasReviews ? $"{ReviewCount}条评价" : "暂无评价";
+
+        public double AverageRating => HasReviews ? Math.Round(Reviews.Average(r => r.Rating), 1) : 0;
+
+        public string AverageRatingDisplay => HasReviews ? AverageRating.ToString("F1") : "--";
 
         private Service? _selectedService;
         public Service? SelectedService
@@ -1119,10 +3346,13 @@ namespace GamerLinkApp.ViewModels
             set
             {
                 if (_selectedService == value)
+                {
                     return;
+                }
 
                 _selectedService = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CanPlaceOrder));
             }
         }
 
@@ -1133,7 +3363,9 @@ namespace GamerLinkApp.ViewModels
             set
             {
                 if (_serviceId == value)
+                {
                     return;
+                }
 
                 _serviceId = value;
                 OnPropertyChanged();
@@ -1141,9 +3373,83 @@ namespace GamerLinkApp.ViewModels
             }
         }
 
+        private bool _isPlacingOrder;
+        public bool IsPlacingOrder
+        {
+            get => _isPlacingOrder;
+            private set
+            {
+                if (_isPlacingOrder == value)
+                {
+                    return;
+                }
+
+                _isPlacingOrder = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanPlaceOrder));
+            }
+        }
+
+        public bool CanPlaceOrder => !IsPlacingOrder && SelectedService is not null;
+
         public ServiceDetailViewModel(IDataService dataService)
         {
             _dataService = dataService;
+
+            Reviews.CollectionChanged += (_, __) =>
+            {
+                OnPropertyChanged(nameof(HasReviews));
+                OnPropertyChanged(nameof(IsReviewsEmpty));
+                OnPropertyChanged(nameof(ReviewCount));
+                OnPropertyChanged(nameof(ReviewCountDisplay));
+                OnPropertyChanged(nameof(AverageRating));
+                OnPropertyChanged(nameof(AverageRatingDisplay));
+            };
+        }
+
+        public async Task<(bool Success, string? ErrorMessage, Order? Order)> PlaceOrderAsync()
+        {
+            if (SelectedService is null)
+            {
+                return (false, "当前服务信息不可用，请稍后重试。", null);
+            }
+
+            if (IsPlacingOrder)
+            {
+                return (false, null, null);
+            }
+
+            IsPlacingOrder = true;
+
+            try
+            {
+                var user = await _dataService.GetUserAsync(1);
+                if (user is null)
+                {
+                    return (false, "未找到当前用户，请先登录。", null);
+                }
+
+                var order = new Order
+                {
+                    ServiceId = SelectedService.Id,
+                    BuyerId = user.Id,
+                    OrderDate = DateTime.UtcNow,
+                    Status = nameof(OrderStatus.PendingPayment),
+                    TotalPrice = SelectedService.Price
+                };
+
+                var createdOrder = await _dataService.CreateOrderAsync(order);
+                return (true, null, createdOrder);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to create order: {ex.Message}");
+                return (false, "下单失败，请稍后再试。", null);
+            }
+            finally
+            {
+                IsPlacingOrder = false;
+            }
         }
 
         private async Task LoadServiceAsync(int id)
@@ -1151,6 +3457,7 @@ namespace GamerLinkApp.ViewModels
             if (id <= 0)
             {
                 SelectedService = null;
+                Reviews.Clear();
                 return;
             }
 
@@ -1161,18 +3468,52 @@ namespace GamerLinkApp.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to load service detail: {ex.Message}");
+                SelectedService = null;
+            }
+
+            await LoadReviewsAsync(id);
+        }
+
+        private async Task LoadReviewsAsync(int serviceId)
+        {
+            if (serviceId <= 0)
+            {
+                Reviews.Clear();
+                return;
+            }
+
+            try
+            {
+                IsReviewsLoading = true;
+                var reviews = await _dataService.GetServiceReviewsAsync(serviceId);
+
+                Reviews.Clear();
+                foreach (var review in reviews)
+                {
+                    Reviews.Add(review);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to load service reviews: {ex.Message}");
+                Reviews.Clear();
+            }
+            finally
+            {
+                IsReviewsLoading = false;
             }
         }
     }
 }
-
-
 】
 
 ViewModels/ServiceListViewModel.cs:
-【﻿using GamerLinkApp.Models;
+【﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
+using GamerLinkApp.Models;
 using GamerLinkApp.Services;
 
 namespace GamerLinkApp.ViewModels
@@ -1180,13 +3521,34 @@ namespace GamerLinkApp.ViewModels
     public class ServiceListViewModel : BaseViewModel
     {
         private readonly IDataService _dataService;
+        private readonly List<Service> _allServices = new();
+        private string _searchText = string.Empty;
 
         public ObservableCollection<Service> Services { get; } = new();
+
+        public string SearchText
+        {
+            get => _searchText;
+            set
+            {
+                if (_searchText == value)
+                {
+                    return;
+                }
+
+                _searchText = value;
+                OnPropertyChanged();
+                ApplyFilter();
+                OnPropertyChanged(nameof(IsShowingBanners));
+            }
+        }
+
+        public bool IsShowingBanners => string.IsNullOrWhiteSpace(SearchText);
 
         public ServiceListViewModel(IDataService dataService)
         {
             _dataService = dataService;
-            _ = LoadServicesAsync(); // 异步加载，不阻塞UI
+            _ = LoadServicesAsync(); // async load keeps UI responsive
         }
 
         private async Task LoadServicesAsync()
@@ -1194,21 +3556,78 @@ namespace GamerLinkApp.ViewModels
             try
             {
                 var services = await _dataService.GetServicesAsync();
-                Services.Clear();
-                foreach (var service in services)
-                {
-                    Services.Add(service);
-                }
+                _allServices.Clear();
+                _allServices.AddRange(services);
+                ApplyFilter();
             }
             catch (Exception ex)
             {
-                // TODO: 可以加日志或者 UI 提示
-                System.Diagnostics.Debug.WriteLine($"加载服务失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to load services: {ex.Message}");
+            }
+        }
+
+        private void ApplyFilter()
+        {
+            var query = SearchText?.Trim();
+
+            IEnumerable<Service> filtered = _allServices;
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                filtered = _allServices.Where(service =>
+                    (!string.IsNullOrWhiteSpace(service.Title) && service.Title.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(service.GameName) && service.GameName.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+                    (service.Tags?.Any(tag => tag.Contains(query, StringComparison.OrdinalIgnoreCase)) ?? false));
+            }
+
+            UpdateServices(filtered);
+        }
+
+        // --- 以下是修改的部分 ---
+
+        /// <summary>
+        /// 高效地更新服务列表，避免不必要的UI刷新导致输入框失去焦点
+        /// </summary>
+        /// <param name="source">过滤后的服务列表</param>
+        private void UpdateServices(IEnumerable<Service> source)
+        {
+            var filteredList = source.ToList();
+
+            // 移除不再存在于筛选结果中的服务
+            for (int i = Services.Count - 1; i >= 0; i--)
+            {
+                var currentService = Services[i];
+                if (!filteredList.Any(s => s.Id == currentService.Id))
+                {
+                    Services.RemoveAt(i);
+                }
+            }
+
+            // 添加新服务或调整顺序
+            for (int i = 0; i < filteredList.Count; i++)
+            {
+                var filteredService = filteredList[i];
+
+                // 如果当前位置的服务不匹配，则需要调整
+                if (i >= Services.Count || Services[i].Id != filteredService.Id)
+                {
+                    // 检查服务是否已存在于列表的其他位置
+                    var existing = Services.FirstOrDefault(s => s.Id == filteredService.Id);
+                    if (existing != null)
+                    {
+                        // 如果存在，就移动到正确的位置
+                        Services.Move(Services.IndexOf(existing), i);
+                    }
+                    else
+                    {
+                        // 如果不存在，就插入到正确的位置
+                        Services.Insert(i, filteredService);
+                    }
+                }
             }
         }
     }
-}
-】
+}】
 
 ViewModels/ZoneViewModel.cs:
 【﻿using System;
@@ -1326,6 +3745,853 @@ namespace GamerLinkApp.ViewModels
 }
 】
 
+Views/OrderListPage.xaml:
+【﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.OrderListPage"
+             x:DataType="vm:OrderListViewModel"
+             Title="订单页面"
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="False">
+    <Grid RowDefinitions="Auto,*"
+          Padding="20,16,20,0">
+        <VerticalStackLayout Grid.Row="0"
+                             Spacing="16">
+            <Label Text="订单"
+                   FontSize="22"
+                   FontAttributes="Bold"
+                   TextColor="#1A1A1A" />
+
+            <ScrollView Orientation="Horizontal" 
+                        HorizontalScrollBarVisibility="Default"
+                        Margin="0,0,0,8">
+
+                <CollectionView ItemsSource="{Binding StatusFilters}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedFilter, Mode=TwoWay}"
+                                BackgroundColor="Transparent">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal"
+                                           ItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:OrderListViewModel+OrderFilterOption">
+                            <Border Padding="16,10"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#EEF1F5">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="22" />
+                                </Border.StrokeShape>
+
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup Name="SelectionStates">
+                                        <VisualState Name="Normal">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor"
+                                                        Value="#EEF1F5" />
+                                                <Setter TargetName="FilterLabel"
+                                                        Property="Label.TextColor"
+                                                        Value="#4B5563" />
+                                                <Setter TargetName="CountLabel"
+                                                        Property="Label.TextColor"
+                                                        Value="#9AA0B1" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor"
+                                                        Value="#3478F6" />
+                                                <Setter TargetName="FilterLabel"
+                                                        Property="Label.TextColor"
+                                                        Value="#FFFFFF" />
+                                                <Setter TargetName="CountLabel"
+                                                        Property="Label.TextColor"
+                                                        Value="#DCE7FF" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+
+                                <HorizontalStackLayout Spacing="6">
+                                    <Label x:Name="FilterLabel"
+                                           Text="{Binding DisplayName}"
+                                           FontSize="14"
+                                           FontAttributes="Bold" />
+                                    <Label x:Name="CountLabel"
+                                           Text="{Binding CountDisplay}"
+                                           FontSize="12" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </ScrollView>
+
+        </VerticalStackLayout>
+
+        <Grid Grid.Row="1">
+            <CollectionView ItemsSource="{Binding Orders}"
+                            SelectionMode="None"
+                            BackgroundColor="Transparent"
+                            ItemSizingStrategy="MeasureAllItems">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical"
+                                       ItemSpacing="18" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Spacing="8"
+                                         Padding="0,60,0,0"
+                                         HorizontalOptions="Center"
+                                         VerticalOptions="Start">
+                        <Label Text="暂无订单"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"
+                               TextColor="#6B7280" />
+                        <Label Text="赶快下单体验一下服务吧~"
+                               FontSize="13"
+                               HorizontalTextAlignment="Center"
+                               TextColor="#9AA0B1" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OrderListViewModel+OrderListItem">
+                        <Border Padding="16"
+                                BackgroundColor="White"
+                                StrokeThickness="1"
+                                Stroke="#E6E8F0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="18" />
+                            </Border.StrokeShape>
+
+                            <Grid ColumnDefinitions="Auto,*"
+                                  ColumnSpacing="16">
+                                <Border WidthRequest="76"
+                                        HeightRequest="76"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#F1F3F8"
+                                        VerticalOptions="Start">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <Image Source="{Binding ThumbnailUrl}"
+                                           Aspect="AspectFill" />
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Spacing="8">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding ServiceTitle}"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="#1F2933"
+                                               LineBreakMode="TailTruncation" />
+                                        <Border Grid.Column="1"
+                                                Padding="10,4"
+                                                BackgroundColor="{Binding StatusBadgeColor}"
+                                                StrokeThickness="0"
+                                                VerticalOptions="Start">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <Label Text="{Binding StatusDisplay}"
+                                                   FontSize="12"
+                                                   TextColor="{Binding StatusTextColor}"
+                                                   FontAttributes="Bold"
+                                                   HorizontalTextAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+
+                                    <Label Text="{Binding OrderNumberDisplay}"
+                                           FontSize="12"
+                                           TextColor="#8E94A2" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding OrderDateDisplay}"
+                                               FontSize="12"
+                                               TextColor="#8E94A2"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding TotalPriceDisplay}"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="#FF4D4F"
+                                               VerticalOptions="Center" />
+                                    </Grid>
+                                    <Button Text="立即支付"
+                                        HeightRequest="40"
+                                        CornerRadius="20"
+                                        Padding="0"
+                                        BackgroundColor="#5B61FF"
+                                        TextColor="White"
+                                        FontSize="14"
+                                        HorizontalOptions="End"
+                                        CommandParameter="{Binding OrderId}"
+                                        IsVisible="{Binding IsPendingPayment}"
+                                        Clicked="OnPayOrderClicked" />
+
+                                <Button Text="&#21435;&#35780;&#20215;"
+                                        HeightRequest="40"
+                                        Margin="0,8,0,0"
+                                        CornerRadius="20"
+                                        Padding="0"
+                                        BackgroundColor="#FF8A3D"
+                                        TextColor="White"
+                                        FontSize="14"
+                                        HorizontalOptions="End"
+                                        CommandParameter="{Binding OrderId}"
+                                        IsVisible="{Binding CanReview}"
+                                        Clicked="OnReviewOrderClicked" />
+
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               Color="#3478F6"
+                               WidthRequest="32"
+                               HeightRequest="32"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+        </Grid>
+    </Grid>
+</ContentPage>
+
+
+】
+
+Views/OrderListPage.xaml.cs:
+【using System;
+using Microsoft.Maui.Controls;
+using GamerLinkApp.Helpers;
+using GamerLinkApp.ViewModels;
+
+namespace GamerLinkApp.Views;
+
+[QueryProperty(nameof(InitialStatusKey), "status")]
+public partial class OrderListPage : ContentPage
+{
+    public OrderListPage()
+        : this(ServiceHelper.GetRequiredService<OrderListViewModel>())
+    {
+    }
+
+    public OrderListPage(OrderListViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+
+    public string InitialStatusKey
+    {
+        set
+        {
+            if (BindingContext is OrderListViewModel vm && !string.IsNullOrEmpty(value))
+            {
+                vm.SetInitialFilter(value);
+            }
+        }
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (BindingContext is OrderListViewModel vm)
+        {
+            _ = vm.RefreshAsync();
+        }
+    }
+
+    private async void OnPayOrderClicked(object sender, EventArgs e)
+    {
+        if ((sender as Button)?.BindingContext is not OrderListViewModel.OrderListItem item)
+        {
+            return;
+        }
+
+        if (Shell.Current is null)
+        {
+            return;
+        }
+
+        await Shell.Current.GoToAsync($"{nameof(OrderPaymentPage)}?orderId={item.OrderId}");
+    }
+
+    private async void OnReviewOrderClicked(object sender, EventArgs e)
+    {
+        if ((sender as Button)?.BindingContext is not OrderListViewModel.OrderListItem item)
+        {
+            return;
+        }
+
+        if (Shell.Current is null)
+        {
+            return;
+        }
+
+        await Shell.Current.GoToAsync($"{nameof(OrderReviewPage)}?orderId={item.OrderId}");
+    }
+}
+】
+
+Views/OrderPaymentPage.xaml:
+【﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.OrderPaymentPage"
+             x:DataType="vm:OrderPaymentViewModel"
+             Title="订单支付"
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="False">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView Grid.Row="0"
+                    Padding="20,16"
+                    IsVisible="False">
+            <ScrollView.Triggers>
+                <DataTrigger TargetType="ScrollView"
+                             Binding="{Binding HasOrder}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+            </ScrollView.Triggers>
+            <VerticalStackLayout Spacing="18">
+                <Border BackgroundColor="White"
+                        Padding="16"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="16">
+                        <Border WidthRequest="88"
+                                HeightRequest="88"
+                                StrokeThickness="0"
+                                BackgroundColor="#EEF1F5"
+                                VerticalOptions="Start">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Image Source="{Binding Service.ThumbnailUrl}"
+                                   Aspect="AspectFill" />
+                        </Border>
+
+                        <VerticalStackLayout Grid.Column="1"
+                                             Spacing="10">
+                            <Label Text="{Binding ServiceName}"
+                                   FontSize="20"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+                            <Label Text="{Binding Service.GameName, StringFormat='关联游戏：{0}'}"
+                                   FontSize="14"
+                                   TextColor="#6B7280" />
+                            <Label Text="{Binding Service.ServiceType, StringFormat='服务类型：{0}'}"
+                                   FontSize="14"
+                                   TextColor="#6B7280" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="订单信息"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="{Binding OrderNumberDisplay}"
+                                   FontSize="13"
+                                   TextColor="#434A59" />
+                            <Label Text="{Binding OrderDateDisplay, StringFormat='下单时间：{0}'}"
+                                   FontSize="13"
+                                   TextColor="#434A59" />
+                            <Label Text="{Binding OrderStatusDisplay, StringFormat='当前状态：{0}'}"
+                                   FontSize="13"
+                                   TextColor="#434A59" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <VerticalStackLayout Grid.Row="0"
+                             Spacing="10"
+                             Padding="20"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center"
+                             IsVisible="True">
+            <VerticalStackLayout.Triggers>
+                <DataTrigger TargetType="VerticalStackLayout"
+                             Binding="{Binding HasOrder}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </VerticalStackLayout.Triggers>
+            <Label Text="未找到订单"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="#1A1A1A" />
+            <Label Text="请返回重试或在订单列表中重新选择。"
+                   FontSize="14"
+                   TextColor="#6B7280"
+                   HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+
+        <Grid Grid.Row="1"
+              BackgroundColor="White"
+              Padding="20,16"
+              ColumnDefinitions="*,Auto"
+              IsVisible="False">
+            <Grid.Triggers>
+                <DataTrigger TargetType="Grid"
+                             Binding="{Binding HasOrder}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+            </Grid.Triggers>
+            <VerticalStackLayout Spacing="4"
+                                  VerticalOptions="Center">
+                <Label Text="支付金额"
+                       FontSize="12"
+                       TextColor="#7B8596" />
+                <Label Text="{Binding PaymentAmountDisplay}"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="#FF4D4F" />
+            </VerticalStackLayout>
+            <Button Grid.Column="1"
+                    Text="确认支付"
+                    HeightRequest="48"
+                    WidthRequest="160"
+                    CornerRadius="24"
+                    BackgroundColor="#5B61FF"
+                    TextColor="White"
+                    FontAttributes="Bold"
+                    IsEnabled="{Binding CanPay}"
+                    Clicked="OnPayClicked" />
+        </Grid>
+
+        <ActivityIndicator Grid.RowSpan="2"
+                           IsRunning="{Binding IsLoading}"
+                           IsVisible="{Binding IsLoading}"
+                           Color="#3478F6"
+                           WidthRequest="48"
+                           HeightRequest="48"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+    </Grid>
+</ContentPage>
+】
+
+Views/OrderPaymentPage.xaml.cs:
+【﻿using GamerLinkApp.Helpers;
+using GamerLinkApp.Models;
+using GamerLinkApp.ViewModels;
+
+namespace GamerLinkApp.Views;
+
+[QueryProperty(nameof(OrderId), "orderId")]
+public partial class OrderPaymentPage : ContentPage
+{
+    private readonly OrderPaymentViewModel _viewModel;
+    private int _orderId;
+
+    public OrderPaymentPage()
+        : this(ServiceHelper.GetRequiredService<OrderPaymentViewModel>())
+    {
+    }
+
+    public OrderPaymentPage(OrderPaymentViewModel viewModel)
+    {
+        InitializeComponent();
+        _viewModel = viewModel;
+        BindingContext = _viewModel;
+    }
+
+    public int OrderId
+    {
+        set
+        {
+            if (value <= 0)
+            {
+                return;
+            }
+
+            if (_orderId == value && _viewModel.HasOrder)
+            {
+                return;
+            }
+
+            _orderId = value;
+            _ = _viewModel.LoadAsync(value);
+        }
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (_orderId > 0 && !_viewModel.HasOrder && !_viewModel.IsLoading)
+        {
+            _ = _viewModel.LoadAsync(_orderId);
+        }
+    }
+
+    private async void OnPayClicked(object sender, EventArgs e)
+    {
+        var (success, errorMessage) = await _viewModel.PayAsync();
+
+        if (!success)
+        {
+            if (!string.IsNullOrEmpty(errorMessage))
+            {
+                await DisplayAlert("提示", errorMessage, "确定");
+            }
+
+            return;
+        }
+
+        var navigateToOrders = await DisplayAlert("支付成功", "订单已支付，正在为你安排服务。", "前往订单", "留在此页");
+        if (navigateToOrders && Shell.Current is not null)
+        {
+            await Shell.Current.GoToAsync($"{nameof(OrderListPage)}?status={nameof(OrderStatus.Ongoing)}");
+        }
+    }
+}
+】
+
+Views/OrderReviewPage.xaml:
+【<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.OrderReviewPage"
+             x:DataType="vm:OrderReviewViewModel"
+             Title="&#35780;&#20215;&#35746;&#21333;"
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="False">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView Grid.Row="0"
+                    Padding="20,16"
+                    IsVisible="False">
+            <ScrollView.Triggers>
+                <DataTrigger TargetType="ScrollView"
+                             Binding="{Binding HasOrder}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+            </ScrollView.Triggers>
+            <VerticalStackLayout Spacing="18">
+                <Border BackgroundColor="White"
+                        Padding="16"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="16">
+                        <Border WidthRequest="88"
+                                HeightRequest="88"
+                                StrokeThickness="0"
+                                BackgroundColor="#EEF1F5"
+                                VerticalOptions="Start">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Image Source="{Binding Service.ThumbnailUrl}"
+                                   Aspect="AspectFill" />
+                        </Border>
+
+                        <VerticalStackLayout Grid.Column="1"
+                                             Spacing="10">
+                            <Label Text="{Binding ServiceName}"
+                                   FontSize="20"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+                            <Label Text="{Binding Service.GameName, StringFormat='&#25152;&#23646;&#28216;&#25103;&#65306;{0}', TargetNullValue='&#25152;&#23646;&#28216;&#25103;&#65306;-'}"
+                                   FontSize="14"
+                                   TextColor="#6B7280" />
+                            <Label Text="{Binding Service.ServiceType, StringFormat='&#26381;&#21153;&#31867;&#22411;&#65306;{0}', TargetNullValue='&#26381;&#21153;&#31867;&#22411;&#65306;-'}"
+                                   FontSize="14"
+                                   TextColor="#6B7280" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="&#35746;&#21333;&#20449;&#24687;"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+                        <Label Text="{Binding OrderNumberDisplay}"
+                               FontSize="13"
+                               TextColor="#434A59" />
+                        <Label Text="{Binding OrderDateDisplay, StringFormat='&#19979;&#21333;&#26102;&#38388;&#65306;{0}'}"
+                               FontSize="13"
+                               TextColor="#434A59" />
+                        <Label Text="{Binding OrderStatusDisplay, StringFormat='&#24403;&#21069;&#29366;&#24577;&#65306;{0}'}"
+                               FontSize="13"
+                               TextColor="#434A59" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="&#32508;&#21512;&#35780;&#20998;"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+                            <Label Text="&#35831;&#36873;&#25321; 1-5 &#20998;&#30340;&#35780;&#20998;&#65292;5 &#20998;&#20195;&#34920;&#38750;&#24120;&#28385;&#24847;"
+                                   FontSize="12"
+                                   TextColor="#87909F" />
+                        </VerticalStackLayout>
+
+                        <HorizontalStackLayout Spacing="12"
+                                               VerticalOptions="Center">
+                            <HorizontalStackLayout BindableLayout.ItemsSource="{Binding RatingStars}"
+                                                   Spacing="6">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:OrderReviewViewModel+RatingStarItem">
+                                        <Grid>
+                                            <Label Text="★"
+                                                   FontSize="28"
+                                                   TextColor="#D0D5DD">
+                                                <Label.Triggers>
+                                                    <DataTrigger TargetType="Label"
+                                                                 Binding="{Binding IsFilled}"
+                                                                 Value="True">
+                                                        <Setter Property="TextColor" Value="#FFB400" />
+                                                    </DataTrigger>
+                                                </Label.Triggers>
+                                            </Label>
+                                            <Grid.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnRatingStarTapped"
+                                                                      CommandParameter="{Binding Value}" />
+                                            </Grid.GestureRecognizers>
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </HorizontalStackLayout>
+                            <Label Text="{Binding RatingDisplay}"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#3478F6" />
+                        </HorizontalStackLayout>
+
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="&#35780;&#20215;&#20869;&#23481;"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+                            <Label Text="&#33267;&#23569;&#22635;&#20889; 5 &#20010;&#23383;&#65292;&#24110;&#21161;&#26356;&#22810;&#29609;&#23478;&#20102;&#35299;&#23454;&#38469;&#20307;&#39564;"
+                                   FontSize="12"
+                                   TextColor="#87909F" />
+                        </VerticalStackLayout>
+
+                        <Editor Text="{Binding Comment, Mode=TwoWay}"
+                                AutoSize="TextChanges"
+                                HeightRequest="150"
+                                MaxLength="200"
+                                Placeholder="&#35831;&#20889;&#19979;&#26412;&#27425;&#26381;&#21153;&#20307;&#39564;"
+                                TextColor="#1A1A1A">
+                            <Editor.Triggers>
+                                <DataTrigger TargetType="Editor"
+                                             Binding="{Binding IsCommentReadOnly}"
+                                             Value="True">
+                                    <Setter Property="IsReadOnly" Value="True" />
+                                    <Setter Property="TextColor" Value="#6B7280" />
+                                </DataTrigger>
+                            </Editor.Triggers>
+                        </Editor>
+                        <Label Text="{Binding CommentLengthIndicator}"
+                               FontSize="12"
+                               TextColor="#9AA0B1"
+                               HorizontalOptions="End" />
+
+                        <Border BackgroundColor="#F6F7FB"
+                                Padding="12"
+                                IsVisible="False">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border"
+                                             Binding="{Binding IsAlreadyReviewed}"
+                                             Value="True">
+                                    <Setter Property="IsVisible" Value="True" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Label Text="&#35813;&#35746;&#21333;&#24050;&#23436;&#25104;&#35780;&#20215;&#65292;&#22914;&#38656;&#20462;&#25913;&#35831;&#32852;&#31995;&#24179;&#21488;&#23458;&#26381;"
+                                   FontSize="13"
+                                   TextColor="#5A6475" />
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <VerticalStackLayout Grid.Row="0"
+                             Spacing="10"
+                             Padding="20"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center"
+                             IsVisible="True">
+            <VerticalStackLayout.Triggers>
+                <DataTrigger TargetType="VerticalStackLayout"
+                             Binding="{Binding HasOrder}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </VerticalStackLayout.Triggers>
+            <Label Text="&#26242;&#26080;&#21487;&#35780;&#20215;&#30340;&#35746;&#21333;"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="#1A1A1A" />
+            <Label Text="&#35831;&#36820;&#22238;&#35746;&#21333;&#20013;&#24515;&#36873;&#25321;&#19968;&#31508;&#24453;&#35780;&#20215;&#30340;&#35746;&#21333;"
+                   FontSize="14"
+                   TextColor="#6B7280"
+                   HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+
+        <Button Grid.Row="1"
+                Text="{Binding SubmitButtonText}"
+                HeightRequest="48"
+                Margin="20,12"
+                CornerRadius="24"
+                BackgroundColor="#5B61FF"
+                TextColor="White"
+                FontAttributes="Bold"
+                IsEnabled="{Binding CanSubmit}"
+                IsVisible="{Binding HasOrder}"
+                Clicked="OnSubmitClicked" />
+
+        <ActivityIndicator Grid.RowSpan="2"
+                           IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"
+                           Color="#3478F6"
+                           WidthRequest="48"
+                           HeightRequest="48"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+    </Grid>
+</ContentPage>】
+
+Views/OrderReviewPage.xaml.cs:
+【using GamerLinkApp.Helpers;
+using GamerLinkApp.Models;
+using GamerLinkApp.ViewModels;
+
+namespace GamerLinkApp.Views;
+
+[QueryProperty(nameof(OrderId), "orderId")]
+public partial class OrderReviewPage : ContentPage
+{
+    private readonly OrderReviewViewModel _viewModel;
+    private int _orderId;
+
+    public OrderReviewPage()
+        : this(ServiceHelper.GetRequiredService<OrderReviewViewModel>())
+    {
+    }
+
+    public OrderReviewPage(OrderReviewViewModel viewModel)
+    {
+        InitializeComponent();
+        _viewModel = viewModel;
+        BindingContext = _viewModel;
+    }
+
+    public int OrderId
+    {
+        set
+        {
+            if (value <= 0)
+            {
+                return;
+            }
+
+            if (_orderId == value && _viewModel.HasOrder)
+            {
+                return;
+            }
+
+            _orderId = value;
+            _ = _viewModel.LoadAsync(value);
+        }
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (_orderId > 0 && !_viewModel.IsBusy && !_viewModel.HasOrder)
+        {
+            _ = _viewModel.LoadAsync(_orderId);
+        }
+    }
+
+    private async void OnSubmitClicked(object sender, EventArgs e)
+    {
+        var (success, errorMessage) = await _viewModel.SubmitAsync();
+
+        if (!success)
+        {
+            if (!string.IsNullOrEmpty(errorMessage))
+            {
+                await DisplayAlert("��ʾ", errorMessage, "ȷ��");
+            }
+
+            return;
+        }
+
+        var goToOrders = await DisplayAlert("���۳ɹ�", "��л���ķ���������״̬�Ѹ���Ϊ����ɡ�", "���ض���", "���ڱ�ҳ");
+        if (goToOrders && Shell.Current is not null)
+        {
+            await Shell.Current.GoToAsync("..");
+        }
+    }
+    private void OnRatingStarTapped(object sender, TappedEventArgs e)
+    {
+        if (_viewModel.IsRatingReadOnly)
+        {
+            return;
+        }
+
+        if (e.Parameter is int value && value >= 1 && value <= 5)
+        {
+            _viewModel.Rating = value;
+        }
+    }
+
+
+}
+
+】
+
 Views/ProfilePage.xaml:
 【﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -1401,10 +4667,14 @@ Views/ProfilePage.xaml:
                                    FontSize="16"
                                    FontAttributes="Bold"
                                    TextColor="#1A1A1A" />
-                            <Label Text="全部"
+                            <Label Text="全部订单"
                                    Grid.Column="1"
                                    FontSize="14"
-                                   TextColor="#00AEEF" />
+                                   TextColor="#00AEEF">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnAllOrdersTapped" />
+                                </Label.GestureRecognizers>
+                            </Label>
                         </Grid>
 
                         <CollectionView ItemsSource="{Binding OrderStatuses}"
@@ -1419,6 +4689,13 @@ Views/ProfilePage.xaml:
                                     <VerticalStackLayout Spacing="8"
                                                           HorizontalOptions="Center"
                                                           VerticalOptions="Center">
+                                        <!-- ▼▼▼ 在这里添加手势识别器 ▼▼▼ -->
+                                        <VerticalStackLayout.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfileViewModel}}, Path=OrderStatusTappedCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        </VerticalStackLayout.GestureRecognizers>
+                                        <!-- ▲▲▲ 添加结束 ▲▲▲ -->
                                         <Border WidthRequest="52"
                                                 HeightRequest="52"
                                                 StrokeThickness="0"
@@ -1510,7 +4787,6 @@ Views/ProfilePage.xaml:
         </ScrollView>
     </Grid>
 </ContentPage>
-
 】
 
 Views/ProfilePage.xaml.cs:
@@ -1529,6 +4805,11 @@ public partial class ProfilePage : ContentPage
     {
         InitializeComponent();
     }
+
+    private async void OnAllOrdersTapped(object sender, TappedEventArgs e)
+    {
+        await Shell.Current.GoToAsync(nameof(OrderListPage));
+    }
 }】
 
 Views/ServiceDetailPage.xaml:
@@ -1536,6 +4817,7 @@ Views/ServiceDetailPage.xaml:
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             xmlns:models="clr-namespace:GamerLinkApp.Models"
              x:Class="GamerLinkApp.Views.ServiceDetailPage"
              x:DataType="vm:ServiceDetailViewModel"
              Title="服务详情"
@@ -1707,6 +4989,157 @@ Views/ServiceDetailPage.xaml:
                                LineHeight="1.4" />
                     </VerticalStackLayout>
                 </Border>
+
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="24" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="18">
+                        <Grid ColumnDefinitions="Auto,*"
+                              RowDefinitions="Auto,Auto">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="玩家评价"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A" />
+                                <Label Text="{Binding ReviewCountDisplay}"
+                                       FontSize="12"
+                                       TextColor="#727C8C" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1"
+                                                 Spacing="4"
+                                                 HorizontalOptions="End">
+                                <Label Text="{Binding AverageRatingDisplay}"
+                                       FontSize="28"
+                                       FontAttributes="Bold"
+                                       TextColor="#FFB400"
+                                       HorizontalOptions="End" />
+                                <Label Text="综合评分"
+                                       FontSize="12"
+                                       TextColor="#9AA0AE"
+                                       HorizontalOptions="End" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <ActivityIndicator IsRunning="{Binding IsReviewsLoading}"
+                                           IsVisible="{Binding IsReviewsLoading}"
+                                           Color="#3478F6"
+                                           HorizontalOptions="Center" />
+
+                        <Border BackgroundColor="#F6F7FB"
+                                Padding="16"
+                                StrokeThickness="0"
+                                IsVisible="{Binding IsReviewsEmpty}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Label Text="暂无评价，快来抢沙发~"
+                                   FontSize="13"
+                                   TextColor="#5A6475" />
+                        </Border>
+
+                        <CollectionView ItemsSource="{Binding Reviews}"
+                                        IsVisible="{Binding HasReviews}"
+                                        SelectionMode="None">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical"
+                                                   ItemSpacing="14" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:ServiceReviewInfo">
+                                    <Border BackgroundColor="#F9FAFC"
+                                            Padding="16"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="18" />
+                                        </Border.StrokeShape>
+                                        <Grid ColumnDefinitions="Auto,*"
+                                              ColumnSpacing="14">
+                                            <Border WidthRequest="48"
+                                                    HeightRequest="48"
+                                                    StrokeThickness="0"
+                                                    BackgroundColor="#5B61FF"
+                                                    HorizontalOptions="Start"
+                                                    VerticalOptions="Start">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="16" />
+                                                </Border.StrokeShape>
+                                                <Grid>
+                                                    <Image Source="{Binding UserAvatarUrl}"
+                                                           Aspect="AspectFill"
+                                                           IsVisible="True">
+                                                        <Image.Triggers>
+                                                            <DataTrigger TargetType="Image"
+                                                                         Binding="{Binding UserAvatarUrl}"
+                                                                         Value="">
+                                                                <Setter Property="IsVisible" Value="False" />
+                                                            </DataTrigger>
+                                                            <DataTrigger TargetType="Image"
+                                                                         Binding="{Binding UserAvatarUrl}"
+                                                                         Value="{x:Null}">
+                                                                <Setter Property="IsVisible" Value="False" />
+                                                            </DataTrigger>
+                                                        </Image.Triggers>
+                                                    </Image>
+                                                    <Label Text="{Binding UserInitial}"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White"
+                                                           IsVisible="False">
+                                                        <Label.Triggers>
+                                                            <DataTrigger TargetType="Label"
+                                                                         Binding="{Binding UserAvatarUrl}"
+                                                                         Value="">
+                                                                <Setter Property="IsVisible" Value="True" />
+                                                            </DataTrigger>
+                                                            <DataTrigger TargetType="Label"
+                                                                         Binding="{Binding UserAvatarUrl}"
+                                                                         Value="{x:Null}">
+                                                                <Setter Property="IsVisible" Value="True" />
+                                                            </DataTrigger>
+                                                        </Label.Triggers>
+                                                    </Label>
+                                                </Grid>
+                                            </Border>
+
+                                            <VerticalStackLayout Grid.Column="1"
+                                                                 Spacing="6">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <Label Text="{Binding UserNickname}"
+                                                           FontSize="15"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#1A1A1A" />
+                                                    <HorizontalStackLayout Grid.Column="1"
+                                                                           Spacing="4"
+                                                                           HorizontalOptions="End"
+                                                                           VerticalOptions="Center">
+                                                        <Label Text="{Binding Rating}"
+                                                               FontSize="14"
+                                                               TextColor="#FFB400"
+                                                               FontAttributes="Bold" />
+                                                        <Label Text="分"
+                                                               FontSize="12"
+                                                               TextColor="#FFB400" />
+                                                    </HorizontalStackLayout>
+                                                </Grid>
+                                                <Label Text="{Binding ReviewDateDisplay}"
+                                                       FontSize="12"
+                                                       TextColor="#9AA0AE" />
+                                                <Label Text="{Binding Comment}"
+                                                       FontSize="14"
+                                                       TextColor="#434A59"
+                                                       LineHeight="1.4" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
             </VerticalStackLayout>
         </ScrollView>
 
@@ -1729,9 +5162,11 @@ Views/ServiceDetailPage.xaml:
                     HeightRequest="48"
                     WidthRequest="160"
                     CornerRadius="24"
+                    IsEnabled="{Binding CanPlaceOrder}"
                     BackgroundColor="#5B61FF"
                     TextColor="White"
-                    FontAttributes="Bold" />
+                    FontAttributes="Bold"
+                    Clicked="OnPlaceOrderClicked" />
         </Grid>
     </Grid>
 </ContentPage>
@@ -1739,6 +5174,7 @@ Views/ServiceDetailPage.xaml:
 
 Views/ServiceDetailPage.xaml.cs:
 【﻿using GamerLinkApp.Helpers;
+using GamerLinkApp.Models;
 using GamerLinkApp.ViewModels;
 
 namespace GamerLinkApp.Views;
@@ -1770,6 +5206,40 @@ public partial class ServiceDetailPage : ContentPage
             }
         }
     }
+
+    private async void OnPlaceOrderClicked(object sender, EventArgs e)
+    {
+        var (success, errorMessage, order) = await _viewModel.PlaceOrderAsync();
+
+        if (!success)
+        {
+            if (!string.IsNullOrEmpty(errorMessage))
+            {
+                await DisplayAlert("提示", errorMessage, "确定");
+            }
+
+            return;
+        }
+
+        if (order is null)
+        {
+            return;
+        }
+
+        var orderNumber = $"订单号：{order.Id:D6}\n";
+        var navigateToPayment = await DisplayAlert("下单成功", $"{orderNumber}已生成待支付订单，是否立即支付？", "去支付", "稍后再说");
+        if (navigateToPayment && Shell.Current is not null)
+        {
+            await Shell.Current.GoToAsync($"{nameof(OrderPaymentPage)}?orderId={order.Id}");
+            return;
+        }
+
+        if (Shell.Current is not null)
+        {
+            await Shell.Current.GoToAsync($"{nameof(OrderListPage)}?status={nameof(OrderStatus.PendingPayment)}");
+        }
+    }
+
 }
 】
 
@@ -1802,14 +5272,22 @@ Views/ServiceListPage.xaml:
                        BackgroundColor="White"
                        HasShadow="False"
                        BorderColor="#EEEEEE">
-                    <HorizontalStackLayout Spacing="12"
-                                            HorizontalOptions="FillAndExpand"
-                                            VerticalOptions="Center">
-                        <Image HeightRequest="20"
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnSearchAreaTapped" />
+                    </Frame.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="12"
+                          VerticalOptions="Center"
+                          HorizontalOptions="FillAndExpand">
+                        <Image Grid.Column="0"
+                               HeightRequest="20"
                                WidthRequest="20"
                                VerticalOptions="Center"
+                               InputTransparent="True"
                                Source="https://img.icons8.com/ios-glyphs/30/9AA0B1/search--v1.png" />
-                        <Entry Placeholder="搜索服务或者向导"
+                        <Entry x:Name="SearchEntry"
+                               Grid.Column="1"
+                               Placeholder="搜索服务或者向导"
                                PlaceholderColor="#9AA0B1"
                                TextColor="#2A2F3C"
                                FontSize="14"
@@ -1818,11 +5296,12 @@ Views/ServiceListPage.xaml:
                                BackgroundColor="Transparent"
                                Margin="0"
                                IsTextPredictionEnabled="False"
-                               ReturnType="Search" />
-                    </HorizontalStackLayout>
+                               ReturnType="Search"
+                               Text="{Binding SearchText}" />
+                    </Grid>
                 </Frame>
 
-                <VerticalStackLayout Spacing="8">
+                <VerticalStackLayout Spacing="8" IsVisible="{Binding IsShowingBanners}">
                     <CarouselView HeightRequest="165"
                                   Loop="True"
                                   IsBounceEnabled="False"
@@ -1965,14 +5444,35 @@ Views/ServiceListPage.xaml:
                 </Frame>
             </DataTemplate>
         </CollectionView.ItemTemplate>
+        <!-- 🧩 这是添加的空视图部分 -->
+        <CollectionView.EmptyView>
+            <VerticalStackLayout Spacing="8"
+                             Padding="0,60,0,0"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Start">
+                <Image Source="no_service.png"
+                   WidthRequest="120"
+                   HeightRequest="120"
+                   Aspect="AspectFit"
+                   Opacity="0.85" />
+                <Label Text="暂无服务"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   TextColor="#6B7280" />
+                <Label Text="试试刷新一下或看看其他分类吧~"
+                   FontSize="13"
+                   HorizontalTextAlignment="Center"
+                   TextColor="#9AA0B1" />
+            </VerticalStackLayout>
+        </CollectionView.EmptyView>
     </CollectionView>
 </ContentPage>
 】
 
 Views/ServiceListPage.xaml.cs:
-【using GamerLinkApp.Models;
+【﻿using GamerLinkApp.Models;
 using GamerLinkApp.ViewModels;
-using System.Collections.Generic;
 
 namespace GamerLinkApp.Views;
 
@@ -1981,22 +5481,44 @@ public partial class ServiceListPage : ContentPage
     public ServiceListPage(ServiceListViewModel vm)
     {
         InitializeComponent();
-        BindingContext = vm; // ͨ������ע��� ViewModel
+        BindingContext = vm;
     }
 
-    // �޲����Ĺ��캯�����Ա������Ա�XAMLԤ������������
     public ServiceListPage()
     {
         InitializeComponent();
     }
 
-    // ����: ����������Ŀѡ���¼�
+    private void OnSearchAreaTapped(object sender, TappedEventArgs e)
+    {
+        // 点击搜索区域时，让输入框获得焦点
+        SearchEntry.Focus();
+    }
+
     private async void OnServiceTapped(object sender, TappedEventArgs e)
     {
         if ((sender as Element)?.BindingContext is not Service tappedService)
             return;
 
         await Shell.Current.GoToAsync($"{nameof(ServiceDetailPage)}?id={tappedService.Id}");
+    }
+}】
+
+Views/temp.txt:
+【﻿using GamerLinkApp.ViewModels;
+
+namespace GamerLinkApp.Views;
+
+public partial class ProfilePage : ContentPage
+{
+    public ProfilePage(ProfileViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+    public ProfilePage()
+    {
+        InitializeComponent();
     }
 }
 】
@@ -2026,7 +5548,7 @@ Views/ZonePage.xaml:
                                        ItemSpacing="0"/>
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="x:String">
+                    <DataTemplate x:DataType="model:Category">
                         <Grid ColumnDefinitions="6,*"
                               Padding="0,14"
                               BackgroundColor="Transparent">
@@ -2087,7 +5609,7 @@ Views/ZonePage.xaml:
                              Padding="32,24"
                              Spacing="24"
                              BackgroundColor="#FFFFFF">
-            <Label Text="{Binding SelectedGame, FallbackValue='Game Zone'}"
+            <Label Text="{Binding SelectedCategory.Name, FallbackValue='Game Zone'}"
                    FontSize="22"
                    FontAttributes="Bold"
                    TextColor="#1F1F1F"/>

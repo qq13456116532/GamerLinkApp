@@ -1,8 +1,11 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.CompilerServices;
 
 namespace GamerLinkApp.Models
 {
-    public class Service
+    public class Service : INotifyPropertyChanged
     {
         public int Id { get; set; }
         public string Title { get; set; }
@@ -22,5 +25,30 @@ namespace GamerLinkApp.Models
         public int CompletedCount { get; set; } // 已完成订单数
 
         public List<string> Tags { get; set; } // 服务标签, 如 "上分", "陪练"
+
+        private bool _isFavorite;
+
+        [NotMapped]
+        public bool IsFavorite
+        {
+            get => _isFavorite;
+            set
+            {
+                if (_isFavorite == value)
+                {
+                    return;
+                }
+
+                _isFavorite = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }

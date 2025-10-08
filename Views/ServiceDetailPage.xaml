@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             xmlns:models="clr-namespace:GamerLinkApp.Models"
              x:Class="GamerLinkApp.Views.ServiceDetailPage"
              x:DataType="vm:ServiceDetailViewModel"
              Title="服务详情"
@@ -29,6 +30,26 @@
                                 </LinearGradientBrush>
                             </Grid.Background>
                         </Grid>
+                        <ImageButton Source="heart_outline.svg"
+                                     BackgroundColor="#4C000000"
+                                     CornerRadius="18"
+                                     Padding="10"
+                                     WidthRequest="44"
+                                     HeightRequest="44"
+                                     HorizontalOptions="End"
+                                     VerticalOptions="Start"
+                                     Margin="0,20,20,0"
+                                     Clicked="OnToggleFavoriteClicked"
+                                     SemanticProperties.Description="收藏服务">
+                            <ImageButton.Triggers>
+                                <DataTrigger TargetType="ImageButton"
+                                             Binding="{Binding IsFavorite}"
+                                             Value="True">
+                                    <Setter Property="Source" Value="heart_filled.svg" />
+                                    <Setter Property="BackgroundColor" Value="#66FF4D4F" />
+                                </DataTrigger>
+                            </ImageButton.Triggers>
+                        </ImageButton>
                         <VerticalStackLayout Spacing="6"
                                               Padding="20,20,20,24"
                                               VerticalOptions="End">
@@ -173,6 +194,157 @@
                                LineHeight="1.4" />
                     </VerticalStackLayout>
                 </Border>
+
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="24" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="18">
+                        <Grid ColumnDefinitions="Auto,*"
+                              RowDefinitions="Auto,Auto">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="玩家评价"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A" />
+                                <Label Text="{Binding ReviewCountDisplay}"
+                                       FontSize="12"
+                                       TextColor="#727C8C" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1"
+                                                 Spacing="4"
+                                                 HorizontalOptions="End">
+                                <Label Text="{Binding AverageRatingDisplay}"
+                                       FontSize="28"
+                                       FontAttributes="Bold"
+                                       TextColor="#FFB400"
+                                       HorizontalOptions="End" />
+                                <Label Text="综合评分"
+                                       FontSize="12"
+                                       TextColor="#9AA0AE"
+                                       HorizontalOptions="End" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <ActivityIndicator IsRunning="{Binding IsReviewsLoading}"
+                                           IsVisible="{Binding IsReviewsLoading}"
+                                           Color="#3478F6"
+                                           HorizontalOptions="Center" />
+
+                        <Border BackgroundColor="#F6F7FB"
+                                Padding="16"
+                                StrokeThickness="0"
+                                IsVisible="{Binding IsReviewsEmpty}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Label Text="暂无评价，快来抢沙发~"
+                                   FontSize="13"
+                                   TextColor="#5A6475" />
+                        </Border>
+
+                        <CollectionView ItemsSource="{Binding Reviews}"
+                                        IsVisible="{Binding HasReviews}"
+                                        SelectionMode="None">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical"
+                                                   ItemSpacing="14" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:ServiceReviewInfo">
+                                    <Border BackgroundColor="#F9FAFC"
+                                            Padding="16"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="18" />
+                                        </Border.StrokeShape>
+                                        <Grid ColumnDefinitions="Auto,*"
+                                              ColumnSpacing="14">
+                                            <Border WidthRequest="48"
+                                                    HeightRequest="48"
+                                                    StrokeThickness="0"
+                                                    BackgroundColor="#5B61FF"
+                                                    HorizontalOptions="Start"
+                                                    VerticalOptions="Start">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="16" />
+                                                </Border.StrokeShape>
+                                                <Grid>
+                                                    <Image Source="{Binding UserAvatarUrl}"
+                                                           Aspect="AspectFill"
+                                                           IsVisible="True">
+                                                        <Image.Triggers>
+                                                            <DataTrigger TargetType="Image"
+                                                                         Binding="{Binding UserAvatarUrl}"
+                                                                         Value="">
+                                                                <Setter Property="IsVisible" Value="False" />
+                                                            </DataTrigger>
+                                                            <DataTrigger TargetType="Image"
+                                                                         Binding="{Binding UserAvatarUrl}"
+                                                                         Value="{x:Null}">
+                                                                <Setter Property="IsVisible" Value="False" />
+                                                            </DataTrigger>
+                                                        </Image.Triggers>
+                                                    </Image>
+                                                    <Label Text="{Binding UserInitial}"
+                                                           HorizontalOptions="Center"
+                                                           VerticalOptions="Center"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White"
+                                                           IsVisible="False">
+                                                        <Label.Triggers>
+                                                            <DataTrigger TargetType="Label"
+                                                                         Binding="{Binding UserAvatarUrl}"
+                                                                         Value="">
+                                                                <Setter Property="IsVisible" Value="True" />
+                                                            </DataTrigger>
+                                                            <DataTrigger TargetType="Label"
+                                                                         Binding="{Binding UserAvatarUrl}"
+                                                                         Value="{x:Null}">
+                                                                <Setter Property="IsVisible" Value="True" />
+                                                            </DataTrigger>
+                                                        </Label.Triggers>
+                                                    </Label>
+                                                </Grid>
+                                            </Border>
+
+                                            <VerticalStackLayout Grid.Column="1"
+                                                                 Spacing="6">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <Label Text="{Binding UserNickname}"
+                                                           FontSize="15"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#1A1A1A" />
+                                                    <HorizontalStackLayout Grid.Column="1"
+                                                                           Spacing="4"
+                                                                           HorizontalOptions="End"
+                                                                           VerticalOptions="Center">
+                                                        <Label Text="{Binding Rating}"
+                                                               FontSize="14"
+                                                               TextColor="#FFB400"
+                                                               FontAttributes="Bold" />
+                                                        <Label Text="分"
+                                                               FontSize="12"
+                                                               TextColor="#FFB400" />
+                                                    </HorizontalStackLayout>
+                                                </Grid>
+                                                <Label Text="{Binding ReviewDateDisplay}"
+                                                       FontSize="12"
+                                                       TextColor="#9AA0AE" />
+                                                <Label Text="{Binding Comment}"
+                                                       FontSize="14"
+                                                       TextColor="#434A59"
+                                                       LineHeight="1.4" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
             </VerticalStackLayout>
         </ScrollView>
 
@@ -195,9 +367,11 @@
                     HeightRequest="48"
                     WidthRequest="160"
                     CornerRadius="24"
+                    IsEnabled="{Binding CanPlaceOrder}"
                     BackgroundColor="#5B61FF"
                     TextColor="White"
-                    FontAttributes="Bold" />
+                    FontAttributes="Bold"
+                    Clicked="OnPlaceOrderClicked" />
         </Grid>
     </Grid>
 </ContentPage>

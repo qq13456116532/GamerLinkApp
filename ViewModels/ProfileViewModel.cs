@@ -3,8 +3,11 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using GamerLinkApp.Models;
 using GamerLinkApp.Services;
+using GamerLinkApp.Views;
+using Microsoft.Maui.Controls;
 
 namespace GamerLinkApp.ViewModels
 {
@@ -61,10 +64,12 @@ namespace GamerLinkApp.ViewModels
         }
 
         public ObservableCollection<OrderStatusItem> OrderStatuses { get; } = new();
+        public ICommand OrderStatusTappedCommand { get; }
 
         public ProfileViewModel(IDataService dataService)
         {
             _dataService = dataService;
+            OrderStatusTappedCommand = new Command<OrderStatusItem>(async (item) => await OnOrderStatusTapped(item));
             _ = LoadAsync();
         }
 
@@ -86,15 +91,18 @@ namespace GamerLinkApp.ViewModels
 
                 var summaries = new[]
                 {
-                    new OrderStatusItem(nameof(OrderStatus.PendingPayment), "\u5f85\u652f\u4ed8", "\u00a5"),
-                    new OrderStatusItem(nameof(OrderStatus.Ongoing), "\u8fdb\u884c\u4e2d", "\u231b"),
-                    new OrderStatusItem(nameof(OrderStatus.PendingReview), "\u5f85\u8bc4\u4ef7", "\u270d"),
-                    new OrderStatusItem(nameof(OrderStatus.Completed), "\u5168\u90e8\u8ba2\u5355", "\U0001F5C2")
+                    new OrderStatusItem(nameof(OrderStatus.PendingPayment), "待支付", "¥"),
+                    new OrderStatusItem(nameof(OrderStatus.Ongoing), "进行中", "⌛"),
+                    new OrderStatusItem(nameof(OrderStatus.PendingReview), "待评价", "✍"),
+                    new OrderStatusItem(null, "全部订单", "📄") // 修正: null key 代表全部订单
                 };
 
                 foreach (var summary in summaries)
                 {
-                    summary.Count = orders.Count(o => string.Equals(o.Status, summary.StatusKey, StringComparison.Ordinal));
+                    // 修正: 如果 StatusKey 为 null，则统计所有订单数量
+                    summary.Count = string.IsNullOrEmpty(summary.StatusKey)
+                        ? orders.Count
+                        : orders.Count(o => string.Equals(o.Status, summary.StatusKey, StringComparison.Ordinal));
                 }
 
                 OrderStatuses.Clear();
@@ -108,6 +116,21 @@ namespace GamerLinkApp.ViewModels
                 Debug.WriteLine($"Failed to load profile: {ex.Message}");
             }
         }
+
+        private async Task OnOrderStatusTapped(OrderStatusItem item)
+        {
+            if (item is null)
+                return;
+
+            // 根据点击的项构建导航路由
+            // 如果 StatusKey 为空 (代表"全部订单"), 则不传递参数
+            var route = string.IsNullOrEmpty(item.StatusKey)
+                ? $"{nameof(OrderListPage)}"
+                : $"{nameof(OrderListPage)}?status={item.StatusKey}";
+
+            await Shell.Current.GoToAsync(route);
+        }
+
 
         public class OrderStatusItem
         {

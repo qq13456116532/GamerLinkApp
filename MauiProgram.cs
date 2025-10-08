@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using GamerLinkApp.Data;
 using GamerLinkApp.Helpers;
 using GamerLinkApp.Services;
@@ -53,8 +53,16 @@ namespace GamerLinkApp
             builder.Services.AddSingleton<ProfilePage>();
             builder.Services.AddSingleton<ProfileViewModel>();
 
+            builder.Services.AddTransient<OrderListPage>();
+            builder.Services.AddTransient<OrderListViewModel>();
+            builder.Services.AddTransient<OrderPaymentPage>();
+            builder.Services.AddTransient<OrderPaymentViewModel>();
             builder.Services.AddTransient<ServiceDetailPage>();
             builder.Services.AddTransient<ServiceDetailViewModel>();
+            builder.Services.AddTransient<OrderReviewPage>();
+            builder.Services.AddTransient<OrderReviewViewModel>();
+            builder.Services.AddTransient<FavoriteServicesPage>();
+            builder.Services.AddTransient<FavoriteServicesViewModel>();
 
             var app = builder.Build();
             ServiceHelper.Initialize(app.Services);
@@ -63,3 +71,4 @@ namespace GamerLinkApp
         }
     }
 }
+

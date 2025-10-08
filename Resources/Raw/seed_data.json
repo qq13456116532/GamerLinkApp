@@ -19,7 +19,11 @@
       "ReviewCount": 1280,
       "PurchaseCount": 1547,
       "CompletedCount": 120,
-      "Tags": ["打野上分", "意识训练", "赛后复盘"]
+      "Tags": [
+        "打野上分",
+        "意识训练",
+        "赛后复盘"
+      ]
     },
     {
       "Id": 2,
@@ -40,7 +44,11 @@
       "ReviewCount": 980,
       "PurchaseCount": 2300,
       "CompletedCount": 45,
-      "Tags": ["国服钻石", "全位置", "职业教练"]
+      "Tags": [
+        "国服钻石",
+        "全位置",
+        "职业教练"
+      ]
     },
     {
       "Id": 3,
@@ -61,7 +69,11 @@
       "ReviewCount": 560,
       "PurchaseCount": 860,
       "CompletedCount": 72,
-      "Tags": ["战术分析", "枪法提升", "团队配合"]
+      "Tags": [
+        "战术分析",
+        "枪法提升",
+        "团队配合"
+      ]
     },
     {
       "Id": 4,
@@ -73,13 +85,18 @@
       "Category": "射击",
       "SellerId": 4,
       "ThumbnailUrl": "banner1.png",
-      "ImageUrls": ["banner1.png"],
+      "ImageUrls": [
+        "banner1.png"
+      ],
       "IsFeatured": true,
       "AverageRating": 4.6,
       "ReviewCount": 340,
       "PurchaseCount": 620,
       "CompletedCount": 500,
-      "Tags": ["压枪训练", "团队战术"]
+      "Tags": [
+        "压枪训练",
+        "团队战术"
+      ]
     }
   ],
   "Users": [
@@ -107,7 +124,8 @@
       "PaymentDate": "2023-10-01T11:00:00Z",
       "CompletionDate": "2023-10-02T10:00:00Z",
       "TotalPrice": 58,
-      "Status": "Completed"
+      "Status": "Completed",
+      "ReviewId": 1
     },
     {
       "Id": 2,
@@ -134,16 +152,91 @@
       "OrderDate": "2024-01-01T10:00:00Z",
       "TotalPrice": 99,
       "Status": "PendingPayment"
+    },
+    {
+      "Id": 5,
+      "ServiceId": 1,
+      "BuyerId": 2,
+      "OrderDate": "2023-10-10T09:30:00Z",
+      "PaymentDate": "2023-10-10T09:45:00Z",
+      "CompletionDate": "2023-10-10T11:30:00Z",
+      "TotalPrice": 58,
+      "Status": "Completed",
+      "ReviewId": 2
+    },
+    {
+      "Id": 6,
+      "ServiceId": 2,
+      "BuyerId": 1,
+      "OrderDate": "2023-11-02T09:10:00Z",
+      "PaymentDate": "2023-11-02T09:20:00Z",
+      "CompletionDate": "2023-11-04T18:00:00Z",
+      "TotalPrice": 318,
+      "Status": "Completed",
+      "ReviewId": 3
     }
   ],
   "Categories": [
-    { "Id": 1, "Name": "MOBA", "IconUrl": "banner1.png" },
-    { "Id": 2, "Name": "射击", "IconUrl": "banner2.png" },
-    { "Id": 3, "Name": "RPG", "IconUrl": "banner3.png" }
+    {
+      "Id": 1,
+      "Name": "MOBA",
+      "IconUrl": "banner1.png"
+    },
+    {
+      "Id": 2,
+      "Name": "射击",
+      "IconUrl": "banner2.png"
+    },
+    {
+      "Id": 3,
+      "Name": "RPG",
+      "IconUrl": "banner3.png"
+    }
   ],
   "Banners": [
-    { "Id": 1, "ImageUrl": "banner1.png", "TargetUrl": "/ServiceDetail/1" },
-    { "Id": 2, "ImageUrl": "banner2.png", "TargetUrl": "/ServiceDetail/2" },
-    { "Id": 3, "ImageUrl": "banner3.png", "TargetUrl": "/ServiceDetail/3" }
+    {
+      "Id": 1,
+      "ImageUrl": "banner1.png",
+      "TargetUrl": "/ServiceDetail/1"
+    },
+    {
+      "Id": 2,
+      "ImageUrl": "banner2.png",
+      "TargetUrl": "/ServiceDetail/2"
+    },
+    {
+      "Id": 3,
+      "ImageUrl": "banner3.png",
+      "TargetUrl": "/ServiceDetail/3"
+    }
+  ],
+  "Reviews": [
+    {
+      "Id": 1,
+      "ServiceId": 1,
+      "OrderId": 1,
+      "UserId": 1,
+      "Rating": 5,
+      "Comment": "教练很专业，战术细节讲得很清楚。",
+      "ReviewDate": "2023-10-02T15:30:00Z"
+    },
+    {
+      "Id": 2,
+      "ServiceId": 1,
+      "OrderId": 5,
+      "UserId": 2,
+      "Rating": 4,
+      "Comment": "陪练氛围轻松愉快，就是排位有点卡。",
+      "ReviewDate": "2023-10-10T12:05:00Z"
+    },
+    {
+      "Id": 3,
+      "ServiceId": 2,
+      "OrderId": 6,
+      "UserId": 1,
+      "Rating": 5,
+      "Comment": "上分方案非常针对性，两天就晋级了！",
+      "ReviewDate": "2023-11-05T08:15:00Z"
+    }
   ]
 }

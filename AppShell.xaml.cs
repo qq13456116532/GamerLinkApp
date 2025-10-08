@@ -1,4 +1,4 @@
-﻿using GamerLinkApp.Views;
+using GamerLinkApp.Views;
 
 namespace GamerLinkApp
 {
@@ -7,8 +7,11 @@ namespace GamerLinkApp
         public AppShell()
         {
             InitializeComponent();
-            // 为服务详情页注册路由, 以便导航服务可以找到
             Routing.RegisterRoute(nameof(ServiceDetailPage), typeof(ServiceDetailPage));
+            Routing.RegisterRoute(nameof(OrderListPage), typeof(OrderListPage));
+            Routing.RegisterRoute(nameof(OrderPaymentPage), typeof(OrderPaymentPage));
+            Routing.RegisterRoute(nameof(OrderReviewPage), typeof(OrderReviewPage));
+            Routing.RegisterRoute(nameof(FavoriteServicesPage), typeof(FavoriteServicesPage));
         }
     }
 }

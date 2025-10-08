@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:GamerLinkApp.Models"
              x:Class="GamerLinkApp.Views.ServiceListPage"
+             x:Name="ServiceListPageRoot"
              Title="服务列表"
              BackgroundColor="#F5F6F9">
     <ContentPage.Resources>
@@ -26,14 +27,22 @@
                        BackgroundColor="White"
                        HasShadow="False"
                        BorderColor="#EEEEEE">
-                    <HorizontalStackLayout Spacing="12"
-                                            HorizontalOptions="FillAndExpand"
-                                            VerticalOptions="Center">
-                        <Image HeightRequest="20"
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnSearchAreaTapped" />
+                    </Frame.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="12"
+                          VerticalOptions="Center"
+                          HorizontalOptions="FillAndExpand">
+                        <Image Grid.Column="0"
+                               HeightRequest="20"
                                WidthRequest="20"
                                VerticalOptions="Center"
+                               InputTransparent="True"
                                Source="https://img.icons8.com/ios-glyphs/30/9AA0B1/search--v1.png" />
-                        <Entry Placeholder="搜索服务或者向导"
+                        <Entry x:Name="SearchEntry"
+                               Grid.Column="1"
+                               Placeholder="搜索服务或者向导"
                                PlaceholderColor="#9AA0B1"
                                TextColor="#2A2F3C"
                                FontSize="14"
@@ -42,11 +51,12 @@
                                BackgroundColor="Transparent"
                                Margin="0"
                                IsTextPredictionEnabled="False"
-                               ReturnType="Search" />
-                    </HorizontalStackLayout>
+                               ReturnType="Search"
+                               Text="{Binding SearchText}" />
+                    </Grid>
                 </Frame>
 
-                <VerticalStackLayout Spacing="8">
+                <VerticalStackLayout Spacing="8" IsVisible="{Binding IsShowingBanners}">
                     <CarouselView HeightRequest="165"
                                   Loop="True"
                                   IsBounceEnabled="False"
@@ -149,45 +159,88 @@
                     <Frame.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnServiceTapped" />
                     </Frame.GestureRecognizers>
-                    <Grid ColumnDefinitions="Auto,*"
-                          ColumnSpacing="14">
-                        <Border Grid.Column="0"
-                                WidthRequest="110"
-                                HeightRequest="88"
-                                StrokeShape="RoundRectangle 16"
-                                VerticalOptions="Center">
-                            <Image Source="{Binding ThumbnailUrl}"
-                                   Aspect="AspectFill" />
-                        </Border>
+                    <Grid>
+                        <Grid ColumnDefinitions="Auto,*"
+                              ColumnSpacing="14">
+                            <Border Grid.Column="0"
+                                    WidthRequest="110"
+                                    HeightRequest="88"
+                                    StrokeShape="RoundRectangle 16"
+                                    VerticalOptions="Center">
+                                <Image Source="{Binding ThumbnailUrl}"
+                                       Aspect="AspectFill" />
+                            </Border>
 
-                        <VerticalStackLayout Grid.Column="1"
-                                              Spacing="6"
-                                              VerticalOptions="Center">
-                            <Label Text="{Binding Title}"
-                                   FontSize="16"
-                                   FontAttributes="Bold"
-                                   TextColor="#2A2F3C"
-                                   LineBreakMode="TailTruncation" />
-                            <Label Text="{Binding GameName}"
-                                   FontSize="13"
-                                   TextColor="#777D8C"
-                                   LineBreakMode="TailTruncation" />
-                            <HorizontalStackLayout Spacing="10">
-                                <Label Text="{Binding PurchaseCount, StringFormat='{0}人购买'}"
-                                       FontSize="12"
-                                       TextColor="#9AA0B1" />
-                                <Label Text="{Binding CompletedCount, StringFormat='完成{0}'}"
-                                       FontSize="12"
-                                       TextColor="#9AA0B1" />
-                            </HorizontalStackLayout>
-                            <Label Text="{Binding Price, StringFormat='￥{0:F0}'}"
-                                   FontSize="16"
-                                   FontAttributes="Bold"
-                                   TextColor="#FF4D4F" />
-                        </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1"
+                                                  Spacing="6"
+                                                  VerticalOptions="Center">
+                                <Label Text="{Binding Title}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#2A2F3C"
+                                       LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding GameName}"
+                                       FontSize="13"
+                                       TextColor="#777D8C"
+                                       LineBreakMode="TailTruncation" />
+                                <HorizontalStackLayout Spacing="10">
+                                    <Label Text="{Binding PurchaseCount, StringFormat='{0}人购买'}"
+                                           FontSize="12"
+                                           TextColor="#9AA0B1" />
+                                    <Label Text="{Binding CompletedCount, StringFormat='完成{0}'}"
+                                           FontSize="12"
+                                           TextColor="#9AA0B1" />
+                                </HorizontalStackLayout>
+                                <Label Text="{Binding Price, StringFormat='￥{0:F0}'}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#FF4D4F" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <ImageButton Source="heart_outline.svg"
+                                     BackgroundColor="Transparent"
+                                     Padding="6"
+                                     WidthRequest="36"
+                                     HeightRequest="36"
+                                     HorizontalOptions="End"
+                                     VerticalOptions="Start"
+                                     Command="{Binding BindingContext.ToggleFavoriteCommand, Source={x:Reference ServiceListPageRoot}}"
+                                     CommandParameter="{Binding .}"
+                                     SemanticProperties.Description="切换收藏">
+                            <ImageButton.Triggers>
+                                <DataTrigger TargetType="ImageButton"
+                                             Binding="{Binding IsFavorite}"
+                                             Value="True">
+                                    <Setter Property="Source" Value="heart_filled.svg" />
+                                </DataTrigger>
+                            </ImageButton.Triggers>
+                        </ImageButton>
                     </Grid>
                 </Frame>
             </DataTemplate>
         </CollectionView.ItemTemplate>
+        <!-- 🧩 这是添加的空视图部分 -->
+        <CollectionView.EmptyView>
+            <VerticalStackLayout Spacing="8"
+                             Padding="0,60,0,0"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Start">
+                <Image Source="no_service.png"
+                   WidthRequest="120"
+                   HeightRequest="120"
+                   Aspect="AspectFit"
+                   Opacity="0.85" />
+                <Label Text="暂无服务"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   TextColor="#6B7280" />
+                <Label Text="试试刷新一下或看看其他分类吧~"
+                   FontSize="13"
+                   HorizontalTextAlignment="Center"
+                   TextColor="#9AA0B1" />
+            </VerticalStackLayout>
+        </CollectionView.EmptyView>
     </CollectionView>
 </ContentPage>

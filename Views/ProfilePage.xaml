@@ -72,10 +72,14 @@
                                    FontSize="16"
                                    FontAttributes="Bold"
                                    TextColor="#1A1A1A" />
-                            <Label Text="全部"
+                            <Label Text="全部订单"
                                    Grid.Column="1"
                                    FontSize="14"
-                                   TextColor="#00AEEF" />
+                                   TextColor="#00AEEF">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnAllOrdersTapped" />
+                                </Label.GestureRecognizers>
+                            </Label>
                         </Grid>
 
                         <CollectionView ItemsSource="{Binding OrderStatuses}"
@@ -90,6 +94,13 @@
                                     <VerticalStackLayout Spacing="8"
                                                           HorizontalOptions="Center"
                                                           VerticalOptions="Center">
+                                        <!-- ▼▼▼ 在这里添加手势识别器 ▼▼▼ -->
+                                        <VerticalStackLayout.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfileViewModel}}, Path=OrderStatusTappedCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        </VerticalStackLayout.GestureRecognizers>
+                                        <!-- ▲▲▲ 添加结束 ▲▲▲ -->
                                         <Border WidthRequest="52"
                                                 HeightRequest="52"
                                                 StrokeThickness="0"
@@ -149,6 +160,33 @@
                         </Border.StrokeShape>
                         <Grid ColumnDefinitions="*,Auto"
                               VerticalOptions="Center">
+                            <Label Text="我的收藏"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnFavoritesTapped" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                            <Label Text=">"
+                                   Grid.Column="1"
+                                   FontSize="16"
+                                   TextColor="#C0C0C0">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnFavoritesTapped" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                        </Grid>
+                    </Border>
+
+                    <Border BackgroundColor="White"
+                            Padding="16"
+                            StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto"
+                              VerticalOptions="Center">
                             <Label Text="关于我们"
                                    FontSize="15"
                                    TextColor="#1A1A1A" />
@@ -181,4 +219,3 @@
         </ScrollView>
     </Grid>
 </ContentPage>
-

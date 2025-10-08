@@ -85,3 +85,12 @@ GamerLinkApp/
 ---
 
 > Tip: Visual Studio and Visual Studio Code both offer XAML Hot Reload for MAUI, letting you tweak layouts such as `ZonePage` and see updates without rebuilding.
+
+
+
+---
+# 遇到的问题
+现在在输入搜索框的时候，只输入一个字母，就会跳出输入框，然后必须点击输入框才能输入第二个字母
+这个问题是一个在 .NET MAUI 中非常常见的交互问题。当你更新一个与列表（CollectionView）绑定的数据源时，如果操作不当，会导致整个页面布局刷新，从而使得当前拥有焦点的输入框（Entry）失去焦点。
+问题的根源在于 ServiceListViewModel.cs 中的 ApplyFilter 方法。每次你输入一个字符，它都会调用 UpdateServices 方法，而这个方法会执行 Services.Clear()，这个操作会清空整个 ObservableCollection，导致 CollectionView 重绘，从而夺走 SearchEntry 的焦点。
+ServiceListPage.xaml.cs 中的 EnsureSearchEntryFocus 方法其实是一个修复这个问题的尝试，它试图在每次更新后强制将焦点设置回输入框。但这种方式体验不佳，会导致闪烁，并且正如你所遇到的，在某些情况下会失效。

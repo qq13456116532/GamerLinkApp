@@ -66,6 +66,8 @@ namespace GamerLinkApp.Data
             entity.Property(s => s.Tags)
                 .HasConversion(ListConverter)
                 .Metadata.SetValueComparer(ListComparer);
+
+            entity.Ignore(s => s.IsFavorite);
         }
 
         private static bool AreListsEqual(List<string>? left, List<string>? right)

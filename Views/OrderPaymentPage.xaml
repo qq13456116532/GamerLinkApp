@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.OrderPaymentPage"
+             x:DataType="vm:OrderPaymentViewModel"
+             Title="订单支付"
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="False">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView Grid.Row="0"
+                    Padding="20,16"
+                    IsVisible="False">
+            <ScrollView.Triggers>
+                <DataTrigger TargetType="ScrollView"
+                             Binding="{Binding HasOrder}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+            </ScrollView.Triggers>
+            <VerticalStackLayout Spacing="18">
+                <Border BackgroundColor="White"
+                        Padding="16"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="16">
+                        <Border WidthRequest="88"
+                                HeightRequest="88"
+                                StrokeThickness="0"
+                                BackgroundColor="#EEF1F5"
+                                VerticalOptions="Start">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Image Source="{Binding Service.ThumbnailUrl}"
+                                   Aspect="AspectFill" />
+                        </Border>
+
+                        <VerticalStackLayout Grid.Column="1"
+                                             Spacing="10">
+                            <Label Text="{Binding ServiceName}"
+                                   FontSize="20"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+                            <Label Text="{Binding Service.GameName, StringFormat='关联游戏：{0}'}"
+                                   FontSize="14"
+                                   TextColor="#6B7280" />
+                            <Label Text="{Binding Service.ServiceType, StringFormat='服务类型：{0}'}"
+                                   FontSize="14"
+                                   TextColor="#6B7280" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="订单信息"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="{Binding OrderNumberDisplay}"
+                                   FontSize="13"
+                                   TextColor="#434A59" />
+                            <Label Text="{Binding OrderDateDisplay, StringFormat='下单时间：{0}'}"
+                                   FontSize="13"
+                                   TextColor="#434A59" />
+                            <Label Text="{Binding OrderStatusDisplay, StringFormat='当前状态：{0}'}"
+                                   FontSize="13"
+                                   TextColor="#434A59" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <VerticalStackLayout Grid.Row="0"
+                             Spacing="10"
+                             Padding="20"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center"
+                             IsVisible="True">
+            <VerticalStackLayout.Triggers>
+                <DataTrigger TargetType="VerticalStackLayout"
+                             Binding="{Binding HasOrder}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </VerticalStackLayout.Triggers>
+            <Label Text="未找到订单"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="#1A1A1A" />
+            <Label Text="请返回重试或在订单列表中重新选择。"
+                   FontSize="14"
+                   TextColor="#6B7280"
+                   HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+
+        <Grid Grid.Row="1"
+              BackgroundColor="White"
+              Padding="20,16"
+              ColumnDefinitions="*,Auto"
+              IsVisible="False">
+            <Grid.Triggers>
+                <DataTrigger TargetType="Grid"
+                             Binding="{Binding HasOrder}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+            </Grid.Triggers>
+            <VerticalStackLayout Spacing="4"
+                                  VerticalOptions="Center">
+                <Label Text="支付金额"
+                       FontSize="12"
+                       TextColor="#7B8596" />
+                <Label Text="{Binding PaymentAmountDisplay}"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="#FF4D4F" />
+            </VerticalStackLayout>
+            <Button Grid.Column="1"
+                    Text="确认支付"
+                    HeightRequest="48"
+                    WidthRequest="160"
+                    CornerRadius="24"
+                    BackgroundColor="#5B61FF"
+                    TextColor="White"
+                    FontAttributes="Bold"
+                    IsEnabled="{Binding CanPay}"
+                    Clicked="OnPayClicked" />
+        </Grid>
+
+        <ActivityIndicator Grid.RowSpan="2"
+                           IsRunning="{Binding IsLoading}"
+                           IsVisible="{Binding IsLoading}"
+                           Color="#3478F6"
+                           WidthRequest="48"
+                           HeightRequest="48"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+    </Grid>
+</ContentPage>

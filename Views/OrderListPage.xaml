@@ -1,0 +1,218 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.OrderListPage"
+             x:DataType="vm:OrderListViewModel"
+             Title="订单页面"
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="False">
+    <Grid RowDefinitions="Auto,*"
+          Padding="20,16,20,0">
+        <VerticalStackLayout Grid.Row="0"
+                             Spacing="16">
+            <Label Text="订单"
+                   FontSize="22"
+                   FontAttributes="Bold"
+                   TextColor="#1A1A1A" />
+
+            <ScrollView Orientation="Horizontal" 
+                        HorizontalScrollBarVisibility="Default"
+                        Margin="0,0,0,8">
+
+                <CollectionView ItemsSource="{Binding StatusFilters}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedFilter, Mode=TwoWay}"
+                                BackgroundColor="Transparent">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal"
+                                           ItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:OrderListViewModel+OrderFilterOption">
+                            <Border Padding="16,10"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#EEF1F5">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="22" />
+                                </Border.StrokeShape>
+
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup Name="SelectionStates">
+                                        <VisualState Name="Normal">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor"
+                                                        Value="#EEF1F5" />
+                                                <Setter TargetName="FilterLabel"
+                                                        Property="Label.TextColor"
+                                                        Value="#4B5563" />
+                                                <Setter TargetName="CountLabel"
+                                                        Property="Label.TextColor"
+                                                        Value="#9AA0B1" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor"
+                                                        Value="#3478F6" />
+                                                <Setter TargetName="FilterLabel"
+                                                        Property="Label.TextColor"
+                                                        Value="#FFFFFF" />
+                                                <Setter TargetName="CountLabel"
+                                                        Property="Label.TextColor"
+                                                        Value="#DCE7FF" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+
+                                <HorizontalStackLayout Spacing="6">
+                                    <Label x:Name="FilterLabel"
+                                           Text="{Binding DisplayName}"
+                                           FontSize="14"
+                                           FontAttributes="Bold" />
+                                    <Label x:Name="CountLabel"
+                                           Text="{Binding CountDisplay}"
+                                           FontSize="12" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </ScrollView>
+
+        </VerticalStackLayout>
+
+        <Grid Grid.Row="1">
+            <CollectionView ItemsSource="{Binding Orders}"
+                            SelectionMode="None"
+                            BackgroundColor="Transparent"
+                            ItemSizingStrategy="MeasureAllItems">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical"
+                                       ItemSpacing="18" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Spacing="8"
+                                         Padding="0,60,0,0"
+                                         HorizontalOptions="Center"
+                                         VerticalOptions="Start">
+                        <Label Text="暂无订单"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"
+                               TextColor="#6B7280" />
+                        <Label Text="赶快下单体验一下服务吧~"
+                               FontSize="13"
+                               HorizontalTextAlignment="Center"
+                               TextColor="#9AA0B1" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OrderListViewModel+OrderListItem">
+                        <Border Padding="16"
+                                BackgroundColor="White"
+                                StrokeThickness="1"
+                                Stroke="#E6E8F0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="18" />
+                            </Border.StrokeShape>
+
+                            <Grid ColumnDefinitions="Auto,*"
+                                  ColumnSpacing="16">
+                                <Border WidthRequest="76"
+                                        HeightRequest="76"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#F1F3F8"
+                                        VerticalOptions="Start">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14" />
+                                    </Border.StrokeShape>
+                                    <Image Source="{Binding ThumbnailUrl}"
+                                           Aspect="AspectFill" />
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Spacing="8">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding ServiceTitle}"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="#1F2933"
+                                               LineBreakMode="TailTruncation" />
+                                        <Border Grid.Column="1"
+                                                Padding="10,4"
+                                                BackgroundColor="{Binding StatusBadgeColor}"
+                                                StrokeThickness="0"
+                                                VerticalOptions="Start">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <Label Text="{Binding StatusDisplay}"
+                                                   FontSize="12"
+                                                   TextColor="{Binding StatusTextColor}"
+                                                   FontAttributes="Bold"
+                                                   HorizontalTextAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+
+                                    <Label Text="{Binding OrderNumberDisplay}"
+                                           FontSize="12"
+                                           TextColor="#8E94A2" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding OrderDateDisplay}"
+                                               FontSize="12"
+                                               TextColor="#8E94A2"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding TotalPriceDisplay}"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="#FF4D4F"
+                                               VerticalOptions="Center" />
+                                    </Grid>
+                                    <Button Text="立即支付"
+                                        HeightRequest="40"
+                                        CornerRadius="20"
+                                        Padding="0"
+                                        BackgroundColor="#5B61FF"
+                                        TextColor="White"
+                                        FontSize="14"
+                                        HorizontalOptions="End"
+                                        CommandParameter="{Binding OrderId}"
+                                        IsVisible="{Binding IsPendingPayment}"
+                                        Clicked="OnPayOrderClicked" />
+
+                                <Button Text="&#21435;&#35780;&#20215;"
+                                        HeightRequest="40"
+                                        Margin="0,8,0,0"
+                                        CornerRadius="20"
+                                        Padding="0"
+                                        BackgroundColor="#FF8A3D"
+                                        TextColor="White"
+                                        FontSize="14"
+                                        HorizontalOptions="End"
+                                        CommandParameter="{Binding OrderId}"
+                                        IsVisible="{Binding CanReview}"
+                                        Clicked="OnReviewOrderClicked" />
+
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               Color="#3478F6"
+                               WidthRequest="32"
+                               HeightRequest="32"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+        </Grid>
+    </Grid>
+</ContentPage>
+
+

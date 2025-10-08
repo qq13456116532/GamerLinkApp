@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             xmlns:models="clr-namespace:GamerLinkApp.Models"
+             x:Class="GamerLinkApp.Views.FavoriteServicesPage"
+             x:Name="FavoriteServicesPageRoot"
+             x:DataType="vm:FavoriteServicesViewModel"
+             Title="我的收藏"
+             BackgroundColor="#F5F6F9">
+    <Grid RowDefinitions="Auto,*"
+          Padding="0,12,0,0">
+        <Label Text="收藏的服务"
+               FontSize="20"
+               FontAttributes="Bold"
+               TextColor="#1F1F1F"
+               Margin="20,0,20,12" />
+
+        <Grid Grid.Row="1">
+            <CollectionView ItemsSource="{Binding Favorites}"
+                            SelectionMode="None"
+                            BackgroundColor="Transparent"
+                            Margin="0,0,0,20">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="0" />
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Service">
+                        <Frame Margin="20,0,20,16"
+                               Padding="12"
+                               BackgroundColor="White"
+                               CornerRadius="18"
+                               HasShadow="False"
+                               BorderColor="#EEEEEE">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnServiceTapped" />
+                            </Frame.GestureRecognizers>
+                            <Grid>
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="14">
+                                    <Border Grid.Column="0"
+                                            WidthRequest="110"
+                                            HeightRequest="88"
+                                            StrokeShape="RoundRectangle 16"
+                                            VerticalOptions="Center">
+                                        <Image Source="{Binding ThumbnailUrl}"
+                                               Aspect="AspectFill" />
+                                    </Border>
+
+                                    <VerticalStackLayout Grid.Column="1"
+                                                          Spacing="6"
+                                                          VerticalOptions="Center">
+                                        <Label Text="{Binding Title}"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="#2A2F3C"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding GameName}"
+                                               FontSize="13"
+                                               TextColor="#777D8C"
+                                               LineBreakMode="TailTruncation" />
+                                        <HorizontalStackLayout Spacing="10">
+                                            <Label Text="{Binding PurchaseCount, StringFormat='{0}人购买'}"
+                                                   FontSize="12"
+                                                   TextColor="#9AA0B1" />
+                                            <Label Text="{Binding CompletedCount, StringFormat='完成{0}'}"
+                                                   FontSize="12"
+                                                   TextColor="#9AA0B1" />
+                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding Price, StringFormat='￥{0:F0}'}"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="#FF4D4F" />
+                                    </VerticalStackLayout>
+                                </Grid>
+
+                                <ImageButton Source="heart_filled.svg"
+                                             BackgroundColor="Transparent"
+                                             Padding="6"
+                                             WidthRequest="36"
+                                             HeightRequest="36"
+                                             HorizontalOptions="End"
+                                             VerticalOptions="Start"
+                                             Command="{Binding BindingContext.ToggleFavoriteCommand, Source={x:Reference FavoriteServicesPageRoot}}"
+                                             CommandParameter="{Binding .}"
+                                             SemanticProperties.Description="取消收藏">
+                                    <ImageButton.Triggers>
+                                        <DataTrigger TargetType="ImageButton"
+                                                     Binding="{Binding IsFavorite}"
+                                                     Value="False">
+                                            <Setter Property="Source" Value="heart_outline.svg" />
+                                        </DataTrigger>
+                                    </ImageButton.Triggers>
+                                </ImageButton>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Spacing="16"
+                                         Padding="40"
+                                         HorizontalOptions="Center"
+                                         VerticalOptions="Center">
+                        <Image Source="no_service.png"
+                               HeightRequest="120"
+                               WidthRequest="120"
+                               Aspect="AspectFit" />
+                        <Label Text="还没有收藏的服务"
+                               FontSize="16"
+                               TextColor="#7A8193"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+            </CollectionView>
+
+            <ActivityIndicator IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               Color="#5B61FF" />
+        </Grid>
+    </Grid>
+</ContentPage>
