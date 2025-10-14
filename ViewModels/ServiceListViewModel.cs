@@ -4,21 +4,23 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GamerLinkApp.Helpers;
 using GamerLinkApp.Models;
 using GamerLinkApp.Services;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 
 namespace GamerLinkApp.ViewModels
 {
     public class ServiceListViewModel : BaseViewModel
     {
-        private const int DemoUserId = 1;
-
         private readonly IDataService _dataService;
+        private readonly IAuthService _authService;
         private readonly List<Service> _allServices = new();
         private readonly HashSet<int> _favoriteServiceIds = new();
         private bool _isUpdatingFavorite;
         private string _searchText = string.Empty;
+        private int? _currentUserId;
 
         public ObservableCollection<Service> Services { get; } = new();
 
@@ -43,19 +45,59 @@ namespace GamerLinkApp.ViewModels
 
         public bool IsShowingBanners => string.IsNullOrWhiteSpace(SearchText);
 
-        public ServiceListViewModel(IDataService dataService)
+        public ServiceListViewModel(IDataService dataService, IAuthService authService)
         {
             _dataService = dataService;
+            _authService = authService;
             ToggleFavoriteCommand = new Command<Service>(async service => await ToggleFavoriteAsync(service));
+            _authService.CurrentUserChanged += OnCurrentUserChanged;
             _ = LoadServicesAsync(); // async load keeps UI responsive
+        }
+
+        private async Task<int?> GetCurrentUserIdAsync()
+        {
+            if (_currentUserId.HasValue)
+            {
+                return _currentUserId;
+            }
+
+            var user = await _authService.GetCurrentUserAsync();
+            _currentUserId = user?.Id;
+            return _currentUserId;
+        }
+
+        private void OnCurrentUserChanged(object? sender, User? user)
+        {
+            _currentUserId = user?.Id;
+
+            _ = MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                _favoriteServiceIds.Clear();
+                _allServices.Clear();
+                Services.Clear();
+
+                if (user is not null)
+                {
+                    await LoadServicesAsync();
+                }
+            });
         }
 
         private async Task LoadServicesAsync()
         {
             try
             {
+                var userId = await GetCurrentUserIdAsync();
+                if (userId is null)
+                {
+                    _favoriteServiceIds.Clear();
+                    _allServices.Clear();
+                    Services.Clear();
+                    return;
+                }
+
                 var services = await _dataService.GetServicesAsync();
-                var favoriteIds = await _dataService.GetFavoriteServiceIdsAsync(DemoUserId);
+                var favoriteIds = await _dataService.GetFavoriteServiceIdsAsync(userId.Value);
 
                 _favoriteServiceIds.Clear();
                 _favoriteServiceIds.UnionWith(favoriteIds);
@@ -78,7 +120,18 @@ namespace GamerLinkApp.ViewModels
         {
             try
             {
-                var favoriteIds = await _dataService.GetFavoriteServiceIdsAsync(DemoUserId);
+                var userId = await GetCurrentUserIdAsync();
+                if (userId is null)
+                {
+                    _favoriteServiceIds.Clear();
+                    foreach (var service in _allServices)
+                    {
+                        service.IsFavorite = false;
+                    }
+                    return;
+                }
+
+                var favoriteIds = await _dataService.GetFavoriteServiceIdsAsync(userId.Value);
 
                 _favoriteServiceIds.Clear();
                 _favoriteServiceIds.UnionWith(favoriteIds);
@@ -167,7 +220,20 @@ namespace GamerLinkApp.ViewModels
 
             try
             {
-                var isFavorite = await _dataService.ToggleFavoriteAsync(DemoUserId, service.Id);
+                if (!await AuthNavigationHelper.EnsureAuthenticatedAsync(_authService))
+                {
+                    UpdateFavoriteState(service, previous);
+                    return;
+                }
+
+                var userId = await GetCurrentUserIdAsync();
+                if (userId is null)
+                {
+                    UpdateFavoriteState(service, previous);
+                    return;
+                }
+
+                var isFavorite = await _dataService.ToggleFavoriteAsync(userId.Value, service.Id);
                 UpdateFavoriteState(service, isFavorite);
             }
             catch (Exception ex)

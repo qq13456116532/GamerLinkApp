@@ -33,17 +33,18 @@ namespace GamerLinkApp
             if (File.Exists(databasePath))
             {
                 File.Delete(databasePath);
-                Console.WriteLine($"数据库已删除: {databasePath}");
+                Console.WriteLine($"Database reset: {databasePath}");
             }
             else
             {
-                Console.WriteLine("数据库不存在。");
+                Console.WriteLine("Database file not found.");
             }
 #endif
 
             builder.Services.AddDbContextFactory<ServiceDbContext>(options =>
                 options.UseSqlite($"Data Source={databasePath}"));
             builder.Services.AddSingleton<IDataService, SqliteDataService>();
+            builder.Services.AddSingleton<IAuthService, AuthService>();
 
             builder.Services.AddSingleton<ServiceListPage>();
             builder.Services.AddSingleton<ServiceListViewModel>();
@@ -52,6 +53,11 @@ namespace GamerLinkApp
             builder.Services.AddSingleton<ZoneViewModel>();
             builder.Services.AddSingleton<ProfilePage>();
             builder.Services.AddSingleton<ProfileViewModel>();
+
+            builder.Services.AddTransient<LoginPage>();
+            builder.Services.AddTransient<LoginViewModel>();
+            builder.Services.AddTransient<RegisterPage>();
+            builder.Services.AddTransient<RegisterViewModel>();
 
             builder.Services.AddTransient<OrderListPage>();
             builder.Services.AddTransient<OrderListViewModel>();
@@ -63,6 +69,11 @@ namespace GamerLinkApp
             builder.Services.AddTransient<OrderReviewViewModel>();
             builder.Services.AddTransient<FavoriteServicesPage>();
             builder.Services.AddTransient<FavoriteServicesViewModel>();
+            builder.Services.AddTransient<AdminDashboardPage>();
+            builder.Services.AddTransient<AdminDashboardViewModel>();
+            builder.Services.AddTransient<AdminOrdersPage>();
+            builder.Services.AddTransient<AdminOrdersViewModel>();
+            builder.Services.AddTransient<AdminUsersPage>();
 
             var app = builder.Build();
             ServiceHelper.Initialize(app.Services);
@@ -71,4 +82,3 @@ namespace GamerLinkApp
         }
     }
 }
-

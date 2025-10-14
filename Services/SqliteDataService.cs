@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using GamerLinkApp.Data;
+using GamerLinkApp.Helpers;
 using GamerLinkApp.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Maui.Storage;
@@ -53,6 +54,50 @@ namespace GamerLinkApp.Services
             return service;
         }
 
+        public async Task<Service?> UpdateServiceAsync(Service service)
+        {
+            ArgumentNullException.ThrowIfNull(service);
+
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var entity = await context.Services.FirstOrDefaultAsync(s => s.Id == service.Id);
+            if (entity is null)
+            {
+                return null;
+            }
+
+            entity.Title = service.Title ?? string.Empty;
+            entity.Description = service.Description ?? string.Empty;
+            entity.Price = service.Price;
+            entity.GameName = service.GameName ?? string.Empty;
+            entity.ServiceType = service.ServiceType ?? string.Empty;
+            entity.SellerId = service.SellerId;
+            entity.ThumbnailUrl = service.ThumbnailUrl ?? string.Empty;
+            entity.Category = service.Category ?? string.Empty;
+            entity.IsFeatured = service.IsFeatured;
+            entity.AverageRating = service.AverageRating;
+            entity.ReviewCount = service.ReviewCount;
+            entity.PurchaseCount = service.PurchaseCount;
+            entity.CompletedCount = service.CompletedCount;
+            entity.ImageUrls = service.ImageUrls ?? new List<string>();
+            entity.Tags = service.Tags ?? new List<string>();
+
+            await context.SaveChangesAsync();
+
+            var updated = await context.Services
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == entity.Id);
+
+            if (updated is not null)
+            {
+                updated.ImageUrls ??= new List<string>();
+                updated.Tags ??= new List<string>();
+            }
+
+            return updated;
+        }
+
         public async Task<List<Category>> GetCategoriesAsync()
         {
             await EnsureInitializedAsync();
@@ -72,6 +117,56 @@ namespace GamerLinkApp.Services
 
             await using var context = await _contextFactory.CreateDbContextAsync();
             return await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+        }
+
+        public async Task<User?> GetUserByUsernameAsync(string username)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(username);
+
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == username);
+        }
+
+        public async Task<User?> GetUserByEmailAsync(string email)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(email);
+
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<User> CreateUserAsync(User user)
+        {
+            ArgumentNullException.ThrowIfNull(user);
+
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+
+            if (user.CreatedAt == default)
+            {
+                user.CreatedAt = DateTime.UtcNow;
+            }
+
+            context.Users.Add(user);
+            await context.SaveChangesAsync();
+
+            return user;
+        }
+
+        public async Task UpdateUserAsync(User user)
+        {
+            ArgumentNullException.ThrowIfNull(user);
+
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            context.Users.Update(user);
+            await context.SaveChangesAsync();
         }
 
         public async Task<Order> CreateOrderAsync(Order order)
@@ -132,6 +227,54 @@ namespace GamerLinkApp.Services
                 .ToListAsync();
         }
 
+        public async Task<List<Order>> GetAllOrdersAsync()
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Orders
+                .AsNoTracking()
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+        }
+
+        public async Task<Order?> UpdateOrderStatusAsync(int orderId, string status, DateTime? paymentDate = null, DateTime? completionDate = null, DateTime? refundRequestedAt = null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(status);
+
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order is null)
+            {
+                return null;
+            }
+
+            order.Status = status;
+
+            if (paymentDate.HasValue)
+            {
+                order.PaymentDate = paymentDate.Value;
+            }
+
+            if (completionDate.HasValue)
+            {
+                order.CompletionDate = completionDate.Value;
+            }
+
+            if (refundRequestedAt.HasValue)
+            {
+                order.RefundRequestDate = refundRequestedAt.Value;
+            }
+
+            await context.SaveChangesAsync();
+
+            return await context.Orders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+        }
+
         public async Task<Review?> GetReviewByOrderIdAsync(int orderId)
         {
             await EnsureInitializedAsync();
@@ -175,13 +318,13 @@ namespace GamerLinkApp.Services
 
             if (rating < 1 || rating > 5)
             {
-                return (null, null, "评分必须在 1 到 5 之间");
+                return (null, null, "Rating must be between 1 and 5.");
             }
 
             comment = comment?.Trim() ?? string.Empty;
             if (comment.Length < 5)
             {
-                return (null, null, "评论内容至少需要 5 个字符");
+                return (null, null, "Comment must contain at least 5 characters.");
             }
 
             await using var context = await _contextFactory.CreateDbContextAsync();
@@ -194,12 +337,12 @@ namespace GamerLinkApp.Services
             if (order.ReviewId.HasValue)
             {
                 var existingReview = await context.Reviews.AsNoTracking().FirstOrDefaultAsync(r => r.Id == order.ReviewId.Value);
-                return (order, existingReview, "该订单已完成评价");
+                return (order, existingReview, "璇ヨ鍗曞凡瀹屾垚璇勪环");
             }
 
             if (!string.Equals(order.Status, nameof(OrderStatus.PendingReview), StringComparison.Ordinal))
             {
-                return (order, null, "当前订单状态不支持评价");
+                return (order, null, "褰撳墠璁㈠崟鐘舵€佷笉鏀寔璇勪环");
             }
 
             var review = new Review
@@ -324,7 +467,8 @@ namespace GamerLinkApp.Services
 
             service.ReviewCount = stats.Count;
             service.AverageRating = Math.Round(stats.Average, 1);
-        }        private async Task EnsureInitializedAsync()
+        }        
+        private async Task EnsureInitializedAsync()
         {
             if (_initialized)
             {
@@ -352,7 +496,7 @@ namespace GamerLinkApp.Services
 
         private static async Task SeedDataAsync(ServiceDbContext context)
         {
-            // 如果数据库已有数据则跳过初始化
+            // 数据已存在时跳过初始化
             if (await context.Services.AnyAsync() ||
                 await context.Users.AnyAsync() ||
                 await context.Orders.AnyAsync() ||
@@ -364,44 +508,54 @@ namespace GamerLinkApp.Services
 
             try
             {
-                // 读取 JSON 文件
-                using var stream = await FileSystem.OpenAppPackageFileAsync("seed_data.json");
-                using var reader = new StreamReader(stream);
-                var json = await reader.ReadToEndAsync();
-
-                // 反序列化
+                await using var stream = await FileSystem.OpenAppPackageFileAsync("seed_data.json");
                 var options = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 };
-                var seedData = JsonSerializer.Deserialize<SeedData>(json, options);
+                var seedData = await JsonSerializer.DeserializeAsync<SeedData>(stream, options);
 
-                if (seedData != null)
+                if (seedData is null)
                 {
-                    if (seedData.Services?.Any() == true)
-                        await context.Services.AddRangeAsync(seedData.Services);
-
-                    if (seedData.Users?.Any() == true)
-                        await context.Users.AddRangeAsync(seedData.Users);
-
-                    if (seedData.Orders?.Any() == true)
-                        await context.Orders.AddRangeAsync(seedData.Orders);
-
-                    if (seedData.Reviews?.Any() == true)
-                        await context.Reviews.AddRangeAsync(seedData.Reviews);
-
-                    if (seedData.Categories?.Any() == true)
-                        await context.Categories.AddRangeAsync(seedData.Categories);
-
-                    if (seedData.Banners?.Any() == true)
-                        await context.Banners.AddRangeAsync(seedData.Banners);
-
-                    await context.SaveChangesAsync();
+                    return;
                 }
+
+                if (seedData.Services?.Any() == true)
+                {
+                    await context.Services.AddRangeAsync(seedData.Services);
+                }
+
+                if (seedData.Users?.Any() == true)
+                {
+                    var userEntities = await Task.WhenAll(seedData.Users.Select(MapSeedUserAsync));
+                    await context.Users.AddRangeAsync(userEntities);
+                }
+
+                if (seedData.Orders?.Any() == true)
+                {
+                    await context.Orders.AddRangeAsync(seedData.Orders);
+                }
+
+                if (seedData.Reviews?.Any() == true)
+                {
+                    await context.Reviews.AddRangeAsync(seedData.Reviews);
+                }
+
+                if (seedData.Categories?.Any() == true)
+                {
+                    await context.Categories.AddRangeAsync(seedData.Categories);
+                }
+
+                if (seedData.Banners?.Any() == true)
+                {
+                    await context.Banners.AddRangeAsync(seedData.Banners);
+                }
+
+                await context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"SeedData 初始化失败: {ex.Message}");
+                Console.WriteLine($"SeedData initialization failed: {ex.Message}");
             }
         }
 
@@ -413,17 +567,73 @@ namespace GamerLinkApp.Services
 
         }
 
+        private static Task<(string Hash, string Salt)> HashPasswordAsync(string password) =>
+            Task.Run(() => PasswordHasher.HashPassword(password));
+
+        private static async Task<User> MapSeedUserAsync(SeedUser seedUser)
+        {
+            var normalizedUsername = seedUser.Username?.Trim() ?? string.Empty;
+            var normalizedEmail = seedUser.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+            var nickname = string.IsNullOrWhiteSpace(seedUser.Nickname)
+                ? normalizedUsername
+                : seedUser.Nickname!.Trim();
+
+            var user = new User
+            {
+                Id = seedUser.Id,
+                Username = normalizedUsername,
+                Email = normalizedEmail,
+                Nickname = nickname,
+                AvatarUrl = seedUser.AvatarUrl ?? string.Empty,
+                IsAdmin = seedUser.IsAdmin,
+                CreatedAt = seedUser.CreatedAt == default ? DateTime.UtcNow : seedUser.CreatedAt,
+                LastLoginAt = seedUser.LastLoginAt
+            };
+
+            string? passwordHash = seedUser.PasswordHash;
+            string? passwordSalt = seedUser.PasswordSalt;
+
+            if (!string.IsNullOrWhiteSpace(seedUser.Password))
+            {
+                (passwordHash, passwordSalt) = await HashPasswordAsync(seedUser.Password);
+            }
+
+            if (string.IsNullOrWhiteSpace(passwordHash) || string.IsNullOrWhiteSpace(passwordSalt))
+            {
+                (passwordHash, passwordSalt) = await HashPasswordAsync("Password123!");
+            }
+
+            user.PasswordHash = passwordHash;
+            user.PasswordSalt = passwordSalt;
+
+            return user;
+        }
+
         public class SeedData
         {
             public List<Service> Services { get; set; } = new();
-            public List<User> Users { get; set; } = new();
+            public List<SeedUser> Users { get; set; } = new();
             public List<Order> Orders { get; set; } = new();
             public List<Review> Reviews { get; set; } = new();
             public List<Category> Categories { get; set; } = new();
             public List<Banner> Banners { get; set; } = new();
         }
 
+        public class SeedUser : User
+        {
+            public string? Password { get; set; }
+        }
+
     }
 }
+
+
+
+
+
+
+
+
+
 
 

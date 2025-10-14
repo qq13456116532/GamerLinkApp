@@ -1,16 +1,19 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
              x:Class="GamerLinkApp.Views.ProfilePage"
+             x:Name="ProfilePageView"
              x:DataType="vm:ProfileViewModel"
-             Title="个人"
+             Title="Profile"
              BackgroundColor="#F4F5F7">
     <Grid RowDefinitions="Auto,*">
         <ScrollView Grid.Row="1"
                     Padding="0,12,0,24">
             <VerticalStackLayout Spacing="18"
                                   Padding="20,0,20,0">
+
+                <!-- User card -->
                 <Border Padding="24,32"
                         StrokeThickness="0"
                         BackgroundColor="Transparent">
@@ -23,6 +26,7 @@
                             <GradientStop Color="#FFE9F3" Offset="1" />
                         </LinearGradientBrush>
                     </Border.Background>
+
                     <VerticalStackLayout Spacing="14"
                                           HorizontalOptions="Center"
                                           VerticalOptions="Center">
@@ -38,22 +42,26 @@
                             <Image Source="{Binding CurrentUser.AvatarUrl}"
                                    Aspect="AspectFill" />
                         </Border>
+
                         <Label Text="{Binding CurrentUser.Nickname}"
                                FontSize="19"
                                FontAttributes="Bold"
                                TextColor="#1A1A1A"
                                HorizontalOptions="Center" />
+
                         <Label Text="{Binding CurrentUser.Username, StringFormat='ID: {0}'}"
                                FontSize="14"
                                TextColor="#666666"
                                HorizontalOptions="Center" />
-                        <Label Text="{Binding TotalPaid, StringFormat='累计消费 ￥{0:F0}'}"
+
+                        <Label Text="{Binding TotalPaid, StringFormat='总消费 ¥{0:F0}'}"
                                FontSize="13"
                                TextColor="#80869A"
                                HorizontalOptions="Center" />
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Order summary -->
                 <Border BackgroundColor="White"
                         Padding="20"
                         StrokeThickness="0">
@@ -65,10 +73,11 @@
                                 Offset="0,6"
                                 Radius="12" />
                     </Border.Shadow>
+
                     <VerticalStackLayout Spacing="20">
                         <Grid ColumnDefinitions="*,Auto"
                               VerticalOptions="Center">
-                            <Label Text="订单"
+                            <Label Text="订单概览"
                                    FontSize="16"
                                    FontAttributes="Bold"
                                    TextColor="#1A1A1A" />
@@ -91,38 +100,44 @@
                             </CollectionView.ItemsLayout>
                             <CollectionView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ProfileViewModel+OrderStatusItem">
-                                    <VerticalStackLayout Spacing="8"
-                                                          HorizontalOptions="Center"
-                                                          VerticalOptions="Center">
-                                        <!-- ▼▼▼ 在这里添加手势识别器 ▼▼▼ -->
+                                    <VerticalStackLayout Spacing="6"
+                                                         HorizontalOptions="Center"
+                                                         VerticalOptions="Center">
                                         <VerticalStackLayout.GestureRecognizers>
-                                            <TapGestureRecognizer
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfileViewModel}}, Path=OrderStatusTappedCommand}"
-                                                CommandParameter="{Binding .}" />
+                                            <TapGestureRecognizer Command="{Binding Source={x:Reference ProfilePageView}, Path=BindingContext.OrderStatusTappedCommand}"
+                                                                  CommandParameter="{Binding .}" />
                                         </VerticalStackLayout.GestureRecognizers>
-                                        <!-- ▲▲▲ 添加结束 ▲▲▲ -->
-                                        <Border WidthRequest="52"
-                                                HeightRequest="52"
-                                                StrokeThickness="0"
-                                                BackgroundColor="#F5F7FA">
-                                            <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="26" />
-                                            </Border.StrokeShape>
-                                            <Label Text="{Binding Symbol}"
-                                                   FontSize="20"
-                                                   TextColor="#1A1A1A"
+                                        <Grid WidthRequest="56"
+                                              HeightRequest="56"
+                                              ColumnDefinitions="Auto"
+                                              RowDefinitions="Auto"
+                                              VerticalOptions="Center"
+                                              HorizontalOptions="Center">
+                                            <Border StrokeThickness="0"
+                                                    BackgroundColor="#F1F2FF"
+                                                    WidthRequest="56"
+                                                    HeightRequest="56"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="18" />
+                                                </Border.StrokeShape>
+                                            </Border>
+                                            <Image Source="{Binding Icon}"
+                                                   WidthRequest="28"
+                                                   HeightRequest="28"
+                                                   Aspect="AspectFit"
                                                    HorizontalOptions="Center"
-                                                   VerticalOptions="Center"
-                                                   HorizontalTextAlignment="Center" />
-                                        </Border>
+                                                   VerticalOptions="Center" />
+                                        </Grid>
+
                                         <Label Text="{Binding DisplayName}"
                                                FontSize="13"
-                                               TextColor="#444444"
-                                               HorizontalOptions="Center"
-                                               HorizontalTextAlignment="Center" />
-                                        <Label Text="{Binding Count, StringFormat='({0})'}"
+                                               TextColor="#4B4F5F"
+                                               HorizontalOptions="Center" />
+                                        <Label Text="{Binding CountDisplay}"
                                                FontSize="12"
-                                               TextColor="#80869A"
+                                               TextColor="#9A9EAE"
                                                HorizontalOptions="Center" />
                                     </VerticalStackLayout>
                                 </DataTemplate>
@@ -131,6 +146,7 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Stats -->
                 <Border BackgroundColor="White"
                         Padding="20"
                         StrokeThickness="0">
@@ -139,7 +155,7 @@
                     </Border.StrokeShape>
                     <VerticalStackLayout Spacing="12">
                         <Grid ColumnDefinitions="*,Auto">
-                            <Label Text="已完成服务"
+                            <Label Text="完成订单"
                                    FontSize="15"
                                    TextColor="#1A1A1A" />
                             <Label Text="{Binding CompletedOrders, StringFormat='{0} 个'}"
@@ -151,7 +167,32 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Actions -->
                 <VerticalStackLayout Spacing="12">
+                    <Border BackgroundColor="White"
+                            Padding="16"
+                            StrokeThickness="0"
+                            IsVisible="{Binding IsAdmin}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto"
+                              VerticalOptions="Center">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding NavigateToAdminCommand}" />
+                            </Grid.GestureRecognizers>
+
+                            <Label Text="管理面板"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+                            <Label Text=">"
+                                   Grid.Column="1"
+                                   FontSize="16"
+                                   TextColor="#C0C0C0" />
+                        </Grid>
+                    </Border>
+
                     <Border BackgroundColor="White"
                             Padding="16"
                             StrokeThickness="0">
@@ -187,7 +228,7 @@
                         </Border.StrokeShape>
                         <Grid ColumnDefinitions="*,Auto"
                               VerticalOptions="Center">
-                            <Label Text="关于我们"
+                            <Label Text="账号安全"
                                    FontSize="15"
                                    TextColor="#1A1A1A" />
                             <Label Text=">"
@@ -205,7 +246,7 @@
                         </Border.StrokeShape>
                         <Grid ColumnDefinitions="*,Auto"
                               VerticalOptions="Center">
-                            <Label Text="设置"
+                            <Label Text="联系客服"
                                    FontSize="15"
                                    TextColor="#1A1A1A" />
                             <Label Text=">"
@@ -214,6 +255,14 @@
                                    TextColor="#C0C0C0" />
                         </Grid>
                     </Border>
+
+                    <Button Text="退出登录"
+                            Command="{Binding LogoutCommand}"
+                            HeightRequest="48"
+                            Margin="0,24,0,0"
+                            BackgroundColor="#FF4D4F"
+                            TextColor="White"
+                            CornerRadius="16" />
                 </VerticalStackLayout>
             </VerticalStackLayout>
         </ScrollView>

@@ -45,6 +45,7 @@ namespace GamerLinkApp.Data
         {
             base.OnModelCreating(modelBuilder);
             ConfigureService(modelBuilder);
+            ConfigureUser(modelBuilder);
         }
 
         private static void ConfigureService(ModelBuilder modelBuilder)
@@ -68,6 +69,37 @@ namespace GamerLinkApp.Data
                 .Metadata.SetValueComparer(ListComparer);
 
             entity.Ignore(s => s.IsFavorite);
+        }
+
+        private static void ConfigureUser(ModelBuilder modelBuilder)
+        {
+            var entity = modelBuilder.Entity<User>();
+
+            entity.HasKey(u => u.Id);
+
+            entity.Property(u => u.Username)
+                .IsRequired();
+
+            entity.Property(u => u.Email)
+                .IsRequired();
+
+            entity.Property(u => u.PasswordHash)
+                .IsRequired();
+
+            entity.Property(u => u.PasswordSalt)
+                .IsRequired();
+
+            entity.Property(u => u.IsAdmin)
+                .HasDefaultValue(false);
+
+            entity.Property(u => u.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasIndex(u => u.Username)
+                .IsUnique();
+
+            entity.HasIndex(u => u.Email)
+                .IsUnique();
         }
 
         private static bool AreListsEqual(List<string>? left, List<string>? right)

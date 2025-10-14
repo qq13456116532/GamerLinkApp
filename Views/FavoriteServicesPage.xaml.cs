@@ -23,11 +23,22 @@ public partial class FavoriteServicesPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         await _viewModel.LoadAsync();
     }
 
     private async void OnServiceTapped(object sender, TappedEventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         if ((sender as Element)?.BindingContext is not Service service)
         {
             return;

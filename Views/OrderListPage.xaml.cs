@@ -30,18 +30,28 @@ public partial class OrderListPage : ContentPage
         }
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
 
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         if (BindingContext is OrderListViewModel vm)
         {
-            _ = vm.RefreshAsync();
+            await vm.RefreshAsync();
         }
     }
 
     private async void OnPayOrderClicked(object sender, EventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         if ((sender as Button)?.BindingContext is not OrderListViewModel.OrderListItem item)
         {
             return;
@@ -57,6 +67,11 @@ public partial class OrderListPage : ContentPage
 
     private async void OnReviewOrderClicked(object sender, EventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         if ((sender as Button)?.BindingContext is not OrderListViewModel.OrderListItem item)
         {
             return;

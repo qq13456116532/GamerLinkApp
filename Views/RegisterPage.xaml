@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.RegisterPage"
+             x:DataType="vm:RegisterViewModel"
+             BackgroundColor="#F4F5F7">
+    <ScrollView>
+        <VerticalStackLayout Padding="24,48,24,24" Spacing="24">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="创建新账号"
+                       FontSize="28"
+                       FontAttributes="Bold"
+                       TextColor="#1A1A1A"
+                       HorizontalOptions="Center" />
+                <Label Text="完善信息，加入 GamerLink 社区"
+                       FontSize="14"
+                       TextColor="#60626F"
+                       HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="16">
+                <VerticalStackLayout>
+                    <Label Text="用户名"
+                           FontSize="13"
+                           TextColor="#6D6F7C"
+                           Margin="0,0,0,6" />
+                    <Entry Text="{Binding Username}"
+                           Placeholder="请输入用户名"
+                           BackgroundColor="White"
+                           ClearButtonVisibility="WhileEditing"
+                           HeightRequest="48" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout>
+                    <Label Text="邮箱"
+                           FontSize="13"
+                           TextColor="#6D6F7C"
+                           Margin="0,0,0,6" />
+                    <Entry Text="{Binding Email}"
+                           Keyboard="Email"
+                           Placeholder="请输入邮箱"
+                           BackgroundColor="White"
+                           ClearButtonVisibility="WhileEditing"
+                           HeightRequest="48" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout>
+                    <Label Text="昵称（可选）"
+                           FontSize="13"
+                           TextColor="#6D6F7C"
+                           Margin="0,0,0,6" />
+                    <Entry Text="{Binding Nickname}"
+                           Placeholder="请输入昵称"
+                           BackgroundColor="White"
+                           ClearButtonVisibility="WhileEditing"
+                           HeightRequest="48" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout>
+                    <Label Text="密码"
+                           FontSize="13"
+                           TextColor="#6D6F7C"
+                           Margin="0,0,0,6" />
+                    <Entry Text="{Binding Password}"
+                           IsPassword="True"
+                           Placeholder="请输入密码"
+                           BackgroundColor="White"
+                           HeightRequest="48" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout>
+                    <Label Text="确认密码"
+                           FontSize="13"
+                           TextColor="#6D6F7C"
+                           Margin="0,0,0,6" />
+                    <Entry Text="{Binding ConfirmPassword}"
+                           IsPassword="True"
+                           Placeholder="请再次输入密码"
+                           BackgroundColor="White"
+                           HeightRequest="48" />
+                </VerticalStackLayout>
+
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#E04E5B"
+                       FontSize="13"
+                       IsVisible="{Binding HasError}" />
+
+                <Button Text="立即注册"
+                        Command="{Binding RegisterCommand}"
+                        HeightRequest="48"
+                        FontAttributes="Bold"
+                        BackgroundColor="#5B61FF"
+                        TextColor="White"
+                        CornerRadius="12"
+                        IsEnabled="{Binding CanRegister}" />
+            </VerticalStackLayout>
+
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="4">
+                <Label Text="已有账号？"
+                       FontSize="13"
+                       TextColor="#6D6F7C" />
+                <Label Text="返回登录"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       TextColor="#5B61FF">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLoginTapped" />
+                    </Label.GestureRecognizers>
+                </Label>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

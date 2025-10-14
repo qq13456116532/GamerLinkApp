@@ -2,7 +2,7 @@
   "Services": [
     {
       "Id": 1,
-      "Title": "王者荣耀-巅峰陪练团",
+      "Title": "王者荣耀-巅峰陪练冲刺",
       "Description": "顶尖荣耀教练，全赛季陪练指点操作与意识，助你稳步上分。",
       "GameName": "王者荣耀",
       "Price": 58,
@@ -105,14 +105,30 @@
       "Username": "iharty",
       "Email": "iharty@example.com",
       "Nickname": "Irving",
-      "AvatarUrl": "banner1.png"
+      "AvatarUrl": "banner1.png",
+      "Password": "Password123!",
+      "CreatedAt": "2023-09-01T12:00:00Z",
+      "IsAdmin": false
     },
     {
       "Id": 2,
       "Username": "proplayer",
       "Email": "pro@example.com",
       "Nickname": "职业选手",
-      "AvatarUrl": "banner2.png"
+      "AvatarUrl": "banner2.png",
+      "Password": "Password123!",
+      "CreatedAt": "2023-09-05T08:30:00Z",
+      "IsAdmin": false
+    },
+    {
+      "Id": 3,
+      "Username": "root",
+      "Email": "root@example.com",
+      "Nickname": "root",
+      "AvatarUrl": "banner3.png",
+      "Password": "root",
+      "CreatedAt": "2023-09-10T08:30:00Z",
+      "IsAdmin": true
     }
   ],
   "Orders": [
@@ -235,7 +251,7 @@
       "OrderId": 6,
       "UserId": 1,
       "Rating": 5,
-      "Comment": "上分方案非常针对性，两天就晋级了！",
+      "Comment": "上分方案非常针对性，两天就晋级了。",
       "ReviewDate": "2023-11-05T08:15:00Z"
     }
   ]

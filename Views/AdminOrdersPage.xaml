@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.AdminOrdersPage"
+             x:DataType="vm:AdminOrdersViewModel"
+             Title="订单管理"
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="True">
+    <Grid>
+        <ScrollView IsVisible="{Binding HasAccess}">
+            <VerticalStackLayout Padding="20,16,20,32"
+                                 Spacing="18">
+                <Grid ColumnDefinitions="*,Auto,Auto"
+                      VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="订单管理中心"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+                        <Label Text="查看与调整所有订单进度状态"
+                               FontSize="13"
+                               TextColor="#7A8196" />
+                    </VerticalStackLayout>
+
+                    <Button Grid.Column="1"
+                            Text="刷新"
+                            Command="{Binding RefreshCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#3478F6"
+                            TextColor="White"
+                            CornerRadius="14"
+                            VerticalOptions="Center" />
+
+                    <Button Grid.Column="2"
+                            Text="退出登录"
+                            Command="{Binding LogoutCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#FF4D4F"
+                            TextColor="White"
+                            CornerRadius="14"
+                            Margin="12,0,0,0"
+                            VerticalOptions="Center" />
+                </Grid>
+
+                <Border BackgroundColor="#FFFFFF"
+                        Padding="16,12"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Entry Text="{Binding SearchText}"
+                           Placeholder="按订单号、服务名称或买家搜索"
+                           PlaceholderColor="#A3A9B6"
+                           FontSize="14"
+                           ClearButtonVisibility="WhileEditing"
+                           BackgroundColor="Transparent"
+                           TextColor="#1A1A1A" />
+                </Border>
+
+                <CollectionView ItemsSource="{Binding StatusFilters}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedFilter, Mode=TwoWay}"
+                                HeightRequest="60">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal"
+                                           ItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AdminOrdersViewModel+AdminOrderFilter">
+                            <Border Padding="14,10"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#EEF1F5">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="22" />
+                                </Border.StrokeShape>
+
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup Name="CommonStates">
+                                        <VisualState Name="Normal">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="#EEF1F5" />
+                                                <Setter TargetName="FilterTitle"
+                                                        Property="Label.TextColor"
+                                                        Value="#4B5563" />
+                                                <Setter TargetName="FilterCount"
+                                                        Property="Label.TextColor"
+                                                        Value="#9AA0B1" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="#3478F6" />
+                                                <Setter TargetName="FilterTitle"
+                                                        Property="Label.TextColor"
+                                                        Value="White" />
+                                                <Setter TargetName="FilterCount"
+                                                        Property="Label.TextColor"
+                                                        Value="#DCE7FF" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label x:Name="FilterTitle"
+                                           Text="{Binding DisplayName}"
+                                           FontSize="14"
+                                           FontAttributes="Bold" />
+                                    <Label x:Name="FilterCount"
+                                           Text="{Binding CountDisplay}"
+                                           FontSize="12" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label Text="{Binding StatusMessage}"
+                       FontSize="13"
+                       TextColor="#3478F6"
+                       IsVisible="{Binding HasStatusMessage}" />
+
+                <Grid ColumnDefinitions="*,*"
+                      ColumnSpacing="16">
+                    <Border Grid.Column="0"
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto"
+                                  VerticalOptions="Center">
+                                <Label Text="订单列表"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A" />
+                                <ActivityIndicator Grid.Column="1"
+                                                    IsVisible="{Binding IsBusy}"
+                                                    IsRunning="{Binding IsBusy}"
+                                                    WidthRequest="20"
+                                                    HeightRequest="20" />
+                            </Grid>
+
+                            <CollectionView ItemsSource="{Binding Orders}"
+                                            SelectionMode="Single"
+                                            SelectedItem="{Binding SelectedOrder, Mode=TwoWay}">
+                                <CollectionView.EmptyView>
+                                    <Label Text="暂无订单"
+                                           FontSize="13"
+                                           TextColor="#9AA0B1"
+                                           HorizontalTextAlignment="Center"
+                                           Padding="0,12" />
+                                </CollectionView.EmptyView>
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical"
+                                                       ItemSpacing="12" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AdminOrdersViewModel+AdminOrderItem">
+                                        <Border BackgroundColor="#F6F7FB"
+                                                StrokeThickness="0"
+                                                Padding="14">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="18" />
+                                            </Border.StrokeShape>
+                                            <Grid RowDefinitions="Auto,Auto"
+                                                  ColumnDefinitions="*,Auto"
+                                                  RowSpacing="8">
+                                                <HorizontalStackLayout Spacing="8"
+                                                                        VerticalOptions="Center">
+                                    <Border Padding="8,4"
+                                            BackgroundColor="{Binding StatusBadgeColor}"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="12" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding StatusDisplay}"
+                                               FontSize="11"
+                                               TextColor="{Binding StatusTextColor}" />
+                                    </Border>
+                                                    <Label Text="{Binding ServiceTitle}"
+                                                           FontSize="15"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#1A1A1A" />
+                                                </HorizontalStackLayout>
+
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding TotalPriceDisplay}"
+                                                       FontSize="14"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#3478F6"
+                                                       HorizontalTextAlignment="End" />
+
+                                                <HorizontalStackLayout Grid.Row="1"
+                                                                        Spacing="12">
+                                                    <Label Text="{Binding OrderDateDisplay}"
+                                                           FontSize="12"
+                                                           TextColor="#7A8196" />
+                                                    <Label Text="{Binding BuyerName}"
+                                                           FontSize="12"
+                                                           TextColor="#9AA0B1" />
+                                                </HorizontalStackLayout>
+
+                                                <Label Grid.Row="1"
+                                                       Grid.Column="1"
+                                                       Text="{Binding OrderNumberDisplay}"
+                                                       FontSize="12"
+                                                       TextColor="#9AA0B1"
+                                                       HorizontalTextAlignment="End" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0"
+                                  RowDefinitions="Auto,Auto,Auto"
+                                  ColumnDefinitions="Auto,*"
+                                  ColumnSpacing="12"
+                                  RowSpacing="10"
+                                  IsVisible="{Binding HasSelection}">
+                                <Label Text="订单详情"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A"
+                                       Grid.ColumnSpan="2" />
+
+                                <Label Grid.Row="1"
+                                       Text="订单号"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Label Grid.Row="1"
+                                       Grid.Column="1"
+                                       Text="{Binding SelectedOrder.OrderNumberDisplay}"
+                                       FontSize="14"
+                                       TextColor="#1A1A1A" />
+
+                                <Label Grid.Row="2"
+                                       Text="服务名称"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Label Grid.Row="2"
+                                       Grid.Column="1"
+                                       Text="{Binding SelectedOrder.ServiceTitle}"
+                                       FontSize="14"
+                                       TextColor="#1A1A1A" />
+                            </Grid>
+
+                            <VerticalStackLayout Grid.Row="1"
+                                                 Spacing="14"
+                                                 IsVisible="{Binding HasSelection}">
+                                <Grid ColumnDefinitions="Auto,*"
+                                      RowDefinitions="Auto,Auto,Auto,Auto"
+                                      ColumnSpacing="12"
+                                      RowSpacing="10">
+                                    <Label Text="买家"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding SelectedOrder.BuyerName}"
+                                           FontSize="14"
+                                           TextColor="#1A1A1A" />
+
+                                    <Label Grid.Row="1"
+                                           Text="金额"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Row="1"
+                                           Grid.Column="1"
+                                           Text="{Binding SelectedOrder.TotalPriceDisplay}"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="#3478F6" />
+
+                                    <Label Grid.Row="2"
+                                           Text="下单时间"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Row="2"
+                                           Grid.Column="1"
+                                           Text="{Binding SelectedOrder.OrderDateDisplay}"
+                                           FontSize="14"
+                                           TextColor="#1A1A1A" />
+
+                                    <Label Grid.Row="3"
+                                           Text="支付时间"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Row="3"
+                                           Grid.Column="1"
+                                           Text="{Binding SelectedOrder.PaymentDateDisplay}"
+                                           FontSize="14"
+                                           TextColor="#1A1A1A" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="12">
+                                    <Label Text="完成时间"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding SelectedOrder.CompletionDateDisplay}"
+                                           FontSize="14"
+                                           TextColor="#1A1A1A" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="12">
+                                    <Label Text="退款时间"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding SelectedOrder.RefundDateDisplay}"
+                                           FontSize="14"
+                                           TextColor="#1A1A1A" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,*,*"
+                                      ColumnSpacing="10">
+                                    <Button Text="标记已支付"
+                                            Command="{Binding MarkPaidCommand}"
+                                            IsEnabled="{Binding CanMarkPaid}"
+                                            BackgroundColor="#3478F6"
+                                            TextColor="White"
+                                            HeightRequest="44"
+                                            CornerRadius="16" />
+                                    <Button Grid.Column="1"
+                                            Text="待评价"
+                                            Command="{Binding MarkPendingReviewCommand}"
+                                            IsEnabled="{Binding CanMarkPendingReview}"
+                                            BackgroundColor="#8E24AA"
+                                            TextColor="White"
+                                            HeightRequest="44"
+                                            CornerRadius="16" />
+                                    <Button Grid.Column="2"
+                                            Text="标记完成"
+                                            Command="{Binding MarkCompletedCommand}"
+                                            IsEnabled="{Binding CanMarkCompleted}"
+                                            BackgroundColor="#2DBE60"
+                                            TextColor="White"
+                                            HeightRequest="44"
+                                            CornerRadius="16" />
+                                </Grid>
+
+                                <Button Text="取消订单"
+                                        Command="{Binding MarkCancelledCommand}"
+                                        IsEnabled="{Binding CanMarkCancelled}"
+                                        BackgroundColor="#FF4D4F"
+                                        TextColor="White"
+                                        HeightRequest="44"
+                                        CornerRadius="16" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Row="1"
+                                                 Spacing="12"
+                                                 IsVisible="True">
+                                <VerticalStackLayout.Triggers>
+                                    <DataTrigger TargetType="VerticalStackLayout"
+                                                 Binding="{Binding HasSelection}"
+                                                 Value="True">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                </VerticalStackLayout.Triggers>
+                                <Label Text="请选择订单查看详情"
+                                       FontSize="14"
+                                       TextColor="#9AA0B1"
+                                       HorizontalTextAlignment="Center"
+                                       VerticalOptions="CenterAndExpand" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid IsVisible="{Binding IsAccessDenied}">
+            <VerticalStackLayout Padding="24"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="14">
+                <Label Text="当前账号没有管理员权限"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#1A1A1A"
+                       HorizontalTextAlignment="Center" />
+                <Label Text="请使用管理员账号登录以访问订单管理功能。"
+                       FontSize="13"
+                       TextColor="#7A8196"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

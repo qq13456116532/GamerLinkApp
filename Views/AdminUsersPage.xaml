@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GamerLinkApp.Views.AdminUsersPage"
+             Title="用户管理"
+             BackgroundColor="#F4F5F7">
+    <Grid>
+        <VerticalStackLayout HorizontalOptions="Center"
+                             VerticalOptions="Center"
+                             Spacing="12">
+            <Label Text="用户管理"
+                   FontSize="22"
+                   FontAttributes="Bold"
+                   TextColor="#1A1A1A"
+                   HorizontalTextAlignment="Center" />
+            <Label Text="功能建设中，敬请期待。"
+                   FontSize="14"
+                   TextColor="#6C7283"
+                   HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

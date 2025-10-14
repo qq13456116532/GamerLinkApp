@@ -41,18 +41,28 @@ public partial class OrderPaymentPage : ContentPage
         }
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
 
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         if (_orderId > 0 && !_viewModel.HasOrder && !_viewModel.IsLoading)
         {
-            _ = _viewModel.LoadAsync(_orderId);
+            await _viewModel.LoadAsync(_orderId);
         }
     }
 
     private async void OnPayClicked(object sender, EventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         var (success, errorMessage) = await _viewModel.PayAsync();
 
         if (!success)

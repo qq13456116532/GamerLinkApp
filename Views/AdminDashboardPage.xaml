@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.AdminDashboardPage"
+             x:DataType="vm:AdminDashboardViewModel"
+             Title="服务管理"
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="True">
+    <Grid>
+        <ScrollView IsVisible="{Binding HasAccess}">
+            <VerticalStackLayout Padding="20,16,20,32"
+                                 Spacing="18">
+                <Grid ColumnDefinitions="*,Auto,Auto"
+                      VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="服务管理面板"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+                        <Label Text="快速检索、编辑服务，并掌握最新订单动态"
+                               FontSize="13"
+                               TextColor="#7A8196" />
+                    </VerticalStackLayout>
+
+                    <Button Grid.Column="1"
+                            Text="刷新"
+                            Command="{Binding RefreshCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#3478F6"
+                            TextColor="White"
+                            CornerRadius="14"
+                            VerticalOptions="Center" />
+
+                    <Button Grid.Column="2"
+                            Text="退出登录"
+                            Command="{Binding LogoutCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#FF4D4F"
+                            TextColor="White"
+                            CornerRadius="14"
+                            VerticalOptions="Center"
+                            Margin="12,0,0,0" />
+                </Grid>
+
+                <Border BackgroundColor="#FFFFFF"
+                        Padding="16,12"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Entry Text="{Binding SearchText}"
+                           Placeholder="按名称、分类、游戏或标签搜索服务"
+                           PlaceholderColor="#A3A9B6"
+                           FontSize="14"
+                           ClearButtonVisibility="WhileEditing"
+                           BackgroundColor="Transparent"
+                           TextColor="#1A1A1A" />
+                </Border>
+
+                <CollectionView ItemsSource="{Binding SummaryMetrics}"
+                                SelectionMode="None"
+                                HeightRequest="110">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Horizontal"
+                                         Span="2"
+                                         HorizontalItemSpacing="12"
+                                         VerticalItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AdminDashboardViewModel+SummaryMetric">
+                            <Border BackgroundColor="#FFFFFF"
+                                    StrokeThickness="0"
+                                    Padding="16"
+                                    MinimumWidthRequest="150">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="{Binding Title}"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Text="{Binding Value}"
+                                           FontSize="20"
+                                           FontAttributes="Bold"
+                                           TextColor="#1A1A1A" />
+                                    <Label Text="{Binding Description}"
+                                           FontSize="12"
+                                           TextColor="#9AA0B1" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Grid ColumnDefinitions="*,*"
+                      ColumnSpacing="16">
+                    <Border Grid.Column="0"
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto"
+                                  VerticalOptions="Center">
+                                <Label Text="服务列表"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A" />
+                                <ActivityIndicator Grid.Column="1"
+                                                    IsRunning="{Binding IsBusy}"
+                                                    IsVisible="{Binding IsBusy}"
+                                                    WidthRequest="20"
+                                                    HeightRequest="20" />
+                            </Grid>
+
+                            <CollectionView ItemsSource="{Binding Services}"
+                                            SelectionMode="Single"
+                                            SelectedItem="{Binding SelectedService, Mode=TwoWay}">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical"
+                                                       ItemSpacing="10" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AdminDashboardViewModel+ServiceListItem">
+                                    <Border BackgroundColor="#FFFFFF"
+                                            StrokeThickness="0"
+                                            Padding="14"
+                                            IsVisible="{Binding IsVisible}">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="18" />
+                                        </Border.StrokeShape>
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border"
+                                                         Binding="{Binding IsFeatured}"
+                                                         Value="True">
+                                                <Setter Property="BackgroundColor" Value="#F6F7FF" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                            <Grid ColumnDefinitions="*,Auto"
+                                                  ColumnSpacing="10">
+                                                <VerticalStackLayout Spacing="6">
+                                                    <Label Text="{Binding Title}"
+                                                           FontSize="15"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#1A1A1A" />
+
+                                                    <Label Text="{Binding GameName}"
+                                                           FontSize="12"
+                                                           TextColor="#7A8196" />
+
+                                                    <HorizontalStackLayout Spacing="10">
+                                                        <Label Text="{Binding PriceDisplay}"
+                                                               FontSize="13"
+                                                               FontAttributes="Bold"
+                                                               TextColor="#3478F6" />
+                                                        <Label Text="{Binding Category}"
+                                                               FontSize="12"
+                                                               TextColor="#9AA0B1" />
+                                                    </HorizontalStackLayout>
+                                                </VerticalStackLayout>
+
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding FeaturedBadge}"
+                                                       FontSize="12"
+                                                       TextColor="#FF9F0A"
+                                                       VerticalTextAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="16">
+                            <Label Text="服务详情编辑"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                  ColumnDefinitions="Auto,*"
+                                  ColumnSpacing="12"
+                                  RowSpacing="12">
+                                <Label Grid.Row="0"
+                                       Grid.Column="0"
+                                       Text="名称"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="0"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.Title}"
+                                       Placeholder="请输入服务名称" />
+
+                                <Label Grid.Row="1"
+                                       Grid.Column="0"
+                                       Text="价格"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="1"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.Price}"
+                                       Keyboard="Numeric"
+                                       Placeholder="请输入价格" />
+
+                                <Label Grid.Row="2"
+                                       Grid.Column="0"
+                                       Text="所属游戏"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="2"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.GameName}"
+                                       Placeholder="如：王者荣耀" />
+
+                                <Label Grid.Row="3"
+                                       Grid.Column="0"
+                                       Text="分类"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="3"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.Category}"
+                                       Placeholder="如：MOBA" />
+
+                                <Label Grid.Row="4"
+                                       Grid.Column="0"
+                                       Text="类型"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="4"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.ServiceType}"
+                                       Placeholder="如：陪练、代练、教学" />
+
+                                <Label Grid.Row="5"
+                                       Grid.Column="0"
+                                       Text="缩略图"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="5"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.ThumbnailUrl}"
+                                       Placeholder="资源文件名或链接" />
+                            </Grid>
+
+                            <Label Text="标签（用逗号分隔）"
+                                   FontSize="14"
+                                   TextColor="#7A8196" />
+                            <Entry Text="{Binding ServiceForm.Tags}"
+                                   Placeholder="示例：教学, 冲分, 双排" />
+
+                            <Label Text="服务简介"
+                                   FontSize="14"
+                                   TextColor="#7A8196" />
+                            <Editor Text="{Binding ServiceForm.Description}"
+                                    HeightRequest="120"
+                                    AutoSize="TextChanges"
+                                    Placeholder="输入服务亮点、流程等描述" />
+
+                            <Grid ColumnDefinitions="*,Auto"
+                                  VerticalOptions="Center">
+                                <Label Text="设为精选推荐"
+                                       FontSize="14"
+                                       TextColor="#1A1A1A" />
+                                <Switch Grid.Column="1"
+                                        IsToggled="{Binding ServiceForm.IsFeatured}" />
+                            </Grid>
+
+                            <Label Text="{Binding ServiceForm.ValidationMessage}"
+                                   FontSize="12"
+                                   TextColor="#FF4D4F"
+                                   IsVisible="{Binding ServiceForm.HasValidationError}" />
+
+                            <Grid ColumnDefinitions="*,*,*"
+                                  ColumnSpacing="10">
+                                <Button Text="保存修改"
+                                        Command="{Binding SaveCommand}"
+                                        IsEnabled="{Binding CanSave}"
+                                        BackgroundColor="#3478F6"
+                                        TextColor="White"
+                                        HeightRequest="44"
+                                        CornerRadius="16" />
+
+                                <Button Grid.Column="1"
+                                        Text="恢复表单"
+                                        Command="{Binding ResetCommand}"
+                                        IsEnabled="{Binding CanReset}"
+                                        BackgroundColor="#EEF1F5"
+                                        TextColor="#4B5563"
+                                        HeightRequest="44"
+                                        CornerRadius="16" />
+
+                                <Button Grid.Column="2"
+                                        Text="切换精选"
+                                        Command="{Binding ToggleFeaturedCommand}"
+                                        IsEnabled="{Binding CanReset}"
+                                        BackgroundColor="#FF9F0A"
+                                        TextColor="White"
+                                        HeightRequest="44"
+                                        CornerRadius="16" />
+                            </Grid>
+
+                            <Label Text="{Binding StatusMessage}"
+                                   FontSize="13"
+                                   TextColor="#3478F6"
+                                   IsVisible="{Binding HasStatusMessage}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Border BackgroundColor="#FFFFFF"
+                        StrokeThickness="0"
+                        Padding="18">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="最新订单一览"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+
+                        <CollectionView ItemsSource="{Binding RecentOrders}"
+                                        SelectionMode="None">
+                            <CollectionView.EmptyView>
+                                <Label Text="当前没有订单"
+                                       FontSize="13"
+                                       TextColor="#9AA0B1"
+                                       HorizontalTextAlignment="Center"
+                                       Padding="0,12" />
+                            </CollectionView.EmptyView>
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical"
+                                                   ItemSpacing="10" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AdminDashboardViewModel+OrderSnapshot">
+                                    <Border BackgroundColor="#F6F7FB"
+                                            StrokeThickness="0"
+                                            Padding="14">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="18" />
+                                        </Border.StrokeShape>
+
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              RowDefinitions="Auto,Auto"
+                                              RowSpacing="6">
+                                            <Label Text="{Binding ServiceTitle}"
+                                                   FontSize="15"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1A1A1A" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding StatusDisplay}"
+                                                   FontSize="13"
+                                                   TextColor="#3478F6"
+                                                   HorizontalTextAlignment="End" />
+
+                                            <Label Grid.Row="1"
+                                                   Text="{Binding OrderDateDisplay}"
+                                                   FontSize="12"
+                                                   TextColor="#7A8196" />
+                                            <Label Grid.Row="1"
+                                                   Grid.Column="1"
+                                                   Text="{Binding TotalPriceDisplay}"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1A1A1A"
+                                                   HorizontalTextAlignment="End" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid IsVisible="{Binding IsAccessDenied}">
+            <VerticalStackLayout Padding="24"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="14">
+                <Label Text="当前账号没有管理员权限"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#1A1A1A"
+                       HorizontalTextAlignment="Center" />
+                <Label Text="请使用管理员账号登录以访问服务管理功能。"
+                       FontSize="13"
+                       TextColor="#7A8196"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

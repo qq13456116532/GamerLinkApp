@@ -3,19 +3,21 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GamerLinkApp.Helpers;
 using GamerLinkApp.Models;
 using GamerLinkApp.Services;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 
 namespace GamerLinkApp.ViewModels
 {
     public class FavoriteServicesViewModel : BaseViewModel
     {
-        private const int DemoUserId = 1;
-
         private readonly IDataService _dataService;
+        private readonly IAuthService _authService;
         private bool _isLoading;
         private bool _isUpdatingFavorite;
+        private int? _currentUserId;
 
         public ObservableCollection<Service> Favorites { get; } = new();
 
@@ -39,11 +41,41 @@ namespace GamerLinkApp.ViewModels
 
         public ICommand ToggleFavoriteCommand { get; }
 
-        public FavoriteServicesViewModel(IDataService dataService)
+        public FavoriteServicesViewModel(IDataService dataService, IAuthService authService)
         {
             _dataService = dataService;
+            _authService = authService;
             ToggleFavoriteCommand = new Command<Service>(async service => await ToggleFavoriteAsync(service));
             Favorites.CollectionChanged += (_, __) => OnPropertyChanged(nameof(IsEmpty));
+            _authService.CurrentUserChanged += OnCurrentUserChanged;
+        }
+
+        private async Task<int?> GetCurrentUserIdAsync()
+        {
+            if (_currentUserId.HasValue)
+            {
+                return _currentUserId;
+            }
+
+            var user = await _authService.GetCurrentUserAsync();
+            _currentUserId = user?.Id;
+            return _currentUserId;
+        }
+
+        private void OnCurrentUserChanged(object? sender, User? user)
+        {
+            _currentUserId = user?.Id;
+
+            _ = MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                Favorites.Clear();
+                OnPropertyChanged(nameof(IsEmpty));
+
+                if (user is not null)
+                {
+                    await LoadAsync();
+                }
+            });
         }
 
         public async Task LoadAsync()
@@ -57,7 +89,14 @@ namespace GamerLinkApp.ViewModels
 
             try
             {
-                var services = await _dataService.GetFavoriteServicesAsync(DemoUserId);
+                var userId = await GetCurrentUserIdAsync();
+                if (userId is null)
+                {
+                    Favorites.Clear();
+                    return;
+                }
+
+                var services = await _dataService.GetFavoriteServicesAsync(userId.Value);
 
                 Favorites.Clear();
                 foreach (var service in services)
@@ -93,7 +132,18 @@ namespace GamerLinkApp.ViewModels
 
             try
             {
-                var isFavorite = await _dataService.ToggleFavoriteAsync(DemoUserId, service.Id);
+                if (!await AuthNavigationHelper.EnsureAuthenticatedAsync(_authService))
+                {
+                    return;
+                }
+
+                var userId = await GetCurrentUserIdAsync();
+                if (userId is null)
+                {
+                    return;
+                }
+
+                var isFavorite = await _dataService.ToggleFavoriteAsync(userId.Value, service.Id);
 
                 if (!isFavorite)
                 {

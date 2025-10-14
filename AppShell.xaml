@@ -1,35 +1,11 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <Shell
     x:Class="GamerLinkApp.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:views="clr-namespace:GamerLinkApp.Views"
     Shell.FlyoutBehavior="Disabled"
     Title="GamerLinkApp"
     Shell.NavBarIsVisible="False">
 
-    <!-- 定义底部标签栏 -->
-    <TabBar>
-        <!-- 第一个标签页: 商铺. 我们直接使用你已有的 ServiceListPage -->
-        <ShellContent
-            Title="商铺"
-            ContentTemplate="{DataTemplate views:ServiceListPage}"
-            Icon="tab_shop.png"
-             />
-
-        <!-- 第二个标签页: 专区. 我们将创建新的 ZonePage -->
-        <ShellContent
-            Title="专区"
-            ContentTemplate="{DataTemplate views:ZonePage}"
-            Icon="tab_zone.png"
-            />
-
-        <!-- 第三个标签页: 个人. 我们将创建新的 ProfilePage -->
-        <ShellContent
-            Title="个人"
-            ContentTemplate="{DataTemplate views:ProfilePage}"
-            Icon="tab_mine.png"
-             />
-    </TabBar>
-
+    <!-- 具体的 Tab 项目在代码中根据用户身份动态构建 -->
 </Shell>

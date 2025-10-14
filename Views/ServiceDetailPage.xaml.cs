@@ -1,4 +1,4 @@
-﻿using GamerLinkApp.Helpers;
+using GamerLinkApp.Helpers;
 using GamerLinkApp.Models;
 using GamerLinkApp.ViewModels;
 
@@ -34,6 +34,11 @@ public partial class ServiceDetailPage : ContentPage
 
     private async void OnPlaceOrderClicked(object sender, EventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         var (success, errorMessage, order) = await _viewModel.PlaceOrderAsync();
 
         if (!success)
@@ -52,8 +57,8 @@ public partial class ServiceDetailPage : ContentPage
         }
 
         var orderNumber = $"订单号：{order.Id:D6}\n";
-        var navigateToPayment = await DisplayAlert("下单成功", $"{orderNumber}已生成待支付订单，是否立即支付？", "去支付", "稍后再说");
-        if (navigateToPayment && Shell.Current is not null)
+        var confirm = await DisplayAlert("下单成功", $"{orderNumber}是否立即前往支付？", "去支付", "稍后再说");
+        if (confirm && Shell.Current is not null)
         {
             await Shell.Current.GoToAsync($"{nameof(OrderPaymentPage)}?orderId={order.Id}");
             return;
@@ -67,6 +72,11 @@ public partial class ServiceDetailPage : ContentPage
 
     private async void OnToggleFavoriteClicked(object sender, EventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         var result = await _viewModel.ToggleFavoriteAsync();
 
         if (result is null)
@@ -74,5 +84,4 @@ public partial class ServiceDetailPage : ContentPage
             await DisplayAlert("提示", "操作失败，请稍后再试。", "确定");
         }
     }
-
 }
