@@ -123,9 +123,9 @@
                        TextColor="#3478F6"
                        IsVisible="{Binding HasStatusMessage}" />
 
-                <Grid ColumnDefinitions="*,*"
-                      ColumnSpacing="16">
-                    <Border Grid.Column="0"
+                <Grid RowDefinitions="Auto,Auto"
+                      RowSpacing="16">
+                    <Border
                             BackgroundColor="#FFFFFF"
                             StrokeThickness="0"
                             Padding="18">
@@ -221,7 +221,7 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <Border Grid.Column="1"
+                    <Border Grid.Row="1"
                             BackgroundColor="#FFFFFF"
                             StrokeThickness="0"
                             Padding="18">

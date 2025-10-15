@@ -73,6 +73,7 @@ namespace GamerLinkApp
             builder.Services.AddTransient<AdminDashboardViewModel>();
             builder.Services.AddTransient<AdminOrdersPage>();
             builder.Services.AddTransient<AdminOrdersViewModel>();
+            builder.Services.AddTransient<AdminUsersViewModel>();
             builder.Services.AddTransient<AdminUsersPage>();
 
             var app = builder.Build();

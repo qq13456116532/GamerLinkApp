@@ -110,6 +110,17 @@ namespace GamerLinkApp.Services
                 .ToListAsync();
         }
 
+        public async Task<List<User>> GetAllUsersAsync()
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Users
+                .AsNoTracking()
+                .OrderByDescending(u => u.CreatedAt)
+                .ToListAsync();
+        }
+
 
         public async Task<User?> GetUserAsync(int id)
         {
@@ -166,6 +177,29 @@ namespace GamerLinkApp.Services
 
             await using var context = await _contextFactory.CreateDbContextAsync();
             context.Users.Update(user);
+            await context.SaveChangesAsync();
+        }
+
+        public async Task UpdateUserPasswordAsync(int userId, string newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(newPassword))
+            {
+                throw new ArgumentException("新密码不能为空", nameof(newPassword));
+            }
+
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user is null)
+            {
+                throw new InvalidOperationException($"未找到编号为 {userId} 的用户");
+            }
+
+            var (hash, salt) = PasswordHasher.HashPassword(newPassword);
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
+
             await context.SaveChangesAsync();
         }
 

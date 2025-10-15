@@ -11,11 +11,13 @@ namespace GamerLinkApp.Services
         Task<Service?> GetServiceByIdAsync(int id);
         Task<List<Category>> GetCategoriesAsync();
         Task<List<Service>> GetServicesByCategoryAsync(Category category);
+        Task<List<User>> GetAllUsersAsync();
         Task<User?> GetUserAsync(int id);
         Task<User?> GetUserByUsernameAsync(string username);
         Task<User?> GetUserByEmailAsync(string email);
         Task<User> CreateUserAsync(User user);
         Task UpdateUserAsync(User user);
+        Task UpdateUserPasswordAsync(int userId, string newPassword);
         Task<Order> CreateOrderAsync(Order order);
         Task<Order?> GetOrderByIdAsync(int id);
         Task<Order?> MarkOrderAsPaidAsync(int orderId);

@@ -1,57 +1,109 @@
 ./AppShell.xaml:
-【﻿<?xml version="1.0" encoding="UTF-8" ?>
+【<?xml version="1.0" encoding="UTF-8" ?>
 <Shell
     x:Class="GamerLinkApp.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:views="clr-namespace:GamerLinkApp.Views"
     Shell.FlyoutBehavior="Disabled"
     Title="GamerLinkApp"
     Shell.NavBarIsVisible="False">
 
-    <!-- 定义底部标签栏 -->
-    <TabBar>
-        <!-- 第一个标签页: 商铺. 我们直接使用你已有的 ServiceListPage -->
-        <ShellContent
-            Title="商铺"
-            ContentTemplate="{DataTemplate views:ServiceListPage}"
-            Icon="tab_shop.png"
-             />
-
-        <!-- 第二个标签页: 专区. 我们将创建新的 ZonePage -->
-        <ShellContent
-            Title="专区"
-            ContentTemplate="{DataTemplate views:ZonePage}"
-            Icon="tab_zone.png"
-            />
-
-        <!-- 第三个标签页: 个人. 我们将创建新的 ProfilePage -->
-        <ShellContent
-            Title="个人"
-            ContentTemplate="{DataTemplate views:ProfilePage}"
-            Icon="tab_mine.png"
-             />
-    </TabBar>
-
+    <!-- 具体的 Tab 项目在代码中根据用户身份动态构建 -->
 </Shell>
 】
 
 ./AppShell.xaml.cs:
-【using GamerLinkApp.Views;
+【using System;
+using System.Threading.Tasks;
+using GamerLinkApp.Helpers;
+using GamerLinkApp.Models;
+using GamerLinkApp.Services;
+using GamerLinkApp.Views;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
 
-namespace GamerLinkApp
+namespace GamerLinkApp;
+
+public partial class AppShell : Shell
 {
-    public partial class AppShell : Shell
+    private readonly IAuthService _authService;
+
+    public AppShell()
     {
-        public AppShell()
+        InitializeComponent();
+        Routing.RegisterRoute(nameof(ServiceDetailPage), typeof(ServiceDetailPage));
+        Routing.RegisterRoute(nameof(OrderListPage), typeof(OrderListPage));
+        Routing.RegisterRoute(nameof(OrderPaymentPage), typeof(OrderPaymentPage));
+        Routing.RegisterRoute(nameof(OrderReviewPage), typeof(OrderReviewPage));
+        Routing.RegisterRoute(nameof(FavoriteServicesPage), typeof(FavoriteServicesPage));
+        Routing.RegisterRoute(nameof(AdminDashboardPage), typeof(AdminDashboardPage));
+        Routing.RegisterRoute(nameof(AdminOrdersPage), typeof(AdminOrdersPage));
+        Routing.RegisterRoute(nameof(AdminUsersPage), typeof(AdminUsersPage));
+
+        _authService = ServiceHelper.GetRequiredService<IAuthService>();
+        _authService.CurrentUserChanged += OnCurrentUserChanged;
+
+        _ = InitializeTabsAsync();
+    }
+
+    protected override void OnHandlerChanged()
+    {
+        base.OnHandlerChanged();
+
+        if (Handler is null)
         {
-            InitializeComponent();
-            Routing.RegisterRoute(nameof(ServiceDetailPage), typeof(ServiceDetailPage));
-            Routing.RegisterRoute(nameof(OrderListPage), typeof(OrderListPage));
-            Routing.RegisterRoute(nameof(OrderPaymentPage), typeof(OrderPaymentPage));
-            Routing.RegisterRoute(nameof(OrderReviewPage), typeof(OrderReviewPage));
-            Routing.RegisterRoute(nameof(FavoriteServicesPage), typeof(FavoriteServicesPage));
+            _authService.CurrentUserChanged -= OnCurrentUserChanged;
         }
+    }
+
+    private async Task InitializeTabsAsync()
+    {
+        var user = await _authService.GetCurrentUserAsync();
+        await MainThread.InvokeOnMainThreadAsync(() => UpdateTabs(user));
+    }
+
+    private void OnCurrentUserChanged(object? sender, User? user) =>
+        _ = MainThread.InvokeOnMainThreadAsync(() => UpdateTabs(user));
+
+    private void UpdateTabs(User? user)
+    {
+        Items.Clear();
+
+        if (user?.IsAdmin == true)
+        {
+            Items.Add(CreateTab("服务管理", "tab_shop.png", () => ServiceHelper.GetRequiredService<AdminDashboardPage>()));
+            Items.Add(CreateTab("订单管理", "tab_zone.png", () => ServiceHelper.GetRequiredService<AdminOrdersPage>()));
+            Items.Add(CreateTab("用户管理", "tab_mine.png", () => ServiceHelper.GetRequiredService<AdminUsersPage>()));
+        }
+        else
+        {
+            Items.Add(CreateTab("服务", "tab_shop.png", () => ServiceHelper.GetRequiredService<ServiceListPage>()));
+            Items.Add(CreateTab("专区", "tab_zone.png", () => ServiceHelper.GetRequiredService<ZonePage>()));
+            Items.Add(CreateTab("个人", "tab_mine.png", () => ServiceHelper.GetRequiredService<ProfilePage>()));
+        }
+
+        if (Items.Count > 0)
+        {
+            CurrentItem = Items[0];
+        }
+    }
+
+    private static Tab CreateTab(string title, string icon, Func<Page> pageFactory)
+    {
+        var content = new ShellContent
+        {
+            Title = title,
+            ContentTemplate = new DataTemplate(pageFactory)
+        };
+
+        var tab = new Tab
+        {
+            Title = title,
+            Icon = icon
+        };
+
+        tab.Items.Add(content);
+        return tab;
     }
 }
 】
@@ -158,11 +210,11 @@ namespace GamerLinkApp
             if (File.Exists(databasePath))
             {
                 File.Delete(databasePath);
-                Console.WriteLine($"数据库已删除: {databasePath}");
+                Console.WriteLine($"Database reset: {databasePath}");
             }
             else
             {
-                Console.WriteLine("数据库不存在。");
+                Console.WriteLine("Database file not found.");
             }
 #endif
 
@@ -194,6 +246,12 @@ namespace GamerLinkApp
             builder.Services.AddTransient<OrderReviewViewModel>();
             builder.Services.AddTransient<FavoriteServicesPage>();
             builder.Services.AddTransient<FavoriteServicesViewModel>();
+            builder.Services.AddTransient<AdminDashboardPage>();
+            builder.Services.AddTransient<AdminDashboardViewModel>();
+            builder.Services.AddTransient<AdminOrdersPage>();
+            builder.Services.AddTransient<AdminOrdersViewModel>();
+            builder.Services.AddTransient<AdminUsersViewModel>();
+            builder.Services.AddTransient<AdminUsersPage>();
 
             var app = builder.Build();
             ServiceHelper.Initialize(app.Services);
@@ -296,6 +354,9 @@ namespace GamerLinkApp.Data
             entity.Property(u => u.PasswordSalt)
                 .IsRequired();
 
+            entity.Property(u => u.IsAdmin)
+                .HasDefaultValue(false);
+
             entity.Property(u => u.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -355,6 +416,103 @@ namespace GamerLinkApp.Data
             return list is null ? new List<string>() : new List<string>(list);
         }
     }
+}
+】
+
+Helpers/AuthNavigationHelper.cs:
+【using System;
+using System.Linq;
+using System.Threading.Tasks;
+using GamerLinkApp.Services;
+using GamerLinkApp.Views;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
+
+namespace GamerLinkApp.Helpers;
+
+public static class AuthNavigationHelper
+{
+    private static bool _isPresentingLogin;
+
+    public static Task<bool> EnsureAuthenticatedAsync() =>
+        EnsureAuthenticatedAsync(ServiceHelper.GetRequiredService<IAuthService>());
+
+    public static async Task<bool> EnsureAuthenticatedAsync(IAuthService authService)
+    {
+        ArgumentNullException.ThrowIfNull(authService);
+
+        if (authService.IsAuthenticated)
+        {
+            return true;
+        }
+
+        var user = await authService.GetCurrentUserAsync();
+        if (user is not null)
+        {
+            return true;
+        }
+
+        return await PresentLoginAsync();
+    }
+
+    private static async Task<bool> PresentLoginAsync()
+    {
+        if (_isPresentingLogin)
+        {
+            return false;
+        }
+
+        try
+        {
+            _isPresentingLogin = true;
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                var navigation = GetCurrentNavigation();
+                if (navigation is null)
+                {
+                    return;
+                }
+
+                if (navigation.ModalStack.Any(IsLoginModal))
+                {
+                    return;
+                }
+
+                var loginPage = ServiceHelper.GetRequiredService<LoginPage>();
+                await navigation.PushModalAsync(new NavigationPage(loginPage));
+            });
+        }
+        finally
+        {
+            _isPresentingLogin = false;
+        }
+
+        return false;
+    }
+
+    private static INavigation? GetCurrentNavigation()
+    {
+        var application = Application.Current;
+        if (application is not null)
+        {
+            var window = application.Windows.FirstOrDefault();
+            if (window?.Page is not null)
+            {
+                return window.Page.Navigation;
+            }
+        }
+
+        return Shell.Current?.Navigation;
+    }
+
+    private static bool IsLoginModal(Page page) =>
+        page switch
+        {
+            NavigationPage navigationPage => navigationPage.RootPage is LoginPage,
+            LoginPage => true,
+            _ => false
+        };
 }
 】
 
@@ -631,6 +789,8 @@ public class User
     public string Nickname { get; set; } = string.Empty; // 用户昵称
     public string AvatarUrl { get; set; } = string.Empty; // 头像图片 URL
 
+    public bool IsAdmin { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
 }
@@ -748,7 +908,7 @@ namespace GamerLinkApp
 】
 
 Resources/Raw/seed_data.json:
-【﻿{
+【{
   "Services": [
     {
       "Id": 1,
@@ -857,7 +1017,8 @@ Resources/Raw/seed_data.json:
       "Nickname": "Irving",
       "AvatarUrl": "banner1.png",
       "Password": "Password123!",
-      "CreatedAt": "2023-09-01T12:00:00Z"
+      "CreatedAt": "2023-09-01T12:00:00Z",
+      "IsAdmin": false
     },
     {
       "Id": 2,
@@ -866,7 +1027,18 @@ Resources/Raw/seed_data.json:
       "Nickname": "职业选手",
       "AvatarUrl": "banner2.png",
       "Password": "Password123!",
-      "CreatedAt": "2023-09-05T08:30:00Z"
+      "CreatedAt": "2023-09-05T08:30:00Z",
+      "IsAdmin": false
+    },
+    {
+      "Id": 3,
+      "Username": "root",
+      "Email": "root@example.com",
+      "Nickname": "root",
+      "AvatarUrl": "banner3.png",
+      "Password": "root",
+      "CreatedAt": "2023-09-10T08:30:00Z",
+      "IsAdmin": true
     }
   ],
   "Orders": [
@@ -1224,9 +1396,10 @@ public interface IAuthService
 】
 
 Services/IDataService.cs:
-【using GamerLinkApp.Models;
+【using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using GamerLinkApp.Models;
 
 namespace GamerLinkApp.Services
 {
@@ -1236,6 +1409,7 @@ namespace GamerLinkApp.Services
         Task<Service?> GetServiceByIdAsync(int id);
         Task<List<Category>> GetCategoriesAsync();
         Task<List<Service>> GetServicesByCategoryAsync(Category category);
+        Task<List<User>> GetAllUsersAsync();
         Task<User?> GetUserAsync(int id);
         Task<User?> GetUserByUsernameAsync(string username);
         Task<User?> GetUserByEmailAsync(string email);
@@ -1252,6 +1426,9 @@ namespace GamerLinkApp.Services
         Task<List<Service>> GetFavoriteServicesAsync(int userId);
         Task<bool> IsFavoriteAsync(int userId, int serviceId);
         Task<bool> ToggleFavoriteAsync(int userId, int serviceId);
+        Task<Service?> UpdateServiceAsync(Service service);
+        Task<List<Order>> GetAllOrdersAsync();
+        Task<Order?> UpdateOrderStatusAsync(int orderId, string status, DateTime? paymentDate = null, DateTime? completionDate = null, DateTime? refundRequestedAt = null);
 
     }
 }
@@ -1314,6 +1491,50 @@ namespace GamerLinkApp.Services
             return service;
         }
 
+        public async Task<Service?> UpdateServiceAsync(Service service)
+        {
+            ArgumentNullException.ThrowIfNull(service);
+
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var entity = await context.Services.FirstOrDefaultAsync(s => s.Id == service.Id);
+            if (entity is null)
+            {
+                return null;
+            }
+
+            entity.Title = service.Title ?? string.Empty;
+            entity.Description = service.Description ?? string.Empty;
+            entity.Price = service.Price;
+            entity.GameName = service.GameName ?? string.Empty;
+            entity.ServiceType = service.ServiceType ?? string.Empty;
+            entity.SellerId = service.SellerId;
+            entity.ThumbnailUrl = service.ThumbnailUrl ?? string.Empty;
+            entity.Category = service.Category ?? string.Empty;
+            entity.IsFeatured = service.IsFeatured;
+            entity.AverageRating = service.AverageRating;
+            entity.ReviewCount = service.ReviewCount;
+            entity.PurchaseCount = service.PurchaseCount;
+            entity.CompletedCount = service.CompletedCount;
+            entity.ImageUrls = service.ImageUrls ?? new List<string>();
+            entity.Tags = service.Tags ?? new List<string>();
+
+            await context.SaveChangesAsync();
+
+            var updated = await context.Services
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == entity.Id);
+
+            if (updated is not null)
+            {
+                updated.ImageUrls ??= new List<string>();
+                updated.Tags ??= new List<string>();
+            }
+
+            return updated;
+        }
+
         public async Task<List<Category>> GetCategoriesAsync()
         {
             await EnsureInitializedAsync();
@@ -1323,6 +1544,17 @@ namespace GamerLinkApp.Services
                 .AsNoTracking()
                 .Distinct()
                 .OrderBy(Name => Name)
+                .ToListAsync();
+        }
+
+        public async Task<List<User>> GetAllUsersAsync()
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Users
+                .AsNoTracking()
+                .OrderByDescending(u => u.CreatedAt)
                 .ToListAsync();
         }
 
@@ -1441,6 +1673,54 @@ namespace GamerLinkApp.Services
                 .Where(o => o.BuyerId == userId)
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
+        }
+
+        public async Task<List<Order>> GetAllOrdersAsync()
+        {
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            return await context.Orders
+                .AsNoTracking()
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+        }
+
+        public async Task<Order?> UpdateOrderStatusAsync(int orderId, string status, DateTime? paymentDate = null, DateTime? completionDate = null, DateTime? refundRequestedAt = null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(status);
+
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
+            if (order is null)
+            {
+                return null;
+            }
+
+            order.Status = status;
+
+            if (paymentDate.HasValue)
+            {
+                order.PaymentDate = paymentDate.Value;
+            }
+
+            if (completionDate.HasValue)
+            {
+                order.CompletionDate = completionDate.Value;
+            }
+
+            if (refundRequestedAt.HasValue)
+            {
+                order.RefundRequestDate = refundRequestedAt.Value;
+            }
+
+            await context.SaveChangesAsync();
+
+            return await context.Orders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == orderId);
         }
 
         public async Task<Review?> GetReviewByOrderIdAsync(int orderId)
@@ -1753,6 +2033,7 @@ namespace GamerLinkApp.Services
                 Email = normalizedEmail,
                 Nickname = nickname,
                 AvatarUrl = seedUser.AvatarUrl ?? string.Empty,
+                IsAdmin = seedUser.IsAdmin,
                 CreatedAt = seedUser.CreatedAt == default ? DateTime.UtcNow : seedUser.CreatedAt,
                 LastLoginAt = seedUser.LastLoginAt
             };
@@ -1806,6 +2087,2514 @@ namespace GamerLinkApp.Services
 
 】
 
+ViewModels/AdminDashboardViewModel.cs:
+【using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using GamerLinkApp.Models;
+using GamerLinkApp.Services;
+using GamerLinkApp.Views;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
+
+namespace GamerLinkApp.ViewModels;
+
+public class AdminDashboardViewModel : BaseViewModel
+{
+    private readonly IDataService _dataService;
+    private readonly IAuthService _authService;
+    private readonly List<Service> _allServices = new();
+    private readonly List<Order> _allOrders = new();
+
+    private bool _isBusy;
+    private bool _isSaving;
+    private bool _isFormDirty;
+    private bool _isAccessDenied;
+    private bool _isLoggingOut;
+    private string _searchText = string.Empty;
+    private string _statusMessage = string.Empty;
+    private ServiceListItem? _selectedService;
+
+    public AdminDashboardViewModel(IDataService dataService, IAuthService authService)
+    {
+        _dataService = dataService;
+        _authService = authService;
+
+        RefreshCommand = new Command(async () => await LoadAsync(), () => !IsBusy);
+        SaveCommand = new Command(async () => await SaveAsync(), () => CanSave);
+        ResetCommand = new Command(ResetForm, () => CanReset);
+        SelectServiceCommand = new Command<ServiceListItem>(item => SelectedService = item);
+        ToggleFeaturedCommand = new Command(async () => await ToggleFeaturedAsync(), () => SelectedService is not null && !IsSaving);
+        LogoutCommand = new Command(async () => await LogoutAsync(), () => !_isLoggingOut);
+
+        ServiceForm.PropertyChanged += (_, _) => UpdateFormState();
+    }
+
+    #region Collections & Models
+
+    public ObservableCollection<ServiceListItem> Services { get; } = new();
+
+    public ObservableCollection<SummaryMetric> SummaryMetrics { get; } = new();
+
+    public EditableServiceForm ServiceForm { get; } = new();
+
+    public ObservableCollection<OrderSnapshot> RecentOrders { get; } = new();
+
+    #endregion
+
+    #region Bindable Properties
+
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText == value)
+            {
+                return;
+            }
+
+            _searchText = value;
+            OnPropertyChanged();
+            ApplyFilter();
+        }
+    }
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            if (_isBusy == value)
+            {
+                return;
+            }
+
+            _isBusy = value;
+            OnPropertyChanged();
+            ((Command)RefreshCommand).ChangeCanExecute();
+            UpdateCommandStates();
+        }
+    }
+
+    public bool IsSaving
+    {
+        get => _isSaving;
+        private set
+        {
+            if (_isSaving == value)
+            {
+                return;
+            }
+
+            _isSaving = value;
+            OnPropertyChanged();
+            UpdateCommandStates();
+        }
+    }
+
+    public bool IsFormDirty
+    {
+        get => _isFormDirty;
+        private set
+        {
+            if (_isFormDirty == value)
+            {
+                return;
+            }
+
+            _isFormDirty = value;
+            OnPropertyChanged();
+            UpdateCommandStates();
+        }
+    }
+
+    public bool IsAccessDenied
+    {
+        get => _isAccessDenied;
+        private set
+        {
+            if (_isAccessDenied == value)
+            {
+                return;
+            }
+
+            _isAccessDenied = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasAccess));
+        }
+    }
+
+    public bool HasAccess => !IsAccessDenied;
+
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        private set
+        {
+            if (_statusMessage == value)
+            {
+                return;
+            }
+
+            _statusMessage = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasStatusMessage));
+        }
+    }
+
+    public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
+
+    public ServiceListItem? SelectedService
+    {
+        get => _selectedService;
+        set
+        {
+            if (_selectedService == value)
+            {
+                return;
+            }
+
+            _selectedService = value;
+            OnPropertyChanged();
+            LoadFormFromSelection();
+            UpdateRecentOrdersForSelection();
+            UpdateFormState();
+        }
+    }
+
+    public bool CanSave => !IsBusy && !IsSaving && IsFormDirty && SelectedService is not null && !ServiceForm.HasValidationError;
+
+    public bool CanReset => !IsBusy && !IsSaving && SelectedService is not null && IsFormDirty;
+
+    public bool HasRecentOrders => RecentOrders.Count > 0;
+
+    #endregion
+
+    #region Commands
+
+    public ICommand RefreshCommand { get; }
+
+    public ICommand SaveCommand { get; }
+
+    public ICommand ResetCommand { get; }
+
+    public ICommand SelectServiceCommand { get; }
+
+    public ICommand ToggleFeaturedCommand { get; }
+
+    public ICommand LogoutCommand { get; }
+
+    #endregion
+
+    #region Public API
+
+    public async Task LoadAsync()
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        StatusMessage = string.Empty;
+
+        try
+        {
+            if (!await EnsureAdminAsync())
+            {
+                return;
+            }
+
+            await LoadServicesAsync();
+            await LoadRecentOrdersAsync();
+            UpdateSummaryMetrics();
+
+            if (SelectedService is null && Services.Count > 0)
+            {
+                SelectedService = Services[0];
+            }
+            else
+            {
+                LoadFormFromSelection();
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"加载数据失败：{ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"Admin dashboard load failed: {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    #endregion
+
+    #region Internal Helpers
+
+    private async Task<bool> EnsureAdminAsync()
+    {
+        var user = await _authService.GetCurrentUserAsync();
+        var isAdmin = user?.IsAdmin == true;
+        IsAccessDenied = !isAdmin;
+        return isAdmin;
+    }
+
+    private async Task LoadServicesAsync()
+    {
+        _allServices.Clear();
+        Services.Clear();
+
+        var services = await _dataService.GetServicesAsync();
+        foreach (var service in services.OrderByDescending(s => s.IsFeatured).ThenBy(s => s.Title, StringComparer.OrdinalIgnoreCase))
+        {
+            service.ImageUrls ??= new List<string>();
+            service.Tags ??= new List<string>();
+            _allServices.Add(service);
+            Services.Add(new ServiceListItem(service));
+        }
+
+        ApplyFilter();
+    }
+
+    private async Task LoadRecentOrdersAsync()
+    {
+        _allOrders.Clear();
+        var orders = await _dataService.GetAllOrdersAsync();
+        _allOrders.AddRange(orders);
+        UpdateRecentOrdersForSelection();
+    }
+
+    private void UpdateSummaryMetrics()
+    {
+        SummaryMetrics.Clear();
+
+        if (_allServices.Count == 0)
+        {
+            return;
+        }
+
+        var featuredCount = _allServices.Count(s => s.IsFeatured);
+        var avgPrice = _allServices.Average(s => (double)s.Price);
+        var maxPriceService = _allServices.MaxBy(s => s.Price);
+        var uniqueGames = _allServices.Select(s => s.GameName ?? string.Empty).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+
+        SummaryMetrics.Add(new SummaryMetric("服务总数", _allServices.Count.ToString(), "当前可售服务数量"));
+        SummaryMetrics.Add(new SummaryMetric("精选推荐", featuredCount.ToString(), "标记为精选的服务数"));
+        SummaryMetrics.Add(new SummaryMetric("平均价格", $"¥{avgPrice:F0}", "所有服务的平均收费"));
+        SummaryMetrics.Add(new SummaryMetric("覆盖游戏", uniqueGames.ToString(), "支持的不同游戏数量"));
+
+        if (maxPriceService is not null)
+        {
+            SummaryMetrics.Add(new SummaryMetric(
+                "价格最高",
+                $"¥{maxPriceService.Price:F0}",
+                string.IsNullOrWhiteSpace(maxPriceService.Title) ? $"服务 #{maxPriceService.Id}" : maxPriceService.Title));
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            for (int i = 0; i < Services.Count; i++)
+            {
+                Services[i].IsVisible = true;
+            }
+            return;
+        }
+
+        var query = SearchText.Trim();
+
+        foreach (var item in Services)
+        {
+            var service = item.Service;
+            var matches =
+                (service.Title?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (service.GameName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (service.Category?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (service.Tags?.Any(tag => tag.Contains(query, StringComparison.OrdinalIgnoreCase)) ?? false);
+
+            item.IsVisible = matches;
+        }
+
+        if (SelectedService is not null && !SelectedService.IsVisible)
+        {
+            SelectedService = Services.FirstOrDefault(s => s.IsVisible);
+        }
+    }
+
+    private void LoadFormFromSelection()
+    {
+        if (SelectedService is null)
+        {
+            ServiceForm.Load(null);
+            return;
+        }
+
+        ServiceForm.Load(SelectedService.Service);
+    }
+
+    private void UpdateFormState()
+    {
+        if (SelectedService is null)
+        {
+            IsFormDirty = false;
+            return;
+        }
+
+        IsFormDirty = ServiceForm.HasChangesComparedTo(SelectedService.Service);
+        StatusMessage = string.Empty;
+        UpdateCommandStates();
+    }
+
+    private void UpdateCommandStates()
+    {
+        ((Command)SaveCommand).ChangeCanExecute();
+        ((Command)ResetCommand).ChangeCanExecute();
+        ((Command)ToggleFeaturedCommand).ChangeCanExecute();
+    }
+
+    private void ResetForm()
+    {
+        LoadFormFromSelection();
+        StatusMessage = "已恢复表单内容。";
+        UpdateFormState();
+        UpdateRecentOrdersForSelection();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (SelectedService is null || !CanSave)
+        {
+            return;
+        }
+
+        IsSaving = true;
+
+        try
+        {
+            var updatedService = ServiceForm.ToServiceSnapshot(SelectedService.Service);
+            var result = await _dataService.UpdateServiceAsync(updatedService);
+
+            if (result is null)
+            {
+                StatusMessage = "保存失败：服务可能已被删除。";
+                return;
+            }
+
+            ReplaceService(result);
+            SelectedService.Update(result);
+            LoadFormFromSelection();
+            UpdateSummaryMetrics();
+            UpdateRecentOrdersForSelection();
+            ApplyFilter();
+            StatusMessage = "保存成功。";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"保存失败：{ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"Admin dashboard save failed: {ex.Message}");
+        }
+        finally
+        {
+            IsSaving = false;
+            UpdateFormState();
+        }
+    }
+
+    private void UpdateRecentOrdersForSelection()
+    {
+        RecentOrders.Clear();
+
+        if (SelectedService is null)
+        {
+            OnPropertyChanged(nameof(HasRecentOrders));
+            return;
+        }
+
+        var serviceId = SelectedService.Id;
+        var serviceLookup = _allServices.ToDictionary(s => s.Id, s => s.Title ?? $"服务 #{s.Id}");
+
+        var matched = _allOrders
+            .Where(o => o.ServiceId == serviceId)
+            .OrderByDescending(o => o.OrderDate)
+            .Take(6)
+            .ToList();
+
+        foreach (var order in matched)
+        {
+            var title = serviceLookup.TryGetValue(order.ServiceId, out var value)
+                ? value
+                : $"服务 #{order.ServiceId}";
+
+            RecentOrders.Add(new OrderSnapshot(
+                order.Id,
+                title,
+                order.TotalPrice,
+                order.OrderDate,
+                order.Status));
+        }
+
+        OnPropertyChanged(nameof(HasRecentOrders));
+    }
+
+    private async Task ToggleFeaturedAsync()
+    {
+        if (SelectedService is null || IsSaving)
+        {
+            return;
+        }
+
+        ServiceForm.IsFeatured = !ServiceForm.IsFeatured;
+        await SaveAsync();
+    }
+
+    private void ReplaceService(Service updated)
+    {
+        var index = _allServices.FindIndex(s => s.Id == updated.Id);
+        if (index >= 0)
+        {
+            _allServices[index] = updated;
+        }
+    }
+
+    private async Task LogoutAsync()
+    {
+        if (_isLoggingOut)
+        {
+            return;
+        }
+
+        _isLoggingOut = true;
+        ((Command)LogoutCommand).ChangeCanExecute();
+
+        try
+        {
+            await _authService.LogoutAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"退出登录失败：{ex.Message}";
+        }
+        finally
+        {
+            _isLoggingOut = false;
+            ((Command)LogoutCommand).ChangeCanExecute();
+        }
+    }
+
+    #endregion
+
+    #region Nested Types
+
+    public class ServiceListItem : BaseViewModel
+    {
+        private Service _service;
+        private bool _isVisible = true;
+
+        public ServiceListItem(Service service)
+        {
+            _service = service;
+        }
+
+        public Service Service => _service;
+
+        public int Id => _service.Id;
+
+        public string Title => _service.Title ?? $"服务 #{_service.Id}";
+
+        public string PriceDisplay => $"¥{_service.Price:F0}";
+
+        public string GameName => string.IsNullOrWhiteSpace(_service.GameName) ? "-" : _service.GameName;
+
+        public string Category => string.IsNullOrWhiteSpace(_service.Category) ? "-" : _service.Category;
+
+        public bool IsFeatured => _service.IsFeatured;
+
+        public string FeaturedBadge => _service.IsFeatured ? "精选" : string.Empty;
+
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set
+            {
+                if (_isVisible == value)
+                {
+                    return;
+                }
+
+                _isVisible = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public void Update(Service service)
+        {
+            _service = service;
+            OnPropertyChanged(nameof(Service));
+            OnPropertyChanged(nameof(Title));
+            OnPropertyChanged(nameof(PriceDisplay));
+            OnPropertyChanged(nameof(GameName));
+            OnPropertyChanged(nameof(Category));
+            OnPropertyChanged(nameof(IsFeatured));
+            OnPropertyChanged(nameof(FeaturedBadge));
+        }
+    }
+
+    public class EditableServiceForm : BaseViewModel
+    {
+        private bool _isInitializing;
+        private int _id;
+        private string _title = string.Empty;
+        private string _description = string.Empty;
+        private decimal _price;
+        private string _gameName = string.Empty;
+        private string _category = string.Empty;
+        private string _serviceType = string.Empty;
+        private string _thumbnailUrl = string.Empty;
+        private string _tags = string.Empty;
+        private bool _isFeatured;
+        private string _validationMessage = string.Empty;
+
+        public int Id
+        {
+            get => _id;
+            private set
+            {
+                if (_id == value)
+                {
+                    return;
+                }
+
+                _id = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string Title
+        {
+            get => _title;
+            set
+            {
+                if (_title == value)
+                {
+                    return;
+                }
+
+                _title = value ?? string.Empty;
+                OnPropertyChanged();
+                Validate();
+            }
+        }
+
+        public string Description
+        {
+            get => _description;
+            set
+            {
+                if (_description == value)
+                {
+                    return;
+                }
+
+                _description = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
+        public decimal Price
+        {
+            get => _price;
+            set
+            {
+                if (_price == value)
+                {
+                    return;
+                }
+
+                _price = value;
+                OnPropertyChanged();
+                Validate();
+            }
+        }
+
+        public string GameName
+        {
+            get => _gameName;
+            set
+            {
+                if (_gameName == value)
+                {
+                    return;
+                }
+
+                _gameName = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
+        public string Category
+        {
+            get => _category;
+            set
+            {
+                if (_category == value)
+                {
+                    return;
+                }
+
+                _category = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
+        public string ServiceType
+        {
+            get => _serviceType;
+            set
+            {
+                if (_serviceType == value)
+                {
+                    return;
+                }
+
+                _serviceType = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
+        public string ThumbnailUrl
+        {
+            get => _thumbnailUrl;
+            set
+            {
+                if (_thumbnailUrl == value)
+                {
+                    return;
+                }
+
+                _thumbnailUrl = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
+        public string Tags
+        {
+            get => _tags;
+            set
+            {
+                if (_tags == value)
+                {
+                    return;
+                }
+
+                _tags = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsFeatured
+        {
+            get => _isFeatured;
+            set
+            {
+                if (_isFeatured == value)
+                {
+                    return;
+                }
+
+                _isFeatured = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string ValidationMessage
+        {
+            get => _validationMessage;
+            private set
+            {
+                if (_validationMessage == value)
+                {
+                    return;
+                }
+
+                _validationMessage = value ?? string.Empty;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasValidationError));
+            }
+        }
+
+        public bool HasValidationError => !string.IsNullOrWhiteSpace(ValidationMessage);
+
+        public void Load(Service? service)
+        {
+            _isInitializing = true;
+
+            if (service is null)
+            {
+                Reset();
+            }
+            else
+            {
+                Id = service.Id;
+                Title = service.Title ?? string.Empty;
+                Description = service.Description ?? string.Empty;
+                Price = service.Price;
+                GameName = service.GameName ?? string.Empty;
+                Category = service.Category ?? string.Empty;
+                ServiceType = service.ServiceType ?? string.Empty;
+                ThumbnailUrl = service.ThumbnailUrl ?? string.Empty;
+                Tags = service.Tags is null ? string.Empty : string.Join(", ", service.Tags);
+                IsFeatured = service.IsFeatured;
+            }
+
+            ValidationMessage = string.Empty;
+            _isInitializing = false;
+        }
+
+        public void Reset()
+        {
+            Id = 0;
+            Title = string.Empty;
+            Description = string.Empty;
+            Price = 0;
+            GameName = string.Empty;
+            Category = string.Empty;
+            ServiceType = string.Empty;
+            ThumbnailUrl = string.Empty;
+            Tags = string.Empty;
+            IsFeatured = false;
+            ValidationMessage = string.Empty;
+        }
+
+        public Service ToServiceSnapshot(Service original)
+        {
+            var clone = new Service
+            {
+                Id = original.Id,
+                SellerId = original.SellerId,
+                AverageRating = original.AverageRating,
+                ReviewCount = original.ReviewCount,
+                PurchaseCount = original.PurchaseCount,
+                CompletedCount = original.CompletedCount,
+                ImageUrls = original.ImageUrls is null ? new List<string>() : new List<string>(original.ImageUrls),
+                IsFavorite = original.IsFavorite
+            };
+
+            clone.Title = Title;
+            clone.Description = Description;
+            clone.Price = Price;
+            clone.GameName = GameName;
+            clone.Category = Category;
+            clone.ServiceType = ServiceType;
+            clone.ThumbnailUrl = ThumbnailUrl;
+            clone.IsFeatured = IsFeatured;
+            clone.Tags = ParseTags();
+
+            return clone;
+        }
+
+        public bool HasChangesComparedTo(Service service)
+        {
+            if (service is null)
+            {
+                return false;
+            }
+
+            return
+                !string.Equals(Title, service.Title ?? string.Empty, StringComparison.Ordinal) ||
+                !string.Equals(Description, service.Description ?? string.Empty, StringComparison.Ordinal) ||
+                Price != service.Price ||
+                !string.Equals(GameName, service.GameName ?? string.Empty, StringComparison.Ordinal) ||
+                !string.Equals(Category, service.Category ?? string.Empty, StringComparison.Ordinal) ||
+                !string.Equals(ServiceType, service.ServiceType ?? string.Empty, StringComparison.Ordinal) ||
+                !string.Equals(ThumbnailUrl, service.ThumbnailUrl ?? string.Empty, StringComparison.Ordinal) ||
+                IsFeatured != service.IsFeatured ||
+                !TagsEquals(service.Tags);
+        }
+
+        private List<string> ParseTags()
+        {
+            if (string.IsNullOrWhiteSpace(Tags))
+            {
+                return new List<string>();
+            }
+
+            return Tags.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private bool TagsEquals(IReadOnlyCollection<string>? tags)
+        {
+            var parsed = ParseTags();
+            if (tags is null)
+            {
+                return parsed.Count == 0;
+            }
+
+            if (parsed.Count != tags.Count)
+            {
+                return false;
+            }
+
+            return !tags.Where((tag, index) => !string.Equals(tag, parsed[index], StringComparison.OrdinalIgnoreCase)).Any();
+        }
+
+        private void Validate()
+        {
+            if (_isInitializing)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(Title))
+            {
+                ValidationMessage = "名称不能为空";
+                return;
+            }
+
+            if (Price < 0)
+            {
+                ValidationMessage = "价格不能为负数";
+                return;
+            }
+
+            ValidationMessage = string.Empty;
+        }
+    }
+
+    public record SummaryMetric(string Title, string Value, string Description);
+
+    public record OrderSnapshot(int Id, string ServiceTitle, decimal TotalPrice, DateTime OrderDate, string StatusRaw)
+    {
+        public string TotalPriceDisplay => TotalPrice.ToString("C0", CultureInfo.CurrentCulture);
+        public string OrderDateDisplay => OrderDate.ToLocalTime().ToString("MM-dd HH:mm", CultureInfo.CurrentCulture);
+
+        public string StatusDisplay => StatusRaw switch
+        {
+            nameof(OrderStatus.PendingPayment) => "待支付",
+            nameof(OrderStatus.Ongoing) => "进行中",
+            nameof(OrderStatus.PendingReview) => "待评价",
+            nameof(OrderStatus.Completed) => "已完成",
+            nameof(OrderStatus.RefundRequested) => "退款中",
+            nameof(OrderStatus.Cancelled) => "已取消",
+            _ => StatusRaw
+        };
+    }
+
+    #endregion
+}
+】
+
+ViewModels/AdminOrdersViewModel.cs:
+【using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using GamerLinkApp.Models;
+using GamerLinkApp.Services;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
+
+namespace GamerLinkApp.ViewModels;
+
+public class AdminOrdersViewModel : BaseViewModel
+{
+    private readonly IDataService _dataService;
+    private readonly IAuthService _authService;
+    private readonly List<Order> _allOrders = new();
+    private readonly List<AdminOrderItem> _allOrderItems = new();
+    private readonly Dictionary<int, Service> _serviceLookup = new();
+    private readonly Dictionary<int, User> _userLookup = new();
+
+    private bool _isBusy;
+    private bool _isUpdating;
+    private bool _isAccessDenied;
+    private bool _isLoggingOut;
+    private string _searchText = string.Empty;
+    private string _statusMessage = string.Empty;
+    private AdminOrderFilter? _selectedFilter;
+    private AdminOrderItem? _selectedOrder;
+
+    public AdminOrdersViewModel(IDataService dataService, IAuthService authService)
+    {
+        _dataService = dataService;
+        _authService = authService;
+
+        InitializeFilters();
+
+        RefreshCommand = new Command(async () => await LoadAsync(), () => !IsBusy);
+        MarkPaidCommand = new Command(async () => await MarkPaidAsync(), () => CanMarkPaid);
+        MarkCompletedCommand = new Command(async () => await MarkCompletedAsync(), () => CanMarkCompleted);
+        MarkPendingReviewCommand = new Command(async () => await MarkPendingReviewAsync(), () => CanMarkPendingReview);
+        MarkCancelledCommand = new Command(async () => await MarkCancelledAsync(), () => CanMarkCancelled);
+        LogoutCommand = new Command(async () => await LogoutAsync(), () => !_isLoggingOut);
+    }
+
+    #region Collections
+
+    public ObservableCollection<AdminOrderFilter> StatusFilters { get; } = new();
+
+    public ObservableCollection<AdminOrderItem> Orders { get; } = new();
+
+    #endregion
+
+    #region Bindable Properties
+
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText == value)
+            {
+                return;
+            }
+
+            _searchText = value ?? string.Empty;
+            OnPropertyChanged();
+            ApplyFilter();
+        }
+    }
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            if (_isBusy == value)
+            {
+                return;
+            }
+
+            _isBusy = value;
+            OnPropertyChanged();
+            ((Command)RefreshCommand).ChangeCanExecute();
+        }
+    }
+
+    public bool IsUpdating
+    {
+        get => _isUpdating;
+        private set
+        {
+            if (_isUpdating == value)
+            {
+                return;
+            }
+
+            _isUpdating = value;
+            OnPropertyChanged();
+            UpdateCommandStates();
+        }
+    }
+
+    public bool IsAccessDenied
+    {
+        get => _isAccessDenied;
+        private set
+        {
+            if (_isAccessDenied == value)
+            {
+                return;
+            }
+
+            _isAccessDenied = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasAccess));
+        }
+    }
+
+    public bool HasAccess => !IsAccessDenied;
+
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        private set
+        {
+            if (_statusMessage == value)
+            {
+                return;
+            }
+
+            _statusMessage = value ?? string.Empty;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasStatusMessage));
+        }
+    }
+
+    public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
+
+    public bool HasOrders => Orders.Count > 0;
+
+    public bool HasSelection => SelectedOrder is not null;
+
+    public AdminOrderFilter? SelectedFilter
+    {
+        get => _selectedFilter;
+        set
+        {
+            if (_selectedFilter == value)
+            {
+                return;
+            }
+
+            _selectedFilter = value;
+            OnPropertyChanged();
+            ApplyFilter();
+        }
+    }
+
+    public AdminOrderItem? SelectedOrder
+    {
+        get => _selectedOrder;
+        set
+        {
+            if (_selectedOrder == value)
+            {
+                return;
+            }
+
+            _selectedOrder = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasSelection));
+            UpdateCommandStates();
+        }
+    }
+
+    public bool CanMarkPaid => !IsUpdating && SelectedOrder is not null && string.Equals(SelectedOrder.StatusKey, nameof(OrderStatus.PendingPayment), StringComparison.Ordinal);
+
+    public bool CanMarkCompleted => !IsUpdating && SelectedOrder is not null && (string.Equals(SelectedOrder.StatusKey, nameof(OrderStatus.Ongoing), StringComparison.Ordinal) || string.Equals(SelectedOrder.StatusKey, nameof(OrderStatus.PendingReview), StringComparison.Ordinal));
+
+    public bool CanMarkPendingReview => !IsUpdating && SelectedOrder is not null && string.Equals(SelectedOrder.StatusKey, nameof(OrderStatus.Ongoing), StringComparison.Ordinal);
+
+    public bool CanMarkCancelled => !IsUpdating && SelectedOrder is not null && !string.Equals(SelectedOrder.StatusKey, nameof(OrderStatus.Completed), StringComparison.Ordinal) && !string.Equals(SelectedOrder.StatusKey, nameof(OrderStatus.Cancelled), StringComparison.Ordinal);
+
+    #endregion
+
+    #region Commands
+
+    public ICommand RefreshCommand { get; }
+
+    public ICommand MarkPaidCommand { get; }
+
+    public ICommand MarkCompletedCommand { get; }
+
+    public ICommand MarkPendingReviewCommand { get; }
+
+    public ICommand MarkCancelledCommand { get; }
+
+    public ICommand LogoutCommand { get; }
+
+    #endregion
+
+    #region Public API
+
+    public async Task LoadAsync()
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        StatusMessage = string.Empty;
+
+        try
+        {
+            if (!await EnsureAdminAsync())
+            {
+                return;
+            }
+
+            await LoadReferenceDataAsync();
+            await LoadOrdersAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"加载订单失败：{ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"Admin orders load failed: {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    #endregion
+
+    #region Data Loading
+
+    private async Task<bool> EnsureAdminAsync()
+    {
+        var user = await _authService.GetCurrentUserAsync();
+        var isAdmin = user?.IsAdmin == true;
+        IsAccessDenied = !isAdmin;
+        return isAdmin;
+    }
+
+    private void InitializeFilters()
+    {
+        StatusFilters.Clear();
+        StatusFilters.Add(new AdminOrderFilter(null, "全部订单"));
+        StatusFilters.Add(new AdminOrderFilter(nameof(OrderStatus.PendingPayment), "待支付"));
+        StatusFilters.Add(new AdminOrderFilter(nameof(OrderStatus.Ongoing), "进行中"));
+        StatusFilters.Add(new AdminOrderFilter(nameof(OrderStatus.PendingReview), "待评价"));
+        StatusFilters.Add(new AdminOrderFilter(nameof(OrderStatus.Completed), "已完成"));
+        StatusFilters.Add(new AdminOrderFilter(nameof(OrderStatus.RefundRequested), "退款申请"));
+        StatusFilters.Add(new AdminOrderFilter(nameof(OrderStatus.Cancelled), "已取消"));
+
+        SelectedFilter = StatusFilters.FirstOrDefault();
+    }
+
+    private async Task LoadReferenceDataAsync()
+    {
+        _serviceLookup.Clear();
+        var services = await _dataService.GetServicesAsync();
+        foreach (var service in services)
+        {
+            _serviceLookup[service.Id] = service;
+        }
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        _allOrders.Clear();
+        _allOrderItems.Clear();
+        Orders.Clear();
+
+        var orders = await _dataService.GetAllOrdersAsync();
+        _allOrders.AddRange(orders);
+
+        var buyerIds = orders.Select(o => o.BuyerId).Distinct().ToList();
+        var userTasks = buyerIds.Select(id => _dataService.GetUserAsync(id));
+        var users = await Task.WhenAll(userTasks);
+
+        _userLookup.Clear();
+        for (int i = 0; i < buyerIds.Count; i++)
+        {
+            if (users[i] is not null)
+            {
+                _userLookup[buyerIds[i]] = users[i]!;
+            }
+        }
+
+        foreach (var order in orders)
+        {
+            var item = CreateOrderItem(order);
+            _allOrderItems.Add(item);
+        }
+
+        UpdateFilterCounts();
+        ApplyFilter();
+        OnPropertyChanged(nameof(HasOrders));
+
+        if (Orders.Count > 0)
+        {
+            SelectedOrder = Orders[0];
+        }
+    }
+
+    #endregion
+
+    #region Filtering
+
+    private void ApplyFilter(int? keepSelectionId = null)
+    {
+        IEnumerable<AdminOrderItem> query = _allOrderItems;
+
+        if (!string.IsNullOrWhiteSpace(SelectedFilter?.StatusKey))
+        {
+            query = query.Where(item => string.Equals(item.StatusKey, SelectedFilter!.StatusKey, StringComparison.Ordinal));
+        }
+
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            var keyword = SearchText.Trim();
+            query = query.Where(item =>
+                item.ServiceTitle.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                item.BuyerName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                item.OrderId.ToString(CultureInfo.InvariantCulture).Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var filtered = query
+            .OrderByDescending(item => item.OrderDate)
+            .ToList();
+
+        Orders.Clear();
+        foreach (var item in filtered)
+        {
+            Orders.Add(item);
+        }
+
+        OnPropertyChanged(nameof(HasOrders));
+
+        if (keepSelectionId.HasValue)
+        {
+            SelectedOrder = Orders.FirstOrDefault(o => o.OrderId == keepSelectionId.Value);
+        }
+        else if (SelectedOrder is not null && !Orders.Contains(SelectedOrder))
+        {
+            SelectedOrder = Orders.FirstOrDefault();
+        }
+    }
+
+    private void UpdateFilterCounts()
+    {
+        foreach (var filter in StatusFilters)
+        {
+            if (string.IsNullOrWhiteSpace(filter.StatusKey))
+            {
+                filter.Count = _allOrderItems.Count;
+            }
+            else
+            {
+                filter.Count = _allOrderItems.Count(item => string.Equals(item.StatusKey, filter.StatusKey, StringComparison.Ordinal));
+            }
+        }
+    }
+
+    #endregion
+
+    #region Status Updates
+
+    private async Task MarkPaidAsync()
+    {
+        if (!CanMarkPaid || SelectedOrder is null)
+        {
+            return;
+        }
+
+        await RunUpdateAsync(async () =>
+        {
+            var updated = await _dataService.MarkOrderAsPaidAsync(SelectedOrder.OrderId);
+            if (updated is null)
+            {
+                StatusMessage = "标记支付失败：订单不存在。";
+                return;
+            }
+
+            ApplyOrderUpdate(updated);
+            StatusMessage = "已标记为已支付。";
+        });
+    }
+
+    private async Task MarkCompletedAsync()
+    {
+        if (!CanMarkCompleted || SelectedOrder is null)
+        {
+            return;
+        }
+
+        await RunUpdateAsync(async () =>
+        {
+            var updated = await _dataService.UpdateOrderStatusAsync(
+                SelectedOrder.OrderId,
+                nameof(OrderStatus.Completed),
+                completionDate: DateTime.UtcNow);
+
+            if (updated is null)
+            {
+                StatusMessage = "标记完成失败：订单不存在。";
+                return;
+            }
+
+            ApplyOrderUpdate(updated);
+            StatusMessage = "订单已标记为完成。";
+        });
+    }
+
+    private async Task MarkPendingReviewAsync()
+    {
+        if (!CanMarkPendingReview || SelectedOrder is null)
+        {
+            return;
+        }
+
+        await RunUpdateAsync(async () =>
+        {
+            var updated = await _dataService.UpdateOrderStatusAsync(
+                SelectedOrder.OrderId,
+                nameof(OrderStatus.PendingReview));
+
+            if (updated is null)
+            {
+                StatusMessage = "标记待评价失败：订单不存在。";
+                return;
+            }
+
+            ApplyOrderUpdate(updated);
+            StatusMessage = "订单状态已改为待评价。";
+        });
+    }
+
+    private async Task MarkCancelledAsync()
+    {
+        if (!CanMarkCancelled || SelectedOrder is null)
+        {
+            return;
+        }
+
+        await RunUpdateAsync(async () =>
+        {
+            var updated = await _dataService.UpdateOrderStatusAsync(
+                SelectedOrder.OrderId,
+                nameof(OrderStatus.Cancelled),
+                refundRequestedAt: DateTime.UtcNow);
+
+            if (updated is null)
+            {
+                StatusMessage = "取消订单失败：订单不存在。";
+                return;
+            }
+
+            ApplyOrderUpdate(updated);
+            StatusMessage = "订单已取消。";
+        });
+    }
+
+    private async Task RunUpdateAsync(Func<Task> operation)
+    {
+        if (IsUpdating)
+        {
+            return;
+        }
+
+        IsUpdating = true;
+        try
+        {
+            await operation();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"操作失败：{ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"Admin order update failed: {ex.Message}");
+        }
+        finally
+        {
+            IsUpdating = false;
+        }
+    }
+
+    private void ApplyOrderUpdate(Order updated)
+    {
+        var selectedId = SelectedOrder?.OrderId;
+
+        var existingIndex = _allOrders.FindIndex(o => o.Id == updated.Id);
+        if (existingIndex >= 0)
+        {
+            _allOrders[existingIndex] = updated;
+        }
+
+        var item = _allOrderItems.FirstOrDefault(o => o.OrderId == updated.Id);
+        if (item is not null)
+        {
+            item.Update(updated);
+        }
+
+        UpdateFilterCounts();
+        ApplyFilter(selectedId);
+        UpdateCommandStates();
+        OnPropertyChanged(nameof(HasOrders));
+    }
+
+    #endregion
+
+    #region Helpers
+
+    private AdminOrderItem CreateOrderItem(Order order)
+    {
+        var serviceTitle = _serviceLookup.TryGetValue(order.ServiceId, out var service)
+            ? service.Title ?? $"服务 #{service.Id}"
+            : $"服务 #{order.ServiceId}";
+
+        var buyerName = _userLookup.TryGetValue(order.BuyerId, out var buyer)
+            ? string.IsNullOrWhiteSpace(buyer.Nickname) ? buyer.Username : buyer.Nickname
+            : $"用户 #{order.BuyerId}";
+
+        return new AdminOrderItem(order, serviceTitle, buyerName);
+    }
+
+    private void UpdateCommandStates()
+    {
+        ((Command)MarkPaidCommand).ChangeCanExecute();
+        ((Command)MarkCompletedCommand).ChangeCanExecute();
+        ((Command)MarkPendingReviewCommand).ChangeCanExecute();
+        ((Command)MarkCancelledCommand).ChangeCanExecute();
+
+        OnPropertyChanged(nameof(CanMarkPaid));
+        OnPropertyChanged(nameof(CanMarkCompleted));
+        OnPropertyChanged(nameof(CanMarkPendingReview));
+        OnPropertyChanged(nameof(CanMarkCancelled));
+    }
+
+    private async Task LogoutAsync()
+    {
+        if (_isLoggingOut)
+        {
+            return;
+        }
+
+        _isLoggingOut = true;
+        ((Command)LogoutCommand).ChangeCanExecute();
+
+        try
+        {
+            await _authService.LogoutAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"退出登录失败：{ex.Message}";
+        }
+        finally
+        {
+            _isLoggingOut = false;
+            ((Command)LogoutCommand).ChangeCanExecute();
+        }
+    }
+
+    #endregion
+
+    #region Nested Types
+
+    public class AdminOrderFilter : BaseViewModel
+    {
+        public AdminOrderFilter(string? statusKey, string displayName)
+        {
+            StatusKey = statusKey;
+            DisplayName = displayName;
+        }
+
+        public string? StatusKey { get; }
+        public string DisplayName { get; }
+
+        private int _count;
+        public int Count
+        {
+            get => _count;
+            set
+            {
+                if (_count == value)
+                {
+                    return;
+                }
+
+                _count = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CountDisplay));
+            }
+        }
+
+        public string CountDisplay => $"({Count})";
+    }
+
+    public class AdminOrderItem : BaseViewModel
+    {
+        private Order _order;
+        private readonly string _serviceTitle;
+        private readonly string _buyerName;
+
+        public AdminOrderItem(Order order, string serviceTitle, string buyerName)
+        {
+            _order = order;
+            _serviceTitle = serviceTitle;
+            _buyerName = buyerName;
+        }
+
+        public int OrderId => _order.Id;
+        public string ServiceTitle => _serviceTitle;
+        public string BuyerName => _buyerName;
+        public string StatusKey => _order.Status;
+        public DateTime OrderDate => _order.OrderDate;
+        public decimal TotalPrice => _order.TotalPrice;
+
+        public string StatusDisplay => StatusKey switch
+        {
+            nameof(OrderStatus.PendingPayment) => "待支付",
+            nameof(OrderStatus.Ongoing) => "进行中",
+            nameof(OrderStatus.PendingReview) => "待评价",
+            nameof(OrderStatus.Completed) => "已完成",
+            nameof(OrderStatus.RefundRequested) => "退款申请",
+            nameof(OrderStatus.Cancelled) => "已取消",
+            _ => StatusKey
+        };
+
+        public string StatusBadgeColor => StatusKey switch
+        {
+            nameof(OrderStatus.PendingPayment) => "#FFF3E0",
+            nameof(OrderStatus.Ongoing) => "#E5F1FF",
+            nameof(OrderStatus.PendingReview) => "#F3E8FF",
+            nameof(OrderStatus.Completed) => "#E6F8EE",
+            nameof(OrderStatus.RefundRequested) => "#FFE7E7",
+            nameof(OrderStatus.Cancelled) => "#EEF1F5",
+            _ => "#EEF1F5"
+        };
+
+        public string StatusTextColor => StatusKey switch
+        {
+            nameof(OrderStatus.PendingPayment) => "#FF8A00",
+            nameof(OrderStatus.Ongoing) => "#3478F6",
+            nameof(OrderStatus.PendingReview) => "#8E24AA",
+            nameof(OrderStatus.Completed) => "#2DBE60",
+            nameof(OrderStatus.RefundRequested) => "#FF4D4F",
+            nameof(OrderStatus.Cancelled) => "#6B7280",
+            _ => "#6B7280"
+        };
+
+        public string OrderDateDisplay => _order.OrderDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture);
+
+        public string TotalPriceDisplay => _order.TotalPrice.ToString("C0", CultureInfo.CurrentCulture);
+
+        public string PaymentDateDisplay => _order.PaymentDate.HasValue
+            ? _order.PaymentDate.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture)
+            : "未支付";
+
+        public string CompletionDateDisplay => _order.CompletionDate.HasValue
+            ? _order.CompletionDate.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture)
+            : "未完成";
+
+        public string RefundDateDisplay => _order.RefundRequestDate.HasValue
+            ? _order.RefundRequestDate.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture)
+            : "-";
+
+        public string OrderNumberDisplay => $"订单号：{OrderId:D6}";
+
+        public void Update(Order order)
+        {
+            _order = order;
+
+            OnPropertyChanged(nameof(StatusKey));
+            OnPropertyChanged(nameof(StatusDisplay));
+            OnPropertyChanged(nameof(StatusBadgeColor));
+            OnPropertyChanged(nameof(StatusTextColor));
+            OnPropertyChanged(nameof(OrderDate));
+            OnPropertyChanged(nameof(OrderDateDisplay));
+            OnPropertyChanged(nameof(TotalPrice));
+            OnPropertyChanged(nameof(TotalPriceDisplay));
+            OnPropertyChanged(nameof(PaymentDateDisplay));
+            OnPropertyChanged(nameof(CompletionDateDisplay));
+            OnPropertyChanged(nameof(RefundDateDisplay));
+        }
+    }
+
+    #endregion
+}
+】
+
+ViewModels/AdminUsersViewModel.cs:
+【using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using GamerLinkApp.Models;
+using GamerLinkApp.Services;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
+
+namespace GamerLinkApp.ViewModels;
+
+public class AdminUsersViewModel : BaseViewModel
+{
+    private readonly IDataService _dataService;
+    private readonly IAuthService _authService;
+    private readonly List<User> _allUsers = new();
+
+    private bool _isBusy;
+    private bool _isSaving;
+    private bool _isAccessDenied;
+    private bool _isLoggingOut;
+    private string _searchText = string.Empty;
+    private string _statusMessage = string.Empty;
+    private bool _isFormDirty;
+    private UserListItem? _selectedUser;
+    private UserFilter? _selectedFilter;
+
+    public AdminUsersViewModel(IDataService dataService, IAuthService authService)
+    {
+        _dataService = dataService;
+        _authService = authService;
+
+        RefreshCommand = new Command(async () => await LoadAsync(), () => !IsBusy);
+        SaveCommand = new Command(async () => await SaveAsync(), () => CanSave);
+        ResetCommand = new Command(ResetForm, () => CanReset);
+        LogoutCommand = new Command(async () => await LogoutAsync(), () => !_isLoggingOut);
+
+        InitializeFilters();
+        UpdateSummaryMetrics();
+
+        UserForm.PropertyChanged += (_, _) => UpdateFormState();
+    }
+
+    #region Collections
+
+    public ObservableCollection<UserListItem> Users { get; } = new();
+
+    public ObservableCollection<UserSummaryMetric> SummaryMetrics { get; } = new();
+
+    public ObservableCollection<UserFilter> Filters { get; } = new();
+
+    public EditableUserForm UserForm { get; } = new();
+
+    #endregion
+
+    #region Bindable Properties
+
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText == value)
+            {
+                return;
+            }
+
+            _searchText = value ?? string.Empty;
+            OnPropertyChanged();
+            ApplyFilter(_selectedUser?.Id);
+        }
+    }
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            if (_isBusy == value)
+            {
+                return;
+            }
+
+            _isBusy = value;
+            OnPropertyChanged();
+            ((Command)RefreshCommand).ChangeCanExecute();
+        }
+    }
+
+    public bool IsSaving
+    {
+        get => _isSaving;
+        private set
+        {
+            if (_isSaving == value)
+            {
+                return;
+            }
+
+            _isSaving = value;
+            OnPropertyChanged();
+            UpdateCommandStates();
+        }
+    }
+
+    public bool IsAccessDenied
+    {
+        get => _isAccessDenied;
+        private set
+        {
+            if (_isAccessDenied == value)
+            {
+                return;
+            }
+
+            _isAccessDenied = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasAccess));
+        }
+    }
+
+    public bool HasAccess => !IsAccessDenied;
+
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        private set
+        {
+            if (_statusMessage == value)
+            {
+                return;
+            }
+
+            _statusMessage = value ?? string.Empty;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasStatusMessage));
+        }
+    }
+
+    public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
+
+    public bool IsFormDirty
+    {
+        get => _isFormDirty;
+        private set
+        {
+            if (_isFormDirty == value)
+            {
+                return;
+            }
+
+            _isFormDirty = value;
+            OnPropertyChanged();
+            UpdateCommandStates();
+        }
+    }
+
+    public UserFilter? SelectedFilter
+    {
+        get => _selectedFilter;
+        set
+        {
+            if (_selectedFilter == value)
+            {
+                return;
+            }
+
+            _selectedFilter = value;
+            OnPropertyChanged();
+            ApplyFilter(_selectedUser?.Id);
+        }
+    }
+
+    public UserListItem? SelectedUser
+    {
+        get => _selectedUser;
+        set
+        {
+            if (_selectedUser == value)
+            {
+                return;
+            }
+
+            _selectedUser = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasSelection));
+            LoadFormFromSelection();
+            UpdateCommandStates();
+        }
+    }
+
+    public bool HasSelection => SelectedUser is not null;
+
+    public bool HasUsers => Users.Count > 0;
+
+    public bool CanSave => !IsSaving && HasSelection && UserForm.IsDirty && !UserForm.HasValidationError;
+
+    public bool CanReset => !IsSaving && HasSelection && UserForm.IsDirty;
+
+    #endregion
+
+    #region Commands
+
+    public ICommand RefreshCommand { get; }
+
+    public ICommand SaveCommand { get; }
+
+    public ICommand ResetCommand { get; }
+
+    public ICommand LogoutCommand { get; }
+
+    #endregion
+
+    #region Public API
+
+    public async Task LoadAsync()
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        StatusMessage = string.Empty;
+
+        try
+        {
+            if (!await EnsureAdminAsync())
+            {
+                return;
+            }
+
+            await LoadUsersAsync();
+            UpdateSummaryMetrics();
+
+            if (Users.Count > 0 && SelectedUser is null)
+            {
+                SelectedUser = Users[0];
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"加载用户数据失败：{ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"Admin users load failed: {ex}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    #endregion
+
+    #region Internal Helpers
+
+    private async Task<bool> EnsureAdminAsync()
+    {
+        var user = await _authService.GetCurrentUserAsync();
+        var isAdmin = user?.IsAdmin == true;
+        IsAccessDenied = !isAdmin;
+        return isAdmin;
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        _allUsers.Clear();
+
+        var users = await _dataService.GetAllUsersAsync();
+        foreach (var user in users)
+        {
+            _allUsers.Add(user);
+        }
+
+        UpdateFilterCounts();
+        ApplyFilter(_selectedUser?.Id);
+    }
+
+    private void ApplyFilter(int? keepSelectionId = null)
+    {
+        IEnumerable<User> query = _allUsers;
+
+        if (SelectedFilter?.Predicate is not null)
+        {
+            query = query.Where(SelectedFilter.Predicate);
+        }
+
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            var keyword = SearchText.Trim();
+            query = query.Where(user =>
+                (!string.IsNullOrWhiteSpace(user.Username) && user.Username.Contains(keyword, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(user.Email) && user.Email.Contains(keyword, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(user.Nickname) && user.Nickname.Contains(keyword, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        var items = query
+            .OrderByDescending(user => user.IsAdmin)
+            .ThenByDescending(user => user.CreatedAt)
+            .Select(user => new UserListItem(user))
+            .ToList();
+
+        Users.Clear();
+        foreach (var item in items)
+        {
+            Users.Add(item);
+        }
+
+        OnPropertyChanged(nameof(HasUsers));
+
+        if (keepSelectionId.HasValue)
+        {
+            SelectedUser = Users.FirstOrDefault(u => u.Id == keepSelectionId.Value);
+        }
+        else if (SelectedUser is not null && Users.All(u => u.Id != SelectedUser.Id))
+        {
+            SelectedUser = Users.FirstOrDefault();
+        }
+        else if (SelectedUser is null && Users.Count > 0)
+        {
+            SelectedUser = Users[0];
+        }
+    }
+
+    private void UpdateSummaryMetrics()
+    {
+        void Update()
+        {
+            SummaryMetrics.Clear();
+
+            var now = DateTime.UtcNow;
+            var total = _allUsers.Count;
+            var adminCount = _allUsers.Count(u => u.IsAdmin);
+            var new30 = _allUsers.Count(u => u.CreatedAt >= now.AddDays(-30));
+            var active7 = _allUsers.Count(u => u.LastLoginAt.HasValue && u.LastLoginAt.Value >= now.AddDays(-7));
+
+            SummaryMetrics.Add(new UserSummaryMetric("用户总数", total.ToString(CultureInfo.InvariantCulture), "当前系统内所有注册用户"));
+            SummaryMetrics.Add(new UserSummaryMetric("管理员数", adminCount.ToString(CultureInfo.InvariantCulture), "拥有后台权限的账号数量"));
+            SummaryMetrics.Add(new UserSummaryMetric("近30天新增", new30.ToString(CultureInfo.InvariantCulture), "最近30天内注册的用户"));
+            SummaryMetrics.Add(new UserSummaryMetric("7天活跃", active7.ToString(CultureInfo.InvariantCulture), "最近7天内登录过的用户"));
+        }
+
+        if (MainThread.IsMainThread)
+        {
+            Update();
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(Update);
+        }
+    }
+
+    private void InitializeFilters()
+    {
+        Filters.Clear();
+
+        Filters.Add(new UserFilter("all", "全部用户"));
+        Filters.Add(new UserFilter("admin", "管理员", user => user.IsAdmin));
+        Filters.Add(new UserFilter("new30", "近30天注册", user => user.CreatedAt >= DateTime.UtcNow.AddDays(-30)));
+        Filters.Add(new UserFilter("inactive30", "30天未登录", user => !user.LastLoginAt.HasValue || user.LastLoginAt.Value < DateTime.UtcNow.AddDays(-30)));
+
+        SelectedFilter = Filters.FirstOrDefault();
+    }
+
+    private void UpdateFilterCounts()
+    {
+        foreach (var filter in Filters)
+        {
+            if (filter.Predicate is null)
+            {
+                filter.Count = _allUsers.Count;
+            }
+            else
+            {
+                filter.Count = _allUsers.Count(filter.Predicate);
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!CanSave || SelectedUser is null)
+        {
+            return;
+        }
+
+        IsSaving = true;
+        StatusMessage = string.Empty;
+
+        try
+        {
+            var user = SelectedUser.User;
+            UserForm.ApplyTo(user);
+
+            await _dataService.UpdateUserAsync(user);
+            UserForm.AcceptChanges();
+
+            SelectedUser.NotifyUpdated();
+            UpdateFilterCounts();
+            UpdateSummaryMetrics();
+            ApplyFilter(user.Id);
+
+            StatusMessage = "用户信息已保存";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"保存失败：{ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"User save failed: {ex}");
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        if (SelectedUser is null)
+        {
+            return;
+        }
+
+        UserForm.LoadFrom(SelectedUser.User);
+    }
+
+    private void LoadFormFromSelection()
+    {
+        if (SelectedUser is null)
+        {
+            UserForm.Clear();
+            return;
+        }
+
+        UserForm.LoadFrom(SelectedUser.User);
+    }
+
+    private async Task LogoutAsync()
+    {
+        if (_isLoggingOut)
+        {
+            return;
+        }
+
+        _isLoggingOut = true;
+        ((Command)LogoutCommand).ChangeCanExecute();
+
+        try
+        {
+            await _authService.LogoutAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"退出登录失败：{ex.Message}";
+        }
+        finally
+        {
+            _isLoggingOut = false;
+            ((Command)LogoutCommand).ChangeCanExecute();
+        }
+    }
+
+    private void UpdateFormState()
+    {
+        IsFormDirty = UserForm.IsDirty;
+        UpdateCommandStates();
+    }
+
+    private void UpdateCommandStates()
+    {
+        ((Command)SaveCommand).ChangeCanExecute();
+        ((Command)ResetCommand).ChangeCanExecute();
+    }
+
+    #endregion
+
+    #region Nested Types
+
+    public class UserSummaryMetric
+    {
+        public UserSummaryMetric(string title, string value, string description)
+        {
+            Title = title;
+            Value = value;
+            Description = description;
+        }
+
+        public string Title { get; }
+
+        public string Value { get; }
+
+        public string Description { get; }
+    }
+
+    public class UserFilter : BaseViewModel
+    {
+        private int _count;
+
+        public UserFilter(string key, string displayName, Func<User, bool>? predicate = null)
+        {
+            Key = key;
+            DisplayName = displayName;
+            Predicate = predicate;
+        }
+
+        public string Key { get; }
+
+        public string DisplayName { get; }
+
+        public Func<User, bool>? Predicate { get; }
+
+        public int Count
+        {
+            get => _count;
+            set
+            {
+                if (_count == value)
+                {
+                    return;
+                }
+
+                _count = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CountDisplay));
+            }
+        }
+
+        public string CountDisplay => _count.ToString(CultureInfo.InvariantCulture);
+    }
+
+    public class UserListItem : BaseViewModel
+    {
+        private readonly User _user;
+
+        public UserListItem(User user)
+        {
+            _user = user ?? throw new ArgumentNullException(nameof(user));
+        }
+
+        public User User => _user;
+
+        public int Id => _user.Id;
+
+        public string DisplayName => string.IsNullOrWhiteSpace(_user.Nickname)
+            ? (string.IsNullOrWhiteSpace(_user.Username) ? $"用户 #{_user.Id}" : _user.Username)
+            : _user.Nickname;
+
+        public string Username => _user.Username;
+
+        public string Email => _user.Email;
+
+        public bool IsAdmin => _user.IsAdmin;
+
+        public string RoleBadge => IsAdmin ? "管理员" : "普通用户";
+
+        public string RoleBadgeColor => IsAdmin ? "#3478F6" : "#7A8196";
+
+        public string SecondaryText => string.IsNullOrWhiteSpace(Email)
+            ? Username
+            : $"{Username} · {Email}";
+
+        public string CreatedAtDisplay => $"注册 {FormatDate(_user.CreatedAt)}";
+
+        public string LastLoginDisplay => _user.LastLoginAt.HasValue
+            ? $"最近登录 {FormatDateTime(_user.LastLoginAt.Value)}"
+            : "尚未登录";
+
+        public string ActivityBadge
+        {
+            get
+            {
+                if (!_user.LastLoginAt.HasValue)
+                {
+                    return "未登录";
+                }
+
+                var lastLoginUtc = _user.LastLoginAt.Value;
+
+                if (lastLoginUtc >= DateTime.UtcNow.AddDays(-7))
+                {
+                    return "7天活跃";
+                }
+
+                if (lastLoginUtc >= DateTime.UtcNow.AddDays(-30))
+                {
+                    return "30天登录";
+                }
+
+                return "长期未登录";
+            }
+        }
+
+        public string ActivityBadgeColor => ActivityBadge switch
+        {
+            "7天活跃" => "#2DBE60",
+            "30天登录" => "#FF9F0A",
+            "未登录" => "#FF4D4F",
+            _ => "#7A8196"
+        };
+
+        public string AvatarInitial => string.IsNullOrWhiteSpace(DisplayName)
+            ? "#"
+            : DisplayName.Substring(0, 1).ToUpperInvariant();
+
+        private static string FormatDate(DateTime utc) =>
+            utc.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        private static string FormatDateTime(DateTime utc) =>
+            utc.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+
+        public void NotifyUpdated()
+        {
+            OnPropertyChanged(nameof(DisplayName));
+            OnPropertyChanged(nameof(Username));
+            OnPropertyChanged(nameof(Email));
+            OnPropertyChanged(nameof(IsAdmin));
+            OnPropertyChanged(nameof(RoleBadge));
+            OnPropertyChanged(nameof(RoleBadgeColor));
+            OnPropertyChanged(nameof(SecondaryText));
+            OnPropertyChanged(nameof(CreatedAtDisplay));
+            OnPropertyChanged(nameof(LastLoginDisplay));
+            OnPropertyChanged(nameof(ActivityBadge));
+            OnPropertyChanged(nameof(ActivityBadgeColor));
+            OnPropertyChanged(nameof(AvatarInitial));
+        }
+    }
+
+    public class EditableUserForm : BaseViewModel
+    {
+        private bool _isInitializing;
+        private int _id;
+        private string _username = string.Empty;
+        private string _nickname = string.Empty;
+        private string _email = string.Empty;
+        private string _avatarUrl = string.Empty;
+        private bool _isAdmin;
+        private bool _isDirty;
+        private bool _hasValidationError;
+        private string _validationMessage = string.Empty;
+
+        private string _originalNickname = string.Empty;
+        private string _originalEmail = string.Empty;
+        private string _originalAvatarUrl = string.Empty;
+        private bool _originalIsAdmin;
+
+        public int Id
+        {
+            get => _id;
+            private set
+            {
+                if (_id == value)
+                {
+                    return;
+                }
+
+                _id = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string Username
+        {
+            get => _username;
+            set
+            {
+                if (_username == value)
+                {
+                    return;
+                }
+
+                _username = value ?? string.Empty;
+                OnPropertyChanged();
+                MarkDirty();
+            }
+        }
+
+        public string Nickname
+        {
+            get => _nickname;
+            set
+            {
+                if (_nickname == value)
+                {
+                    return;
+                }
+
+                _nickname = value ?? string.Empty;
+                OnPropertyChanged();
+                MarkDirty();
+            }
+        }
+
+        public string Email
+        {
+            get => _email;
+            set
+            {
+                if (_email == value)
+                {
+                    return;
+                }
+
+                _email = value ?? string.Empty;
+                OnPropertyChanged();
+                Validate();
+                MarkDirty();
+            }
+        }
+
+        public string AvatarUrl
+        {
+            get => _avatarUrl;
+            set
+            {
+                if (_avatarUrl == value)
+                {
+                    return;
+                }
+
+                _avatarUrl = value ?? string.Empty;
+                OnPropertyChanged();
+                MarkDirty();
+            }
+        }
+
+        public bool IsAdmin
+        {
+            get => _isAdmin;
+            set
+            {
+                if (_isAdmin == value)
+                {
+                    return;
+                }
+
+                _isAdmin = value;
+                OnPropertyChanged();
+                MarkDirty();
+            }
+        }
+
+        public bool IsDirty
+        {
+            get => _isDirty;
+            private set
+            {
+                if (_isDirty == value)
+                {
+                    return;
+                }
+
+                _isDirty = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool HasValidationError
+        {
+            get => _hasValidationError;
+            private set
+            {
+                if (_hasValidationError == value)
+                {
+                    return;
+                }
+
+                _hasValidationError = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string ValidationMessage
+        {
+            get => _validationMessage;
+            private set
+            {
+                if (_validationMessage == value)
+                {
+                    return;
+                }
+
+                _validationMessage = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
+        public void LoadFrom(User user)
+        {
+            ArgumentNullException.ThrowIfNull(user);
+
+            _isInitializing = true;
+
+            Id = user.Id;
+            Username = user.Username;
+            Nickname = user.Nickname;
+            Email = user.Email;
+            AvatarUrl = user.AvatarUrl;
+            IsAdmin = user.IsAdmin;
+
+            _originalNickname = Nickname;
+            _originalEmail = Email;
+            _originalAvatarUrl = AvatarUrl;
+            _originalIsAdmin = IsAdmin;
+
+            HasValidationError = false;
+            ValidationMessage = string.Empty;
+            IsDirty = false;
+
+            _isInitializing = false;
+        }
+
+        public void ApplyTo(User user)
+        {
+            ArgumentNullException.ThrowIfNull(user);
+
+            user.Nickname = Nickname?.Trim() ?? string.Empty;
+            user.Email = Email?.Trim() ?? string.Empty;
+            user.AvatarUrl = AvatarUrl?.Trim() ?? string.Empty;
+            user.IsAdmin = IsAdmin;
+        }
+
+        public void AcceptChanges()
+        {
+            _originalNickname = Nickname;
+            _originalEmail = Email;
+            _originalAvatarUrl = AvatarUrl;
+            _originalIsAdmin = IsAdmin;
+
+            IsDirty = false;
+        }
+
+        public void Clear()
+        {
+            _isInitializing = true;
+
+            Id = 0;
+            Username = string.Empty;
+            Nickname = string.Empty;
+            Email = string.Empty;
+            AvatarUrl = string.Empty;
+            IsAdmin = false;
+
+            _originalNickname = string.Empty;
+            _originalEmail = string.Empty;
+            _originalAvatarUrl = string.Empty;
+            _originalIsAdmin = false;
+
+            HasValidationError = false;
+            ValidationMessage = string.Empty;
+            IsDirty = false;
+
+            _isInitializing = false;
+        }
+
+        private void MarkDirty()
+        {
+            if (_isInitializing)
+            {
+                return;
+            }
+
+            var dirty = !string.Equals(_nickname, _originalNickname, StringComparison.Ordinal) ||
+                        !string.Equals(_email, _originalEmail, StringComparison.OrdinalIgnoreCase) ||
+                        !string.Equals(_avatarUrl, _originalAvatarUrl, StringComparison.Ordinal) ||
+                        _isAdmin != _originalIsAdmin;
+
+            IsDirty = dirty;
+        }
+
+        private void Validate()
+        {
+            if (_isInitializing)
+            {
+                HasValidationError = false;
+                ValidationMessage = string.Empty;
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_email))
+            {
+                HasValidationError = true;
+                ValidationMessage = "邮箱不能为空";
+                return;
+            }
+
+            if (!_email.Contains('@', StringComparison.Ordinal))
+            {
+                HasValidationError = true;
+                ValidationMessage = "邮箱格式看起来不正确";
+                return;
+            }
+
+            HasValidationError = false;
+            ValidationMessage = string.Empty;
+        }
+    }
+
+    #endregion
+}
+】
+
 ViewModels/BaseViewModel.cs:
 【using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -1830,6 +4619,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GamerLinkApp.Helpers;
 using GamerLinkApp.Models;
 using GamerLinkApp.Services;
 using Microsoft.Maui.ApplicationModel;
@@ -1958,6 +4748,11 @@ namespace GamerLinkApp.ViewModels
 
             try
             {
+                if (!await AuthNavigationHelper.EnsureAuthenticatedAsync(_authService))
+                {
+                    return;
+                }
+
                 var userId = await GetCurrentUserIdAsync();
                 if (userId is null)
                 {
@@ -4008,6 +6803,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GamerLinkApp.Helpers;
 using GamerLinkApp.Models;
 using GamerLinkApp.Services;
 using GamerLinkApp.Views;
@@ -4033,6 +6829,7 @@ public class ProfileViewModel : BaseViewModel
 
         OrderStatusTappedCommand = new Command<OrderStatusItem>(async item => await OnOrderStatusTapped(item));
         LogoutCommand = new Command(async () => await LogoutAsync(), () => !_isLoggingOut);
+        NavigateToAdminCommand = new Command(async () => await NavigateToAdminAsync());
 
         _authService.CurrentUserChanged += OnCurrentUserChanged;
         _ = LoadAsync();
@@ -4050,6 +6847,7 @@ public class ProfileViewModel : BaseViewModel
 
             _currentUser = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsAdmin));
         }
     }
 
@@ -4087,6 +6885,9 @@ public class ProfileViewModel : BaseViewModel
 
     public ICommand OrderStatusTappedCommand { get; }
     public ICommand LogoutCommand { get; }
+    public ICommand NavigateToAdminCommand { get; }
+
+    public bool IsAdmin => CurrentUser?.IsAdmin == true;
 
     private async Task LoadAsync()
     {
@@ -4133,9 +6934,39 @@ public class ProfileViewModel : BaseViewModel
         }
     }
 
+    private async Task NavigateToAdminAsync()
+    {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync(_authService))
+        {
+            return;
+        }
+
+        if (!IsAdmin)
+        {
+            if (Shell.Current is not null)
+            {
+                await Shell.Current.DisplayAlert("提示", "当前账号没有管理员权限。", "确定");
+            }
+
+            return;
+        }
+
+        if (Shell.Current is null)
+        {
+            return;
+        }
+
+        await Shell.Current.GoToAsync(nameof(AdminDashboardPage));
+    }
+
     private async Task OnOrderStatusTapped(OrderStatusItem? item)
     {
         if (item is null)
+        {
+            return;
+        }
+
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync(_authService))
         {
             return;
         }
@@ -4435,6 +7266,7 @@ ViewModels/ServiceDetailViewModel.cs:
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using GamerLinkApp.Helpers;
 using GamerLinkApp.Models;
 using GamerLinkApp.Services;
 using Microsoft.Maui.ApplicationModel;
@@ -4570,6 +7402,11 @@ public class ServiceDetailViewModel : BaseViewModel
 
         try
         {
+            if (!await AuthNavigationHelper.EnsureAuthenticatedAsync(_authService))
+            {
+                return (false, "请先登录后再下单", null);
+            }
+
             var user = await _authService.GetCurrentUserAsync();
             if (user is null)
             {
@@ -4613,6 +7450,17 @@ public class ServiceDetailViewModel : BaseViewModel
 
         try
         {
+            if (!await AuthNavigationHelper.EnsureAuthenticatedAsync(_authService))
+            {
+                if (SelectedService.IsFavorite != previous)
+                {
+                    SelectedService.IsFavorite = previous;
+                    OnPropertyChanged(nameof(IsFavorite));
+                }
+
+                return null;
+            }
+
             var userId = await GetCurrentUserIdAsync();
             if (!userId.HasValue)
             {
@@ -4774,6 +7622,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GamerLinkApp.Helpers;
 using GamerLinkApp.Models;
 using GamerLinkApp.Services;
 using Microsoft.Maui.ApplicationModel;
@@ -4989,6 +7838,12 @@ namespace GamerLinkApp.ViewModels
 
             try
             {
+                if (!await AuthNavigationHelper.EnsureAuthenticatedAsync(_authService))
+                {
+                    UpdateFavoriteState(service, previous);
+                    return;
+                }
+
                 var userId = await GetCurrentUserIdAsync();
                 if (userId is null)
                 {
@@ -5152,6 +8007,1412 @@ namespace GamerLinkApp.ViewModels
 }
 】
 
+Views/AdminDashboardPage.xaml:
+【<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.AdminDashboardPage"
+             x:DataType="vm:AdminDashboardViewModel"
+             Title="服务管理"
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="True">
+    <Grid>
+        <ScrollView IsVisible="{Binding HasAccess}">
+            <VerticalStackLayout Padding="20,16,20,32"
+                                 Spacing="18">
+                <Grid ColumnDefinitions="*,Auto,Auto"
+                      VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="服务管理面板"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+                        <Label Text="快速检索、编辑服务，并掌握最新订单动态"
+                               FontSize="13"
+                               TextColor="#7A8196" />
+                    </VerticalStackLayout>
+
+                    <Button Grid.Column="1"
+                            Text="刷新"
+                            Command="{Binding RefreshCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#3478F6"
+                            TextColor="White"
+                            CornerRadius="14"
+                            VerticalOptions="Center" />
+
+                    <Button Grid.Column="2"
+                            Text="退出登录"
+                            Command="{Binding LogoutCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#FF4D4F"
+                            TextColor="White"
+                            CornerRadius="14"
+                            VerticalOptions="Center"
+                            Margin="12,0,0,0" />
+                </Grid>
+
+                <Border BackgroundColor="#FFFFFF"
+                        Padding="16,12"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Entry Text="{Binding SearchText}"
+                           Placeholder="按名称、分类、游戏或标签搜索服务"
+                           PlaceholderColor="#A3A9B6"
+                           FontSize="14"
+                           ClearButtonVisibility="WhileEditing"
+                           BackgroundColor="Transparent"
+                           TextColor="#1A1A1A" />
+                </Border>
+
+                <CollectionView ItemsSource="{Binding SummaryMetrics}"
+                                SelectionMode="None"
+                                HeightRequest="110">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Horizontal"
+                                         Span="2"
+                                         HorizontalItemSpacing="12"
+                                         VerticalItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AdminDashboardViewModel+SummaryMetric">
+                            <Border BackgroundColor="#FFFFFF"
+                                    StrokeThickness="0"
+                                    Padding="16"
+                                    MinimumWidthRequest="150">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="{Binding Title}"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Text="{Binding Value}"
+                                           FontSize="20"
+                                           FontAttributes="Bold"
+                                           TextColor="#1A1A1A" />
+                                    <Label Text="{Binding Description}"
+                                           FontSize="12"
+                                           TextColor="#9AA0B1" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Grid ColumnDefinitions="*,*"
+                      ColumnSpacing="16">
+                    <Border Grid.Column="0"
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto"
+                                  VerticalOptions="Center">
+                                <Label Text="服务列表"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A" />
+                                <ActivityIndicator Grid.Column="1"
+                                                    IsRunning="{Binding IsBusy}"
+                                                    IsVisible="{Binding IsBusy}"
+                                                    WidthRequest="20"
+                                                    HeightRequest="20" />
+                            </Grid>
+
+                            <CollectionView ItemsSource="{Binding Services}"
+                                            SelectionMode="Single"
+                                            SelectedItem="{Binding SelectedService, Mode=TwoWay}">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical"
+                                                       ItemSpacing="10" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AdminDashboardViewModel+ServiceListItem">
+                                    <Border BackgroundColor="#FFFFFF"
+                                            StrokeThickness="0"
+                                            Padding="14"
+                                            IsVisible="{Binding IsVisible}">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="18" />
+                                        </Border.StrokeShape>
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border"
+                                                         Binding="{Binding IsFeatured}"
+                                                         Value="True">
+                                                <Setter Property="BackgroundColor" Value="#F6F7FF" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                            <Grid ColumnDefinitions="*,Auto"
+                                                  ColumnSpacing="10">
+                                                <VerticalStackLayout Spacing="6">
+                                                    <Label Text="{Binding Title}"
+                                                           FontSize="15"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#1A1A1A" />
+
+                                                    <Label Text="{Binding GameName}"
+                                                           FontSize="12"
+                                                           TextColor="#7A8196" />
+
+                                                    <HorizontalStackLayout Spacing="10">
+                                                        <Label Text="{Binding PriceDisplay}"
+                                                               FontSize="13"
+                                                               FontAttributes="Bold"
+                                                               TextColor="#3478F6" />
+                                                        <Label Text="{Binding Category}"
+                                                               FontSize="12"
+                                                               TextColor="#9AA0B1" />
+                                                    </HorizontalStackLayout>
+                                                </VerticalStackLayout>
+
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding FeaturedBadge}"
+                                                       FontSize="12"
+                                                       TextColor="#FF9F0A"
+                                                       VerticalTextAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="16">
+                            <Label Text="服务详情编辑"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                  ColumnDefinitions="Auto,*"
+                                  ColumnSpacing="12"
+                                  RowSpacing="12">
+                                <Label Grid.Row="0"
+                                       Grid.Column="0"
+                                       Text="名称"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="0"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.Title}"
+                                       Placeholder="请输入服务名称" />
+
+                                <Label Grid.Row="1"
+                                       Grid.Column="0"
+                                       Text="价格"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="1"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.Price}"
+                                       Keyboard="Numeric"
+                                       Placeholder="请输入价格" />
+
+                                <Label Grid.Row="2"
+                                       Grid.Column="0"
+                                       Text="所属游戏"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="2"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.GameName}"
+                                       Placeholder="如：王者荣耀" />
+
+                                <Label Grid.Row="3"
+                                       Grid.Column="0"
+                                       Text="分类"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="3"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.Category}"
+                                       Placeholder="如：MOBA" />
+
+                                <Label Grid.Row="4"
+                                       Grid.Column="0"
+                                       Text="类型"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="4"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.ServiceType}"
+                                       Placeholder="如：陪练、代练、教学" />
+
+                                <Label Grid.Row="5"
+                                       Grid.Column="0"
+                                       Text="缩略图"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Entry Grid.Row="5"
+                                       Grid.Column="1"
+                                       Text="{Binding ServiceForm.ThumbnailUrl}"
+                                       Placeholder="资源文件名或链接" />
+                            </Grid>
+
+                            <Label Text="标签（用逗号分隔）"
+                                   FontSize="14"
+                                   TextColor="#7A8196" />
+                            <Entry Text="{Binding ServiceForm.Tags}"
+                                   Placeholder="示例：教学, 冲分, 双排" />
+
+                            <Label Text="服务简介"
+                                   FontSize="14"
+                                   TextColor="#7A8196" />
+                            <Editor Text="{Binding ServiceForm.Description}"
+                                    HeightRequest="120"
+                                    AutoSize="TextChanges"
+                                    Placeholder="输入服务亮点、流程等描述" />
+
+                            <Grid ColumnDefinitions="*,Auto"
+                                  VerticalOptions="Center">
+                                <Label Text="设为精选推荐"
+                                       FontSize="14"
+                                       TextColor="#1A1A1A" />
+                                <Switch Grid.Column="1"
+                                        IsToggled="{Binding ServiceForm.IsFeatured}" />
+                            </Grid>
+
+                            <Label Text="{Binding ServiceForm.ValidationMessage}"
+                                   FontSize="12"
+                                   TextColor="#FF4D4F"
+                                   IsVisible="{Binding ServiceForm.HasValidationError}" />
+
+                            <Grid ColumnDefinitions="*,*,*"
+                                  ColumnSpacing="10">
+                                <Button Text="保存修改"
+                                        Command="{Binding SaveCommand}"
+                                        IsEnabled="{Binding CanSave}"
+                                        BackgroundColor="#3478F6"
+                                        TextColor="White"
+                                        HeightRequest="44"
+                                        CornerRadius="16" />
+
+                                <Button Grid.Column="1"
+                                        Text="恢复表单"
+                                        Command="{Binding ResetCommand}"
+                                        IsEnabled="{Binding CanReset}"
+                                        BackgroundColor="#EEF1F5"
+                                        TextColor="#4B5563"
+                                        HeightRequest="44"
+                                        CornerRadius="16" />
+
+                                <Button Grid.Column="2"
+                                        Text="切换精选"
+                                        Command="{Binding ToggleFeaturedCommand}"
+                                        IsEnabled="{Binding CanReset}"
+                                        BackgroundColor="#FF9F0A"
+                                        TextColor="White"
+                                        HeightRequest="44"
+                                        CornerRadius="16" />
+                            </Grid>
+
+                            <Label Text="{Binding StatusMessage}"
+                                   FontSize="13"
+                                   TextColor="#3478F6"
+                                   IsVisible="{Binding HasStatusMessage}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Border BackgroundColor="#FFFFFF"
+                        StrokeThickness="0"
+                        Padding="18">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="最新订单一览"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+
+                        <CollectionView ItemsSource="{Binding RecentOrders}"
+                                        SelectionMode="None">
+                            <CollectionView.EmptyView>
+                                <Label Text="当前没有订单"
+                                       FontSize="13"
+                                       TextColor="#9AA0B1"
+                                       HorizontalTextAlignment="Center"
+                                       Padding="0,12" />
+                            </CollectionView.EmptyView>
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical"
+                                                   ItemSpacing="10" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AdminDashboardViewModel+OrderSnapshot">
+                                    <Border BackgroundColor="#F6F7FB"
+                                            StrokeThickness="0"
+                                            Padding="14">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="18" />
+                                        </Border.StrokeShape>
+
+                                        <Grid ColumnDefinitions="*,Auto"
+                                              RowDefinitions="Auto,Auto"
+                                              RowSpacing="6">
+                                            <Label Text="{Binding ServiceTitle}"
+                                                   FontSize="15"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1A1A1A" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding StatusDisplay}"
+                                                   FontSize="13"
+                                                   TextColor="#3478F6"
+                                                   HorizontalTextAlignment="End" />
+
+                                            <Label Grid.Row="1"
+                                                   Text="{Binding OrderDateDisplay}"
+                                                   FontSize="12"
+                                                   TextColor="#7A8196" />
+                                            <Label Grid.Row="1"
+                                                   Grid.Column="1"
+                                                   Text="{Binding TotalPriceDisplay}"
+                                                   FontSize="13"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1A1A1A"
+                                                   HorizontalTextAlignment="End" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid IsVisible="{Binding IsAccessDenied}">
+            <VerticalStackLayout Padding="24"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="14">
+                <Label Text="当前账号没有管理员权限"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#1A1A1A"
+                       HorizontalTextAlignment="Center" />
+                <Label Text="请使用管理员账号登录以访问服务管理功能。"
+                       FontSize="13"
+                       TextColor="#7A8196"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>
+】
+
+Views/AdminDashboardPage.xaml.cs:
+【using GamerLinkApp.Helpers;
+using GamerLinkApp.ViewModels;
+using Microsoft.Maui.Controls;
+
+namespace GamerLinkApp.Views;
+
+public partial class AdminDashboardPage : ContentPage
+{
+    public AdminDashboardPage()
+        : this(ServiceHelper.GetRequiredService<AdminDashboardViewModel>())
+    {
+    }
+
+    public AdminDashboardPage(AdminDashboardViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
+        if (BindingContext is AdminDashboardViewModel vm)
+        {
+            await vm.LoadAsync();
+        }
+    }
+}
+】
+
+Views/AdminOrdersPage.xaml:
+【<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.AdminOrdersPage"
+             x:DataType="vm:AdminOrdersViewModel"
+             Title="订单管理"
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="True">
+    <Grid>
+        <ScrollView IsVisible="{Binding HasAccess}">
+            <VerticalStackLayout Padding="20,16,20,32"
+                                 Spacing="18">
+                <Grid ColumnDefinitions="*,Auto,Auto"
+                      VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="订单管理中心"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+                        <Label Text="查看与调整所有订单进度状态"
+                               FontSize="13"
+                               TextColor="#7A8196" />
+                    </VerticalStackLayout>
+
+                    <Button Grid.Column="1"
+                            Text="刷新"
+                            Command="{Binding RefreshCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#3478F6"
+                            TextColor="White"
+                            CornerRadius="14"
+                            VerticalOptions="Center" />
+
+                    <Button Grid.Column="2"
+                            Text="退出登录"
+                            Command="{Binding LogoutCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#FF4D4F"
+                            TextColor="White"
+                            CornerRadius="14"
+                            Margin="12,0,0,0"
+                            VerticalOptions="Center" />
+                </Grid>
+
+                <Border BackgroundColor="#FFFFFF"
+                        Padding="16,12"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Entry Text="{Binding SearchText}"
+                           Placeholder="按订单号、服务名称或买家搜索"
+                           PlaceholderColor="#A3A9B6"
+                           FontSize="14"
+                           ClearButtonVisibility="WhileEditing"
+                           BackgroundColor="Transparent"
+                           TextColor="#1A1A1A" />
+                </Border>
+
+                <CollectionView ItemsSource="{Binding StatusFilters}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedFilter, Mode=TwoWay}"
+                                HeightRequest="60">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal"
+                                           ItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AdminOrdersViewModel+AdminOrderFilter">
+                            <Border Padding="14,10"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#EEF1F5">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="22" />
+                                </Border.StrokeShape>
+
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup Name="CommonStates">
+                                        <VisualState Name="Normal">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="#EEF1F5" />
+                                                <Setter TargetName="FilterTitle"
+                                                        Property="Label.TextColor"
+                                                        Value="#4B5563" />
+                                                <Setter TargetName="FilterCount"
+                                                        Property="Label.TextColor"
+                                                        Value="#9AA0B1" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="#3478F6" />
+                                                <Setter TargetName="FilterTitle"
+                                                        Property="Label.TextColor"
+                                                        Value="White" />
+                                                <Setter TargetName="FilterCount"
+                                                        Property="Label.TextColor"
+                                                        Value="#DCE7FF" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label x:Name="FilterTitle"
+                                           Text="{Binding DisplayName}"
+                                           FontSize="14"
+                                           FontAttributes="Bold" />
+                                    <Label x:Name="FilterCount"
+                                           Text="{Binding CountDisplay}"
+                                           FontSize="12" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label Text="{Binding StatusMessage}"
+                       FontSize="13"
+                       TextColor="#3478F6"
+                       IsVisible="{Binding HasStatusMessage}" />
+
+                <Grid ColumnDefinitions="*,*"
+                      ColumnSpacing="16">
+                    <Border Grid.Column="0"
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto"
+                                  VerticalOptions="Center">
+                                <Label Text="订单列表"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A" />
+                                <ActivityIndicator Grid.Column="1"
+                                                    IsVisible="{Binding IsBusy}"
+                                                    IsRunning="{Binding IsBusy}"
+                                                    WidthRequest="20"
+                                                    HeightRequest="20" />
+                            </Grid>
+
+                            <CollectionView ItemsSource="{Binding Orders}"
+                                            SelectionMode="Single"
+                                            SelectedItem="{Binding SelectedOrder, Mode=TwoWay}">
+                                <CollectionView.EmptyView>
+                                    <Label Text="暂无订单"
+                                           FontSize="13"
+                                           TextColor="#9AA0B1"
+                                           HorizontalTextAlignment="Center"
+                                           Padding="0,12" />
+                                </CollectionView.EmptyView>
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical"
+                                                       ItemSpacing="12" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AdminOrdersViewModel+AdminOrderItem">
+                                        <Border BackgroundColor="#F6F7FB"
+                                                StrokeThickness="0"
+                                                Padding="14">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="18" />
+                                            </Border.StrokeShape>
+                                            <Grid RowDefinitions="Auto,Auto"
+                                                  ColumnDefinitions="*,Auto"
+                                                  RowSpacing="8">
+                                                <HorizontalStackLayout Spacing="8"
+                                                                        VerticalOptions="Center">
+                                    <Border Padding="8,4"
+                                            BackgroundColor="{Binding StatusBadgeColor}"
+                                            StrokeThickness="0">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="12" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding StatusDisplay}"
+                                               FontSize="11"
+                                               TextColor="{Binding StatusTextColor}" />
+                                    </Border>
+                                                    <Label Text="{Binding ServiceTitle}"
+                                                           FontSize="15"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#1A1A1A" />
+                                                </HorizontalStackLayout>
+
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding TotalPriceDisplay}"
+                                                       FontSize="14"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#3478F6"
+                                                       HorizontalTextAlignment="End" />
+
+                                                <HorizontalStackLayout Grid.Row="1"
+                                                                        Spacing="12">
+                                                    <Label Text="{Binding OrderDateDisplay}"
+                                                           FontSize="12"
+                                                           TextColor="#7A8196" />
+                                                    <Label Text="{Binding BuyerName}"
+                                                           FontSize="12"
+                                                           TextColor="#9AA0B1" />
+                                                </HorizontalStackLayout>
+
+                                                <Label Grid.Row="1"
+                                                       Grid.Column="1"
+                                                       Text="{Binding OrderNumberDisplay}"
+                                                       FontSize="12"
+                                                       TextColor="#9AA0B1"
+                                                       HorizontalTextAlignment="End" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0"
+                                  RowDefinitions="Auto,Auto,Auto"
+                                  ColumnDefinitions="Auto,*"
+                                  ColumnSpacing="12"
+                                  RowSpacing="10"
+                                  IsVisible="{Binding HasSelection}">
+                                <Label Text="订单详情"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A"
+                                       Grid.ColumnSpan="2" />
+
+                                <Label Grid.Row="1"
+                                       Text="订单号"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Label Grid.Row="1"
+                                       Grid.Column="1"
+                                       Text="{Binding SelectedOrder.OrderNumberDisplay}"
+                                       FontSize="14"
+                                       TextColor="#1A1A1A" />
+
+                                <Label Grid.Row="2"
+                                       Text="服务名称"
+                                       FontSize="14"
+                                       TextColor="#7A8196" />
+                                <Label Grid.Row="2"
+                                       Grid.Column="1"
+                                       Text="{Binding SelectedOrder.ServiceTitle}"
+                                       FontSize="14"
+                                       TextColor="#1A1A1A" />
+                            </Grid>
+
+                            <VerticalStackLayout Grid.Row="1"
+                                                 Spacing="14"
+                                                 IsVisible="{Binding HasSelection}">
+                                <Grid ColumnDefinitions="Auto,*"
+                                      RowDefinitions="Auto,Auto,Auto,Auto"
+                                      ColumnSpacing="12"
+                                      RowSpacing="10">
+                                    <Label Text="买家"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding SelectedOrder.BuyerName}"
+                                           FontSize="14"
+                                           TextColor="#1A1A1A" />
+
+                                    <Label Grid.Row="1"
+                                           Text="金额"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Row="1"
+                                           Grid.Column="1"
+                                           Text="{Binding SelectedOrder.TotalPriceDisplay}"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="#3478F6" />
+
+                                    <Label Grid.Row="2"
+                                           Text="下单时间"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Row="2"
+                                           Grid.Column="1"
+                                           Text="{Binding SelectedOrder.OrderDateDisplay}"
+                                           FontSize="14"
+                                           TextColor="#1A1A1A" />
+
+                                    <Label Grid.Row="3"
+                                           Text="支付时间"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Row="3"
+                                           Grid.Column="1"
+                                           Text="{Binding SelectedOrder.PaymentDateDisplay}"
+                                           FontSize="14"
+                                           TextColor="#1A1A1A" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="12">
+                                    <Label Text="完成时间"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding SelectedOrder.CompletionDateDisplay}"
+                                           FontSize="14"
+                                           TextColor="#1A1A1A" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="12">
+                                    <Label Text="退款时间"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding SelectedOrder.RefundDateDisplay}"
+                                           FontSize="14"
+                                           TextColor="#1A1A1A" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,*,*"
+                                      ColumnSpacing="10">
+                                    <Button Text="标记已支付"
+                                            Command="{Binding MarkPaidCommand}"
+                                            IsEnabled="{Binding CanMarkPaid}"
+                                            BackgroundColor="#3478F6"
+                                            TextColor="White"
+                                            HeightRequest="44"
+                                            CornerRadius="16" />
+                                    <Button Grid.Column="1"
+                                            Text="待评价"
+                                            Command="{Binding MarkPendingReviewCommand}"
+                                            IsEnabled="{Binding CanMarkPendingReview}"
+                                            BackgroundColor="#8E24AA"
+                                            TextColor="White"
+                                            HeightRequest="44"
+                                            CornerRadius="16" />
+                                    <Button Grid.Column="2"
+                                            Text="标记完成"
+                                            Command="{Binding MarkCompletedCommand}"
+                                            IsEnabled="{Binding CanMarkCompleted}"
+                                            BackgroundColor="#2DBE60"
+                                            TextColor="White"
+                                            HeightRequest="44"
+                                            CornerRadius="16" />
+                                </Grid>
+
+                                <Button Text="取消订单"
+                                        Command="{Binding MarkCancelledCommand}"
+                                        IsEnabled="{Binding CanMarkCancelled}"
+                                        BackgroundColor="#FF4D4F"
+                                        TextColor="White"
+                                        HeightRequest="44"
+                                        CornerRadius="16" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Row="1"
+                                                 Spacing="12"
+                                                 IsVisible="True">
+                                <VerticalStackLayout.Triggers>
+                                    <DataTrigger TargetType="VerticalStackLayout"
+                                                 Binding="{Binding HasSelection}"
+                                                 Value="True">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                </VerticalStackLayout.Triggers>
+                                <Label Text="请选择订单查看详情"
+                                       FontSize="14"
+                                       TextColor="#9AA0B1"
+                                       HorizontalTextAlignment="Center"
+                                       VerticalOptions="CenterAndExpand" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid IsVisible="{Binding IsAccessDenied}">
+            <VerticalStackLayout Padding="24"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="14">
+                <Label Text="当前账号没有管理员权限"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#1A1A1A"
+                       HorizontalTextAlignment="Center" />
+                <Label Text="请使用管理员账号登录以访问订单管理功能。"
+                       FontSize="13"
+                       TextColor="#7A8196"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>
+】
+
+Views/AdminOrdersPage.xaml.cs:
+【﻿using GamerLinkApp.Helpers;
+using GamerLinkApp.ViewModels;
+using Microsoft.Maui.Controls;
+
+namespace GamerLinkApp.Views;
+
+public partial class AdminOrdersPage : ContentPage
+{
+    public AdminOrdersPage()
+        : this(ServiceHelper.GetRequiredService<AdminOrdersViewModel>())
+    {
+    }
+
+    public AdminOrdersPage(AdminOrdersViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
+        if (BindingContext is AdminOrdersViewModel vm)
+        {
+            await vm.LoadAsync();
+        }
+    }
+}
+】
+
+Views/AdminUsersPage.xaml:
+【<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.AdminUsersPage"
+             x:DataType="vm:AdminUsersViewModel"
+             Title="用户管理"
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="True">
+    <Grid>
+        <ScrollView IsVisible="{Binding HasAccess}">
+            <VerticalStackLayout Padding="20,16,20,32"
+                                 Spacing="18">
+                <Grid ColumnDefinitions="*,Auto,Auto"
+                      VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="用户管理中心"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+                        <Label Text="查看并维护后台所有用户资料与权限"
+                               FontSize="13"
+                               TextColor="#7A8196" />
+                    </VerticalStackLayout>
+
+                    <Button Grid.Column="1"
+                            Text="刷新"
+                            Command="{Binding RefreshCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#3478F6"
+                            TextColor="White"
+                            CornerRadius="14"
+                            VerticalOptions="Center" />
+
+                    <Button Grid.Column="2"
+                            Text="退出登录"
+                            Command="{Binding LogoutCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#FF4D4F"
+                            TextColor="White"
+                            CornerRadius="14"
+                            Margin="12,0,0,0"
+                            VerticalOptions="Center" />
+                </Grid>
+
+                <Border BackgroundColor="#FFFFFF"
+                        Padding="16,12"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Entry Text="{Binding SearchText}"
+                           Placeholder="按昵称、用户名或邮箱搜索用户"
+                           PlaceholderColor="#A3A9B6"
+                           FontSize="14"
+                           ClearButtonVisibility="WhileEditing"
+                           BackgroundColor="Transparent"
+                           TextColor="#1A1A1A" />
+                </Border>
+
+                <CollectionView ItemsSource="{Binding SummaryMetrics}"
+                                SelectionMode="None"
+                                HeightRequest="110">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Horizontal"
+                                         Span="2"
+                                         HorizontalItemSpacing="12"
+                                         VerticalItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AdminUsersViewModel+UserSummaryMetric">
+                            <Border BackgroundColor="#FFFFFF"
+                                    StrokeThickness="0"
+                                    Padding="16"
+                                    MinimumWidthRequest="150">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="{Binding Title}"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Text="{Binding Value}"
+                                           FontSize="20"
+                                           FontAttributes="Bold"
+                                           TextColor="#1A1A1A" />
+                                    <Label Text="{Binding Description}"
+                                           FontSize="12"
+                                           TextColor="#9AA0B1" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <CollectionView ItemsSource="{Binding Filters}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedFilter, Mode=TwoWay}"
+                                HeightRequest="60">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal"
+                                           ItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AdminUsersViewModel+UserFilter">
+                            <Border Padding="14,10"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#EEF1F5">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="22" />
+                                </Border.StrokeShape>
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup Name="CommonStates">
+                                        <VisualState Name="Normal">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="#EEF1F5" />
+                                                <Setter TargetName="FilterTitle"
+                                                        Property="Label.TextColor"
+                                                        Value="#4B5563" />
+                                                <Setter TargetName="FilterCount"
+                                                        Property="Label.TextColor"
+                                                        Value="#9AA0B1" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="#3478F6" />
+                                                <Setter TargetName="FilterTitle"
+                                                        Property="Label.TextColor"
+                                                        Value="White" />
+                                                <Setter TargetName="FilterCount"
+                                                        Property="Label.TextColor"
+                                                        Value="#DCE7FF" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label x:Name="FilterTitle"
+                                           Text="{Binding DisplayName}"
+                                           FontSize="14"
+                                           FontAttributes="Bold" />
+                                    <Label x:Name="FilterCount"
+                                           Text="{Binding CountDisplay}"
+                                           FontSize="12" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label Text="{Binding StatusMessage}"
+                       FontSize="13"
+                       TextColor="#3478F6"
+                       IsVisible="{Binding HasStatusMessage}" />
+
+                <Grid ColumnDefinitions="*,*"
+                      ColumnSpacing="16">
+                    <Border Grid.Column="0"
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto"
+                                  VerticalOptions="Center">
+                                <Label Text="用户列表"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A" />
+                                <ActivityIndicator Grid.Column="1"
+                                                   IsVisible="{Binding IsBusy}"
+                                                   IsRunning="{Binding IsBusy}"
+                                                   HeightRequest="20"
+                                                   WidthRequest="20" />
+                            </Grid>
+
+                            <CollectionView ItemsSource="{Binding Users}"
+                                            SelectionMode="Single"
+                                            SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+                                            VerticalOptions="FillAndExpand">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical"
+                                                       ItemSpacing="12" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AdminUsersViewModel+UserListItem">
+                                        <Border StrokeThickness="0"
+                                                BackgroundColor="#FFFFFF"
+                                                Padding="14"
+                                                Margin="0,0,0,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="18" />
+                                            </Border.StrokeShape>
+                                            <VisualStateManager.VisualStateGroups>
+                                                <VisualStateGroup Name="SelectionStates">
+                                                    <VisualState Name="Normal">
+                                                        <VisualState.Setters>
+                                                            <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                                        </VisualState.Setters>
+                                                    </VisualState>
+                                                    <VisualState Name="Selected">
+                                                        <VisualState.Setters>
+                                                            <Setter Property="BackgroundColor" Value="#E8F0FE" />
+                                                        </VisualState.Setters>
+                                                    </VisualState>
+                                                </VisualStateGroup>
+                                            </VisualStateManager.VisualStateGroups>
+                                            <Grid ColumnDefinitions="Auto,*"
+                                                  ColumnSpacing="12"
+                                                  RowDefinitions="Auto,Auto">
+                                                <Border Grid.RowSpan="2"
+                                                        WidthRequest="44"
+                                                        HeightRequest="44"
+                                                        BackgroundColor="#3478F6"
+                                                        StrokeThickness="0"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="16" />
+                                                    </Border.StrokeShape>
+                                                    <Label Text="{Binding AvatarInitial}"
+                                                           FontSize="18"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White"
+                                                           HorizontalTextAlignment="Center"
+                                                           VerticalTextAlignment="Center" />
+                                                </Border>
+
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding DisplayName}"
+                                                       FontSize="15"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#1A1A1A" />
+
+                                                <HorizontalStackLayout Grid.Row="1"
+                                                                       Grid.Column="1"
+                                                                       Spacing="10">
+                                                    <Label Text="{Binding SecondaryText}"
+                                                           FontSize="12"
+                                                           TextColor="#7A8196" />
+                                                </HorizontalStackLayout>
+
+                                                <Border Grid.Row="0"
+                                                        Grid.Column="1"
+                                                        HorizontalOptions="End"
+                                                        Padding="10,4"
+                                                        BackgroundColor="{Binding RoleBadgeColor}"
+                                                        StrokeThickness="0">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="14" />
+                                                    </Border.StrokeShape>
+                                                    <Label Text="{Binding RoleBadge}"
+                                                           FontSize="12"
+                                                           TextColor="White" />
+                                                </Border>
+
+                                                <HorizontalStackLayout Grid.Row="1"
+                                                                       Grid.Column="1"
+                                                                       HorizontalOptions="End"
+                                                                       Spacing="8">
+                                                    <Label Text="{Binding CreatedAtDisplay}"
+                                                           FontSize="12"
+                                                           TextColor="#9AA0B1" />
+                                                    <Border Padding="8,3"
+                                                            BackgroundColor="{Binding ActivityBadgeColor}"
+                                                            StrokeThickness="0">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="12" />
+                                                        </Border.StrokeShape>
+                                                        <Label Text="{Binding ActivityBadge}"
+                                                               FontSize="11"
+                                                               TextColor="White" />
+                                                    </Border>
+                                                </HorizontalStackLayout>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+
+                                <CollectionView.EmptyView>
+                                    <VerticalStackLayout Padding="20"
+                                                         HorizontalOptions="Center"
+                                                         VerticalOptions="Center"
+                                                         Spacing="6">
+                                        <Label Text="未找到匹配的用户"
+                                               FontSize="14"
+                                               TextColor="#7A8196"
+                                               HorizontalTextAlignment="Center" />
+                                        <Label Text="尝试调整筛选条件或修改搜索关键字"
+                                               FontSize="12"
+                                               TextColor="#9AA0B1"
+                                               HorizontalTextAlignment="Center" />
+                                    </VerticalStackLayout>
+                                </CollectionView.EmptyView>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+
+                        <Grid>
+                            <VerticalStackLayout x:Name="DetailLayout"
+                                                 Spacing="16">
+                                <VerticalStackLayout.Triggers>
+                                    <DataTrigger TargetType="VerticalStackLayout"
+                                                 Binding="{Binding HasSelection}"
+                                                 Value="False">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                </VerticalStackLayout.Triggers>
+
+                                <Label Text="用户详情"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A" />
+
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                                      ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="12"
+                                      RowSpacing="12">
+                                    <Label Grid.Row="0"
+                                           Grid.Column="0"
+                                           Text="用户名"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Entry Grid.Row="0"
+                                           Grid.Column="1"
+                                           Text="{Binding UserForm.Username}"
+                                           IsReadOnly="True"
+                                           TextColor="#1A1A1A"
+                                           BackgroundColor="#F5F6F9" />
+
+                                    <Label Grid.Row="1"
+                                           Grid.Column="0"
+                                           Text="昵称"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Entry Grid.Row="1"
+                                           Grid.Column="1"
+                                           Text="{Binding UserForm.Nickname}"
+                                           Placeholder="请输入用户昵称" />
+
+                                    <Label Grid.Row="2"
+                                           Grid.Column="0"
+                                           Text="邮箱"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Entry Grid.Row="2"
+                                           Grid.Column="1"
+                                           Text="{Binding UserForm.Email}"
+                                           Keyboard="Email"
+                                           Placeholder="请输入邮箱" />
+
+                                    <Label Grid.Row="3"
+                                           Grid.Column="0"
+                                           Text="头像链接"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Entry Grid.Row="3"
+                                           Grid.Column="1"
+                                           Text="{Binding UserForm.AvatarUrl}"
+                                           Placeholder="https://example.com/avatar.png" />
+
+                                    <Label Grid.Row="4"
+                                           Grid.Column="0"
+                                           Text="管理员权限"
+                                           FontSize="14"
+                                           TextColor="#7A8196"
+                                           VerticalTextAlignment="Center" />
+                                    <Switch Grid.Row="4"
+                                            Grid.Column="1"
+                                            IsToggled="{Binding UserForm.IsAdmin}"
+                                            HorizontalOptions="Start" />
+                                </Grid>
+
+                                <Label Text="{Binding UserForm.ValidationMessage}"
+                                       FontSize="12"
+                                       TextColor="#FF4D4F"
+                                       IsVisible="{Binding UserForm.HasValidationError}" />
+
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="{Binding SelectedUser.CreatedAtDisplay}"
+                                           FontSize="12"
+                                           TextColor="#9AA0B1" />
+                                    <Label Text="{Binding SelectedUser.LastLoginDisplay}"
+                                           FontSize="12"
+                                           TextColor="#9AA0B1" />
+                                </VerticalStackLayout>
+
+                                <HorizontalStackLayout Spacing="12">
+                                    <Button Text="保存修改"
+                                            Command="{Binding SaveCommand}"
+                                            IsEnabled="{Binding CanSave}"
+                                            BackgroundColor="#3478F6"
+                                            TextColor="White"
+                                            HeightRequest="44"
+                                            CornerRadius="16"
+                                            HorizontalOptions="FillAndExpand" />
+                                    <Button Text="重置"
+                                            Command="{Binding ResetCommand}"
+                                            IsEnabled="{Binding CanReset}"
+                                            BackgroundColor="#EEF1F5"
+                                            TextColor="#1A1A1A"
+                                            HeightRequest="44"
+                                            CornerRadius="16"
+                                            HorizontalOptions="FillAndExpand" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="12"
+                                                 HorizontalOptions="Center"
+                                                 VerticalOptions="Center"
+                                                 IsVisible="True">
+                                <VerticalStackLayout.Triggers>
+                                    <DataTrigger TargetType="VerticalStackLayout"
+                                                 Binding="{Binding HasSelection}"
+                                                 Value="True">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                </VerticalStackLayout.Triggers>
+
+                                <Label Text="请选择左侧的用户查看详情"
+                                       FontSize="14"
+                                       TextColor="#9AA0B1"
+                                       HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid IsVisible="{Binding IsAccessDenied}">
+            <VerticalStackLayout Padding="24"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="14">
+                <Label Text="当前账号没有管理员权限"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#1A1A1A"
+                       HorizontalTextAlignment="Center" />
+                <Label Text="请使用管理员账号登录以访问用户管理功能"
+                       FontSize="13"
+                       TextColor="#7A8196"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>
+】
+
+Views/AdminUsersPage.xaml.cs:
+【using GamerLinkApp.Helpers;
+using GamerLinkApp.ViewModels;
+using Microsoft.Maui.Controls;
+
+namespace GamerLinkApp.Views;
+
+public partial class AdminUsersPage : ContentPage
+{
+    public AdminUsersPage()
+        : this(ServiceHelper.GetRequiredService<AdminUsersViewModel>())
+    {
+    }
+
+    public AdminUsersPage(AdminUsersViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
+        if (BindingContext is AdminUsersViewModel vm)
+        {
+            await vm.LoadAsync();
+        }
+    }
+}
+】
+
 Views/FavoriteServicesPage.xaml:
 【<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -5306,11 +9567,22 @@ public partial class FavoriteServicesPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         await _viewModel.LoadAsync();
     }
 
     private async void OnServiceTapped(object sender, TappedEventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         if ((sender as Element)?.BindingContext is not Service service)
         {
             return;
@@ -5680,18 +9952,28 @@ public partial class OrderListPage : ContentPage
         }
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
 
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         if (BindingContext is OrderListViewModel vm)
         {
-            _ = vm.RefreshAsync();
+            await vm.RefreshAsync();
         }
     }
 
     private async void OnPayOrderClicked(object sender, EventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         if ((sender as Button)?.BindingContext is not OrderListViewModel.OrderListItem item)
         {
             return;
@@ -5707,6 +9989,11 @@ public partial class OrderListPage : ContentPage
 
     private async void OnReviewOrderClicked(object sender, EventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         if ((sender as Button)?.BindingContext is not OrderListViewModel.OrderListItem item)
         {
             return;
@@ -5920,18 +10207,28 @@ public partial class OrderPaymentPage : ContentPage
         }
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
 
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         if (_orderId > 0 && !_viewModel.HasOrder && !_viewModel.IsLoading)
         {
-            _ = _viewModel.LoadAsync(_orderId);
+            await _viewModel.LoadAsync(_orderId);
         }
     }
 
     private async void OnPayClicked(object sender, EventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         var (success, errorMessage) = await _viewModel.PayAsync();
 
         if (!success)
@@ -6220,18 +10517,28 @@ public partial class OrderReviewPage : ContentPage
         }
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
 
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         if (_orderId > 0 && !_viewModel.IsBusy && !_viewModel.HasOrder)
         {
-            _ = _viewModel.LoadAsync(_orderId);
+            await _viewModel.LoadAsync(_orderId);
         }
     }
 
     private async void OnSubmitClicked(object sender, EventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         var (success, errorMessage) = await _viewModel.SubmitAsync();
 
         if (!success)
@@ -6445,6 +10752,30 @@ Views/ProfilePage.xaml:
                 <VerticalStackLayout Spacing="12">
                     <Border BackgroundColor="White"
                             Padding="16"
+                            StrokeThickness="0"
+                            IsVisible="{Binding IsAdmin}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <Grid ColumnDefinitions="*,Auto"
+                              VerticalOptions="Center">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding NavigateToAdminCommand}" />
+                            </Grid.GestureRecognizers>
+
+                            <Label Text="管理面板"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A" />
+                            <Label Text=">"
+                                   Grid.Column="1"
+                                   FontSize="16"
+                                   TextColor="#C0C0C0" />
+                        </Grid>
+                    </Border>
+
+                    <Border BackgroundColor="White"
+                            Padding="16"
                             StrokeThickness="0">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="16" />
@@ -6538,13 +10869,33 @@ public partial class ProfilePage : ContentPage
     {
     }
 
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+    }
+
     private async void OnAllOrdersTapped(object sender, TappedEventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         await Shell.Current.GoToAsync(nameof(OrderListPage));
     }
 
     private async void OnFavoritesTapped(object sender, TappedEventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         await Shell.Current.GoToAsync(nameof(FavoriteServicesPage));
     }
 }
@@ -7105,6 +11456,11 @@ public partial class ServiceDetailPage : ContentPage
 
     private async void OnPlaceOrderClicked(object sender, EventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         var (success, errorMessage, order) = await _viewModel.PlaceOrderAsync();
 
         if (!success)
@@ -7138,6 +11494,11 @@ public partial class ServiceDetailPage : ContentPage
 
     private async void OnToggleFavoriteClicked(object sender, EventArgs e)
     {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
         var result = await _viewModel.ToggleFavoriteAsync();
 
         if (result is null)
@@ -7438,25 +11799,6 @@ public partial class ServiceListPage : ContentPage
         {
             await vm.RefreshFavoritesAsync();
         }
-    }
-}
-】
-
-Views/temp.txt:
-【﻿using GamerLinkApp.ViewModels;
-
-namespace GamerLinkApp.Views;
-
-public partial class ProfilePage : ContentPage
-{
-    public ProfilePage(ProfileViewModel vm)
-    {
-        InitializeComponent();
-        BindingContext = vm;
-    }
-    public ProfilePage()
-    {
-        InitializeComponent();
     }
 }
 】

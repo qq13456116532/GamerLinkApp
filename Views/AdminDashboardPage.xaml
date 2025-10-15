@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
@@ -60,21 +60,19 @@
                            TextColor="#1A1A1A" />
                 </Border>
 
-                <CollectionView ItemsSource="{Binding SummaryMetrics}"
-                                SelectionMode="None"
-                                HeightRequest="110">
-                    <CollectionView.ItemsLayout>
-                        <GridItemsLayout Orientation="Horizontal"
-                                         Span="2"
-                                         HorizontalItemSpacing="12"
-                                         VerticalItemSpacing="12" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
+                <FlexLayout BindableLayout.ItemsSource="{Binding SummaryMetrics}"
+                            Direction="Row"
+                            Wrap="Wrap"
+                            JustifyContent="Start"
+                            AlignItems="Start"
+                            AlignContent="Start">
+                    <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="vm:AdminDashboardViewModel+SummaryMetric">
                             <Border BackgroundColor="#FFFFFF"
                                     StrokeThickness="0"
                                     Padding="16"
-                                    MinimumWidthRequest="150">
+                                    MinimumWidthRequest="150"
+                                    Margin="0,0,12,12">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="20" />
                                 </Border.StrokeShape>
@@ -92,18 +90,19 @@
                                 </VerticalStackLayout>
                             </Border>
                         </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                    </BindableLayout.ItemTemplate>
+                </FlexLayout>
 
-                <Grid ColumnDefinitions="*,*"
-                      ColumnSpacing="16">
-                    <Border Grid.Column="0"
+                <Grid RowDefinitions="Auto,Auto"
+                      RowSpacing="16">
+                    <Border Grid.Row="0"
                             BackgroundColor="#FFFFFF"
                             StrokeThickness="0"
                             Padding="18">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="20" />
                         </Border.StrokeShape>
+
                         <VerticalStackLayout Spacing="14">
                             <Grid ColumnDefinitions="*,Auto"
                                   VerticalOptions="Center">
@@ -112,35 +111,37 @@
                                        FontAttributes="Bold"
                                        TextColor="#1A1A1A" />
                                 <ActivityIndicator Grid.Column="1"
-                                                    IsRunning="{Binding IsBusy}"
-                                                    IsVisible="{Binding IsBusy}"
-                                                    WidthRequest="20"
-                                                    HeightRequest="20" />
+                                                   IsVisible="{Binding IsBusy}"
+                                                   IsRunning="{Binding IsBusy}"
+                                                   HeightRequest="20"
+                                                   WidthRequest="20" />
                             </Grid>
 
                             <CollectionView ItemsSource="{Binding Services}"
                                             SelectionMode="Single"
-                                            SelectedItem="{Binding SelectedService, Mode=TwoWay}">
+                                            SelectedItem="{Binding SelectedService, Mode=TwoWay}"
+                                            HeightRequest="320">
                                 <CollectionView.ItemsLayout>
                                     <LinearItemsLayout Orientation="Vertical"
-                                                       ItemSpacing="10" />
+                                                       ItemSpacing="12" />
                                 </CollectionView.ItemsLayout>
                                 <CollectionView.ItemTemplate>
                                     <DataTemplate x:DataType="vm:AdminDashboardViewModel+ServiceListItem">
-                                    <Border BackgroundColor="#FFFFFF"
-                                            StrokeThickness="0"
-                                            Padding="14"
-                                            IsVisible="{Binding IsVisible}">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="18" />
-                                        </Border.StrokeShape>
-                                        <Border.Triggers>
-                                            <DataTrigger TargetType="Border"
-                                                         Binding="{Binding IsFeatured}"
-                                                         Value="True">
-                                                <Setter Property="BackgroundColor" Value="#F6F7FF" />
-                                            </DataTrigger>
-                                        </Border.Triggers>
+                                        <Border BackgroundColor="#F6F7FB"
+                                                StrokeThickness="0"
+                                                Padding="14"
+                                                IsVisible="{Binding IsVisible}">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="18" />
+                                            </Border.StrokeShape>
+                                            <Border.Triggers>
+                                                <DataTrigger TargetType="Border"
+                                                             Binding="{Binding IsFeatured}"
+                                                             Value="True">
+                                                    <Setter Property="BackgroundColor" Value="#E4ECFF" />
+                                                </DataTrigger>
+                                            </Border.Triggers>
+
                                             <Grid ColumnDefinitions="*,Auto"
                                                   ColumnSpacing="10">
                                                 <VerticalStackLayout Spacing="6">
@@ -148,11 +149,9 @@
                                                            FontSize="15"
                                                            FontAttributes="Bold"
                                                            TextColor="#1A1A1A" />
-
                                                     <Label Text="{Binding GameName}"
                                                            FontSize="12"
                                                            TextColor="#7A8196" />
-
                                                     <HorizontalStackLayout Spacing="10">
                                                         <Label Text="{Binding PriceDisplay}"
                                                                FontSize="13"
@@ -177,7 +176,7 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <Border Grid.Column="1"
+                    <Border Grid.Row="1"
                             BackgroundColor="#FFFFFF"
                             StrokeThickness="0"
                             Padding="18">
@@ -199,7 +198,8 @@
                                        Grid.Column="0"
                                        Text="名称"
                                        FontSize="14"
-                                       TextColor="#7A8196" />
+                                       TextColor="#7A8196"
+                                       VerticalTextAlignment="Center" />
                                 <Entry Grid.Row="0"
                                        Grid.Column="1"
                                        Text="{Binding ServiceForm.Title}"
@@ -209,52 +209,118 @@
                                        Grid.Column="0"
                                        Text="价格"
                                        FontSize="14"
-                                       TextColor="#7A8196" />
+                                       TextColor="#7A8196"
+                                       VerticalTextAlignment="Center" />
                                 <Entry Grid.Row="1"
                                        Grid.Column="1"
                                        Text="{Binding ServiceForm.Price}"
                                        Keyboard="Numeric"
-                                       Placeholder="请输入价格" />
+                                       Placeholder="输入价格（元）" />
 
                                 <Label Grid.Row="2"
                                        Grid.Column="0"
                                        Text="所属游戏"
                                        FontSize="14"
-                                       TextColor="#7A8196" />
+                                       TextColor="#7A8196"
+                                       VerticalTextAlignment="Center" />
                                 <Entry Grid.Row="2"
                                        Grid.Column="1"
                                        Text="{Binding ServiceForm.GameName}"
-                                       Placeholder="如：王者荣耀" />
+                                       Placeholder="如：英雄联盟" />
 
                                 <Label Grid.Row="3"
                                        Grid.Column="0"
                                        Text="分类"
                                        FontSize="14"
-                                       TextColor="#7A8196" />
+                                       TextColor="#7A8196"
+                                       VerticalTextAlignment="Center" />
                                 <Entry Grid.Row="3"
                                        Grid.Column="1"
                                        Text="{Binding ServiceForm.Category}"
-                                       Placeholder="如：MOBA" />
+                                       Placeholder="如：陪玩 / 代练" />
 
                                 <Label Grid.Row="4"
                                        Grid.Column="0"
                                        Text="类型"
                                        FontSize="14"
-                                       TextColor="#7A8196" />
+                                       TextColor="#7A8196"
+                                       VerticalTextAlignment="Center" />
                                 <Entry Grid.Row="4"
                                        Grid.Column="1"
                                        Text="{Binding ServiceForm.ServiceType}"
-                                       Placeholder="如：陪练、代练、教学" />
+                                       Placeholder="如：双排 / 提升段位" />
 
                                 <Label Grid.Row="5"
                                        Grid.Column="0"
                                        Text="缩略图"
                                        FontSize="14"
-                                       TextColor="#7A8196" />
-                                <Entry Grid.Row="5"
-                                       Grid.Column="1"
-                                       Text="{Binding ServiceForm.ThumbnailUrl}"
-                                       Placeholder="资源文件名或链接" />
+                                       TextColor="#7A8196"
+                                       VerticalTextAlignment="Center" />
+                                <VerticalStackLayout Grid.Row="5"
+                                                     Grid.Column="1"
+                                                     Spacing="8">
+                                    <Border WidthRequest="100"
+                                            HeightRequest="100"
+                                            StrokeThickness="0"
+                                            BackgroundColor="#EEF1F5">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="16" />
+                                        </Border.StrokeShape>
+                                        <Grid>
+                                            <Image Source="{Binding ServiceForm.ThumbnailUrl}"
+                                                   Aspect="AspectFill"
+                                                   IsVisible="True">
+                                                <Image.Triggers>
+                                                    <DataTrigger TargetType="Image"
+                                                                 Binding="{Binding ServiceForm.ThumbnailUrl}"
+                                                                 Value="">
+                                                        <Setter Property="IsVisible" Value="False" />
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Image"
+                                                                 Binding="{Binding ServiceForm.ThumbnailUrl}"
+                                                                 Value="{x:Null}">
+                                                        <Setter Property="IsVisible" Value="False" />
+                                                    </DataTrigger>
+                                                </Image.Triggers>
+                                            </Image>
+                                            <Label Text="暂无缩略图"
+                                                   FontSize="12"
+                                                   TextColor="#9AA0B1"
+                                                   HorizontalTextAlignment="Center"
+                                                   VerticalTextAlignment="Center"
+                                                   IsVisible="False">
+                                                <Label.Triggers>
+                                                    <DataTrigger TargetType="Label"
+                                                                 Binding="{Binding ServiceForm.ThumbnailUrl}"
+                                                                 Value="">
+                                                        <Setter Property="IsVisible" Value="True" />
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Label"
+                                                                 Binding="{Binding ServiceForm.ThumbnailUrl}"
+                                                                 Value="{x:Null}">
+                                                        <Setter Property="IsVisible" Value="True" />
+                                                    </DataTrigger>
+                                                </Label.Triggers>
+                                            </Label>
+                                        </Grid>
+                                    </Border>
+
+                                    <HorizontalStackLayout Spacing="10">
+                                        <Button Text="上传缩略图"
+                                                Command="{Binding SelectThumbnailCommand}"
+                                                IsEnabled="{Binding CanSelectThumbnail}"
+                                                HeightRequest="40"
+                                                Padding="16,0"
+                                                BackgroundColor="#3478F6"
+                                                TextColor="White"
+                                                CornerRadius="14" />
+                                        <Label Text="{Binding ServiceForm.ThumbnailUrl}"
+                                               FontSize="11"
+                                               TextColor="#9AA0B1"
+                                               HorizontalOptions="FillAndExpand"
+                                               LineBreakMode="CharacterWrap" />
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
                             </Grid>
 
                             <Label Text="标签（用逗号分隔）"
@@ -285,34 +351,41 @@
                                    TextColor="#FF4D4F"
                                    IsVisible="{Binding ServiceForm.HasValidationError}" />
 
-                            <Grid ColumnDefinitions="*,*,*"
-                                  ColumnSpacing="10">
+                            <FlexLayout Direction="Row"
+                                        Wrap="Wrap"
+                                        JustifyContent="Start"
+                                        AlignItems="Center"
+                                        AlignContent="Start">
                                 <Button Text="保存修改"
                                         Command="{Binding SaveCommand}"
                                         IsEnabled="{Binding CanSave}"
                                         BackgroundColor="#3478F6"
                                         TextColor="White"
                                         HeightRequest="44"
-                                        CornerRadius="16" />
+                                        WidthRequest="120"
+                                        CornerRadius="16"
+                                        Margin="0,0,12,12" />
 
-                                <Button Grid.Column="1"
-                                        Text="恢复表单"
+                                <Button Text="恢复表单"
                                         Command="{Binding ResetCommand}"
                                         IsEnabled="{Binding CanReset}"
                                         BackgroundColor="#EEF1F5"
                                         TextColor="#4B5563"
                                         HeightRequest="44"
-                                        CornerRadius="16" />
+                                        WidthRequest="120"
+                                        CornerRadius="16"
+                                        Margin="0,0,12,12" />
 
-                                <Button Grid.Column="2"
-                                        Text="切换精选"
+                                <Button Text="切换精选"
                                         Command="{Binding ToggleFeaturedCommand}"
                                         IsEnabled="{Binding CanReset}"
                                         BackgroundColor="#FF9F0A"
                                         TextColor="White"
                                         HeightRequest="44"
-                                        CornerRadius="16" />
-                            </Grid>
+                                        WidthRequest="120"
+                                        CornerRadius="16"
+                                        Margin="0,0,12,12" />
+                            </FlexLayout>
 
                             <Label Text="{Binding StatusMessage}"
                                    FontSize="13"
@@ -400,7 +473,7 @@
                        FontAttributes="Bold"
                        TextColor="#1A1A1A"
                        HorizontalTextAlignment="Center" />
-                <Label Text="请使用管理员账号登录以访问服务管理功能。"
+                <Label Text="请使用管理员账号登录以访问服务管理功能"
                        FontSize="13"
                        TextColor="#7A8196"
                        HorizontalTextAlignment="Center" />

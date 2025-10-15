@@ -1,22 +1,559 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
              x:Class="GamerLinkApp.Views.AdminUsersPage"
+             x:DataType="vm:AdminUsersViewModel"
              Title="用户管理"
-             BackgroundColor="#F4F5F7">
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="True">
     <Grid>
-        <VerticalStackLayout HorizontalOptions="Center"
-                             VerticalOptions="Center"
-                             Spacing="12">
-            <Label Text="用户管理"
-                   FontSize="22"
-                   FontAttributes="Bold"
-                   TextColor="#1A1A1A"
-                   HorizontalTextAlignment="Center" />
-            <Label Text="功能建设中，敬请期待。"
-                   FontSize="14"
-                   TextColor="#6C7283"
-                   HorizontalTextAlignment="Center" />
-        </VerticalStackLayout>
+        <ScrollView IsVisible="{Binding HasAccess}">
+            <VerticalStackLayout Padding="20,16,20,32"
+                                 Spacing="18">
+                <Grid ColumnDefinitions="*,Auto,Auto"
+                      VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="用户管理中心"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+                        <Label Text="查看并维护后台所有用户资料与权限"
+                               FontSize="13"
+                               TextColor="#7A8196" />
+                    </VerticalStackLayout>
+
+                    <Button Grid.Column="1"
+                            Text="刷新"
+                            Command="{Binding RefreshCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#3478F6"
+                            TextColor="White"
+                            CornerRadius="14"
+                            VerticalOptions="Center" />
+
+                    <Button Grid.Column="2"
+                            Text="退出登录"
+                            Command="{Binding LogoutCommand}"
+                            HeightRequest="38"
+                            Padding="16,0"
+                            BackgroundColor="#FF4D4F"
+                            TextColor="White"
+                            CornerRadius="14"
+                            Margin="12,0,0,0"
+                            VerticalOptions="Center" />
+                </Grid>
+
+                <Border BackgroundColor="#FFFFFF"
+                        Padding="16,12"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Entry Text="{Binding SearchText}"
+                           Placeholder="按昵称、用户名或邮箱搜索用户"
+                           PlaceholderColor="#A3A9B6"
+                           FontSize="14"
+                           ClearButtonVisibility="WhileEditing"
+                           BackgroundColor="Transparent"
+                           TextColor="#1A1A1A" />
+                </Border>
+
+                <FlexLayout BindableLayout.ItemsSource="{Binding SummaryMetrics}"
+                            Direction="Row"
+                            Wrap="Wrap"
+                            JustifyContent="Start"
+                            AlignItems="Start"
+                            AlignContent="Start">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AdminUsersViewModel+UserSummaryMetric">
+                            <Border BackgroundColor="#FFFFFF"
+                                    StrokeThickness="0"
+                                    Padding="16"
+                                    MinimumWidthRequest="150"
+                                    Margin="0,0,12,12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="20" />
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="{Binding Title}"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Label Text="{Binding Value}"
+                                           FontSize="20"
+                                           FontAttributes="Bold"
+                                           TextColor="#1A1A1A" />
+                                    <Label Text="{Binding Description}"
+                                           FontSize="12"
+                                           TextColor="#9AA0B1" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </FlexLayout>
+
+                <CollectionView ItemsSource="{Binding Filters}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedFilter, Mode=TwoWay}"
+                                HeightRequest="60">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal"
+                                           ItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AdminUsersViewModel+UserFilter">
+                            <Border Padding="14,10"
+                                    StrokeThickness="0"
+                                    BackgroundColor="#EEF1F5">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="22" />
+                                </Border.StrokeShape>
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup Name="CommonStates">
+                                        <VisualState Name="Normal">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="#EEF1F5" />
+                                                <Setter TargetName="FilterTitle"
+                                                        Property="Label.TextColor"
+                                                        Value="#4B5563" />
+                                                <Setter TargetName="FilterCount"
+                                                        Property="Label.TextColor"
+                                                        Value="#9AA0B1" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="#3478F6" />
+                                                <Setter TargetName="FilterTitle"
+                                                        Property="Label.TextColor"
+                                                        Value="White" />
+                                                <Setter TargetName="FilterCount"
+                                                        Property="Label.TextColor"
+                                                        Value="#DCE7FF" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label x:Name="FilterTitle"
+                                           Text="{Binding DisplayName}"
+                                           FontSize="14"
+                                           FontAttributes="Bold" />
+                                    <Label x:Name="FilterCount"
+                                           Text="{Binding CountDisplay}"
+                                           FontSize="12" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label Text="{Binding StatusMessage}"
+                       FontSize="13"
+                       TextColor="#3478F6"
+                       IsVisible="{Binding HasStatusMessage}" />
+
+                <Grid RowDefinitions="Auto,Auto"
+                      RowSpacing="16">
+                    <Border
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto"
+                                  VerticalOptions="Center">
+                                <Label Text="用户列表"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A" />
+                                <ActivityIndicator Grid.Column="1"
+                                                   IsVisible="{Binding IsBusy}"
+                                                   IsRunning="{Binding IsBusy}"
+                                                   HeightRequest="20"
+                                                   WidthRequest="20" />
+                            </Grid>
+
+                            <CollectionView ItemsSource="{Binding Users}"
+                                            SelectionMode="Single"
+                                            SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+                                            VerticalOptions="FillAndExpand">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical"
+                                                       ItemSpacing="12" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AdminUsersViewModel+UserListItem">
+                                        <Border StrokeThickness="0"
+                                                BackgroundColor="#FFFFFF"
+                                                Padding="14"
+                                                Margin="0,0,0,4">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="18" />
+                                            </Border.StrokeShape>
+                                            <VisualStateManager.VisualStateGroups>
+                                                <VisualStateGroup Name="SelectionStates">
+                                                    <VisualState Name="Normal">
+                                                        <VisualState.Setters>
+                                                            <Setter Property="BackgroundColor" Value="#FFFFFF" />
+                                                        </VisualState.Setters>
+                                                    </VisualState>
+                                                    <VisualState Name="Selected">
+                                                        <VisualState.Setters>
+                                                            <Setter Property="BackgroundColor" Value="#E8F0FE" />
+                                                        </VisualState.Setters>
+                                                    </VisualState>
+                                                </VisualStateGroup>
+                                            </VisualStateManager.VisualStateGroups>
+                                            <Grid ColumnDefinitions="Auto,*"
+                                                  ColumnSpacing="12"
+                                                  RowDefinitions="Auto,Auto,Auto">
+                                                <Border Grid.RowSpan="3"
+                                                        WidthRequest="44"
+                                                        HeightRequest="44"
+                                                        BackgroundColor="#3478F6"
+                                                        StrokeThickness="0"
+                                                        VerticalOptions="Center">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="16" />
+                                                    </Border.StrokeShape>
+                                                    <Label Text="{Binding AvatarInitial}"
+                                                           FontSize="18"
+                                                           FontAttributes="Bold"
+                                                           TextColor="White"
+                                                           HorizontalTextAlignment="Center"
+                                                           VerticalTextAlignment="Center" />
+                                                </Border>
+
+                                                <HorizontalStackLayout Grid.Column="1"
+                                                                       Spacing="10"
+                                                                       VerticalOptions="Center">
+                                                    <Label Text="{Binding DisplayName}"
+                                                           FontSize="15"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#1A1A1A"
+                                                           HorizontalOptions="StartAndExpand" />
+                                                    <Border Padding="10,4"
+                                                            BackgroundColor="{Binding RoleBadgeColor}"
+                                                            StrokeThickness="0"
+                                                            HorizontalOptions="End">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="14" />
+                                                        </Border.StrokeShape>
+                                                        <Label Text="{Binding RoleBadge}"
+                                                               FontSize="12"
+                                                               TextColor="White" />
+                                                    </Border>
+                                                </HorizontalStackLayout>
+
+                                                <HorizontalStackLayout Grid.Row="1"
+                                                                       Grid.Column="1"
+                                                                       Spacing="10"
+                                                                       HorizontalOptions="StartAndExpand">
+                                                    <Label Text="{Binding SecondaryText}"
+                                                           FontSize="12"
+                                                           TextColor="#7A8196" />
+                                                </HorizontalStackLayout>
+
+                                                <HorizontalStackLayout Grid.Row="2"
+                                                                       Grid.Column="1"
+                                                                       HorizontalOptions="End"
+                                                                       Spacing="8">
+                                                    <Label Text="{Binding CreatedAtDisplay}"
+                                                           FontSize="12"
+                                                           TextColor="#9AA0B1" />
+                                                    <Border Padding="8,3"
+                                                            BackgroundColor="{Binding ActivityBadgeColor}"
+                                                            StrokeThickness="0">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="12" />
+                                                        </Border.StrokeShape>
+                                                        <Label Text="{Binding ActivityBadge}"
+                                                               FontSize="11"
+                                                               TextColor="White" />
+                                                    </Border>
+                                                </HorizontalStackLayout>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+
+                                <CollectionView.EmptyView>
+                                    <VerticalStackLayout Padding="20"
+                                                         HorizontalOptions="Center"
+                                                         VerticalOptions="Center"
+                                                         Spacing="6">
+                                        <Label Text="未找到匹配的用户"
+                                               FontSize="14"
+                                               TextColor="#7A8196"
+                                               HorizontalTextAlignment="Center" />
+                                        <Label Text="尝试调整筛选条件或修改搜索关键字"
+                                               FontSize="12"
+                                               TextColor="#9AA0B1"
+                                               HorizontalTextAlignment="Center" />
+                                    </VerticalStackLayout>
+                                </CollectionView.EmptyView>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Row="1"
+                            BackgroundColor="#FFFFFF"
+                            StrokeThickness="0"
+                            Padding="18">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+
+                        <Grid>
+                            <VerticalStackLayout x:Name="DetailLayout"
+                                                 Spacing="16">
+                                <VerticalStackLayout.Triggers>
+                                    <DataTrigger TargetType="VerticalStackLayout"
+                                                 Binding="{Binding HasSelection}"
+                                                 Value="False">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                </VerticalStackLayout.Triggers>
+
+                                <Label Text="用户详情"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#1A1A1A" />
+
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                                      ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="12"
+                                      RowSpacing="12">
+                                    <Label Grid.Row="0"
+                                           Grid.Column="0"
+                                           Text="用户名"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Entry Grid.Row="0"
+                                           Grid.Column="1"
+                                           Text="{Binding UserForm.Username}"
+                                           IsReadOnly="True"
+                                           TextColor="#1A1A1A"
+                                           BackgroundColor="#F5F6F9" />
+
+                                    <Label Grid.Row="1"
+                                           Grid.Column="0"
+                                           Text="昵称"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Entry Grid.Row="1"
+                                           Grid.Column="1"
+                                           Text="{Binding UserForm.Nickname}"
+                                           Placeholder="请输入用户昵称" />
+
+                                    <Label Grid.Row="2"
+                                           Grid.Column="0"
+                                           Text="邮箱"
+                                           FontSize="14"
+                                           TextColor="#7A8196" />
+                                    <Entry Grid.Row="2"
+                                           Grid.Column="1"
+                                           Text="{Binding UserForm.Email}"
+                                           Keyboard="Email"
+                                           Placeholder="请输入邮箱" />
+
+                                    <Label Grid.Row="3"
+                                           Grid.Column="0"
+                                           Text="头像图片"
+                                           FontSize="14"
+                                           TextColor="#7A8196"
+                                           VerticalTextAlignment="Center" />
+                                    <VerticalStackLayout Grid.Row="3"
+                                                         Grid.Column="1"
+                                                         Spacing="8">
+                                        <Border WidthRequest="80"
+                                                HeightRequest="80"
+                                                StrokeThickness="0"
+                                                BackgroundColor="#EEF1F5">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="16" />
+                                            </Border.StrokeShape>
+                                            <Grid>
+                                                <Image Source="{Binding UserForm.AvatarUrl}"
+                                                       Aspect="AspectFill"
+                                                       IsVisible="True">
+                                                    <Image.Triggers>
+                                                        <DataTrigger TargetType="Image"
+                                                                     Binding="{Binding UserForm.AvatarUrl}"
+                                                                     Value="">
+                                                            <Setter Property="IsVisible" Value="False" />
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="Image"
+                                                                     Binding="{Binding UserForm.AvatarUrl}"
+                                                                     Value="{x:Null}">
+                                                            <Setter Property="IsVisible" Value="False" />
+                                                        </DataTrigger>
+                                                    </Image.Triggers>
+                                                </Image>
+                                                <Label Text="暂无头像"
+                                                       FontSize="12"
+                                                       TextColor="#9AA0B1"
+                                                       HorizontalTextAlignment="Center"
+                                                       VerticalTextAlignment="Center"
+                                                       IsVisible="False">
+                                                    <Label.Triggers>
+                                                        <DataTrigger TargetType="Label"
+                                                                     Binding="{Binding UserForm.AvatarUrl}"
+                                                                     Value="">
+                                                            <Setter Property="IsVisible" Value="True" />
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="Label"
+                                                                     Binding="{Binding UserForm.AvatarUrl}"
+                                                                     Value="{x:Null}">
+                                                            <Setter Property="IsVisible" Value="True" />
+                                                        </DataTrigger>
+                                                    </Label.Triggers>
+                                                </Label>
+                                            </Grid>
+                                        </Border>
+
+                                        <HorizontalStackLayout Spacing="10">
+                                            <Button Text="上传头像"
+                                                    Command="{Binding SelectAvatarCommand}"
+                                                    IsEnabled="{Binding CanSelectAvatar}"
+                                                    HeightRequest="40"
+                                                    Padding="16,0"
+                                                    BackgroundColor="#3478F6"
+                                                    TextColor="White"
+                                                    CornerRadius="14" />
+                                            <Label Text="{Binding UserForm.AvatarUrl}"
+                                                   FontSize="11"
+                                                   TextColor="#9AA0B1"
+                                                   HorizontalOptions="FillAndExpand"
+                                                   LineBreakMode="CharacterWrap" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+
+                                    <Label Grid.Row="4"
+                                           Grid.Column="0"
+                                           Text="管理员权限"
+                                           FontSize="14"
+                                           TextColor="#7A8196"
+                                           VerticalTextAlignment="Center" />
+                                    <Switch Grid.Row="4"
+                                            Grid.Column="1"
+                                            IsToggled="{Binding UserForm.IsAdmin}"
+                                            HorizontalOptions="Start" />
+                                </Grid>
+
+                                <Label Text="{Binding UserForm.ValidationMessage}"
+                                       FontSize="12"
+                                       TextColor="#FF4D4F"
+                                       IsVisible="{Binding UserForm.HasValidationError}" />
+
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="{Binding SelectedUser.CreatedAtDisplay}"
+                                           FontSize="12"
+                                           TextColor="#9AA0B1" />
+                                    <Label Text="{Binding SelectedUser.LastLoginDisplay}"
+                                           FontSize="12"
+                                           TextColor="#9AA0B1" />
+                                </VerticalStackLayout>
+
+                                <HorizontalStackLayout Spacing="12">
+                                    <Button Text="保存修改"
+                                            Command="{Binding SaveCommand}"
+                                            IsEnabled="{Binding CanSave}"
+                                            BackgroundColor="#3478F6"
+                                            TextColor="White"
+                                            HeightRequest="44"
+                                            CornerRadius="16"
+                                            HorizontalOptions="FillAndExpand" />
+                                    <Button Text="重置"
+                                            Command="{Binding ResetCommand}"
+                                            IsEnabled="{Binding CanReset}"
+                                            BackgroundColor="#EEF1F5"
+                                            TextColor="#1A1A1A"
+                                            HeightRequest="44"
+                                            CornerRadius="16"
+                                            HorizontalOptions="FillAndExpand" />
+                                </HorizontalStackLayout>
+
+                                <BoxView HeightRequest="1"
+                                         Color="#EEF1F5"
+                                         Margin="0,16,0,0" />
+
+                                <VerticalStackLayout Spacing="10">
+                                    <Label Text="密码管理"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="#1A1A1A" />
+
+                                    <Entry Text="{Binding NewPassword}"
+                                           IsPassword="True"
+                                           Placeholder="输入新密码"
+                                           FontSize="14"
+                                           IsEnabled="{Binding HasSelection}" />
+
+                                    <Entry Text="{Binding ConfirmPassword}"
+                                           IsPassword="True"
+                                           Placeholder="确认新密码"
+                                           FontSize="14"
+                                           IsEnabled="{Binding HasSelection}" />
+
+                                    <Label Text="{Binding PasswordValidationMessage}"
+                                           FontSize="12"
+                                           TextColor="#FF4D4F"
+                                           IsVisible="{Binding HasPasswordValidationError}" />
+
+                                    <Button Text="更新密码"
+                                            Command="{Binding UpdatePasswordCommand}"
+                                            IsEnabled="{Binding CanUpdatePassword}"
+                                            BackgroundColor="#FF9F0A"
+                                            TextColor="White"
+                                            HeightRequest="44"
+                                            CornerRadius="16" />
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="12"
+                                                 HorizontalOptions="Center"
+                                                 VerticalOptions="Center"
+                                                 IsVisible="True">
+                                <VerticalStackLayout.Triggers>
+                                    <DataTrigger TargetType="VerticalStackLayout"
+                                                 Binding="{Binding HasSelection}"
+                                                 Value="True">
+                                        <Setter Property="IsVisible" Value="False" />
+                                    </DataTrigger>
+                                </VerticalStackLayout.Triggers>
+
+                                <Label Text="请选择左侧的用户查看详情"
+                                       FontSize="14"
+                                       TextColor="#9AA0B1"
+                                       HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid IsVisible="{Binding IsAccessDenied}">
+            <VerticalStackLayout Padding="24"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="14">
+                <Label Text="当前账号没有管理员权限"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#1A1A1A"
+                       HorizontalTextAlignment="Center" />
+                <Label Text="请使用管理员账号登录以访问用户管理功能"
+                       FontSize="13"
+                       TextColor="#7A8196"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Grid>
     </Grid>
 </ContentPage>

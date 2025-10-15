@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -10,11 +11,14 @@ using GamerLinkApp.Services;
 using GamerLinkApp.Views;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
 
 namespace GamerLinkApp.ViewModels;
 
 public class AdminDashboardViewModel : BaseViewModel
 {
+    private const string ThumbnailDirectoryName = "thumbnails";
+
     private readonly IDataService _dataService;
     private readonly IAuthService _authService;
     private readonly List<Service> _allServices = new();
@@ -28,6 +32,8 @@ public class AdminDashboardViewModel : BaseViewModel
     private string _searchText = string.Empty;
     private string _statusMessage = string.Empty;
     private ServiceListItem? _selectedService;
+    private bool _isSelectingThumbnail;
+    private string _currentOfficialThumbnail = string.Empty;
 
     public AdminDashboardViewModel(IDataService dataService, IAuthService authService)
     {
@@ -40,6 +46,7 @@ public class AdminDashboardViewModel : BaseViewModel
         SelectServiceCommand = new Command<ServiceListItem>(item => SelectedService = item);
         ToggleFeaturedCommand = new Command(async () => await ToggleFeaturedAsync(), () => SelectedService is not null && !IsSaving);
         LogoutCommand = new Command(async () => await LogoutAsync(), () => !_isLoggingOut);
+        SelectThumbnailCommand = new Command(async () => await SelectThumbnailAsync(), () => CanSelectThumbnail);
 
         ServiceForm.PropertyChanged += (_, _) => UpdateFormState();
     }
@@ -183,6 +190,8 @@ public class AdminDashboardViewModel : BaseViewModel
 
     public bool HasRecentOrders => RecentOrders.Count > 0;
 
+    public bool CanSelectThumbnail => !IsBusy && !IsSaving && SelectedService is not null && !_isSelectingThumbnail;
+
     #endregion
 
     #region Commands
@@ -198,6 +207,8 @@ public class AdminDashboardViewModel : BaseViewModel
     public ICommand ToggleFeaturedCommand { get; }
 
     public ICommand LogoutCommand { get; }
+
+    public ICommand SelectThumbnailCommand { get; }
 
     #endregion
 
@@ -342,13 +353,133 @@ public class AdminDashboardViewModel : BaseViewModel
 
     private void LoadFormFromSelection()
     {
+        CleanupTemporaryThumbnailIfNeeded(_currentOfficialThumbnail);
+
         if (SelectedService is null)
         {
+            _currentOfficialThumbnail = string.Empty;
             ServiceForm.Load(null);
             return;
         }
 
-        ServiceForm.Load(SelectedService.Service);
+        var service = SelectedService.Service;
+        _currentOfficialThumbnail = service.ThumbnailUrl ?? string.Empty;
+        ServiceForm.Load(service);
+    }
+
+    private async Task SelectThumbnailAsync()
+    {
+        if (!CanSelectThumbnail || SelectedService is null)
+        {
+            return;
+        }
+
+        _isSelectingThumbnail = true;
+        UpdateCommandStates();
+
+        try
+        {
+            var result = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "选择服务缩略图",
+                FileTypes = FilePickerFileType.Images
+            });
+
+            if (result is null)
+            {
+                return;
+            }
+
+            CleanupTemporaryThumbnailIfNeeded(_currentOfficialThumbnail);
+
+            var savedPath = await SaveThumbnailFileAsync(result);
+
+            ServiceForm.ThumbnailUrl = savedPath;
+            StatusMessage = "缩略图已更新，记得保存服务信息";
+            UpdateFormState();
+        }
+        catch (TaskCanceledException)
+        {
+            // 用户取消选择，忽略
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"选择缩略图失败：{ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"Thumbnail selection failed: {ex}");
+        }
+        finally
+        {
+            _isSelectingThumbnail = false;
+            UpdateCommandStates();
+        }
+    }
+
+    private void CleanupTemporaryThumbnailIfNeeded(string? keepPath)
+    {
+        var current = ServiceForm.ThumbnailUrl;
+        if (string.IsNullOrWhiteSpace(current))
+        {
+            return;
+        }
+
+        if (string.Equals(current, keepPath, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        DeleteLocalThumbnailFileIfOwned(current);
+    }
+
+    private async Task<string> SaveThumbnailFileAsync(FileResult file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+
+        var extension = Path.GetExtension(file.FileName);
+        extension = string.IsNullOrWhiteSpace(extension) ? ".png" : extension.ToLowerInvariant();
+
+        var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp" };
+        if (!allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("仅支持常见图片格式（jpg/png/gif/bmp/webp）");
+        }
+
+        var directory = Path.Combine(FileSystem.AppDataDirectory, ThumbnailDirectoryName);
+        Directory.CreateDirectory(directory);
+
+        var fileName = $"{Guid.NewGuid():N}{extension}";
+        var destinationPath = Path.Combine(directory, fileName);
+
+        await using var sourceStream = await file.OpenReadAsync();
+        await using var destinationStream = File.Create(destinationPath);
+        await sourceStream.CopyToAsync(destinationStream);
+
+        return destinationPath;
+    }
+
+    private void DeleteLocalThumbnailFileIfOwned(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var directory = Path.Combine(FileSystem.AppDataDirectory, ThumbnailDirectoryName);
+            if (!path.StartsWith(directory, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Thumbnail cleanup failed: {ex}");
+        }
     }
 
     private void UpdateFormState()
@@ -369,10 +500,16 @@ public class AdminDashboardViewModel : BaseViewModel
         ((Command)SaveCommand).ChangeCanExecute();
         ((Command)ResetCommand).ChangeCanExecute();
         ((Command)ToggleFeaturedCommand).ChangeCanExecute();
+        if (SelectThumbnailCommand is Command selectThumbnailCommand)
+        {
+            selectThumbnailCommand.ChangeCanExecute();
+        }
+        OnPropertyChanged(nameof(CanSelectThumbnail));
     }
 
     private void ResetForm()
     {
+        CleanupTemporaryThumbnailIfNeeded(_currentOfficialThumbnail);
         LoadFormFromSelection();
         StatusMessage = "已恢复表单内容。";
         UpdateFormState();
@@ -401,6 +538,7 @@ public class AdminDashboardViewModel : BaseViewModel
 
             ReplaceService(result);
             SelectedService.Update(result);
+            _currentOfficialThumbnail = result.ThumbnailUrl ?? string.Empty;
             LoadFormFromSelection();
             UpdateSummaryMetrics();
             UpdateRecentOrdersForSelection();
