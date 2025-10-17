@@ -4,7 +4,7 @@
              xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
              x:Class="GamerLinkApp.Views.OrderReviewPage"
              x:DataType="vm:OrderReviewViewModel"
-             Title="&#35780;&#20215;&#35746;&#21333;"
+             Title="订单评价"
              BackgroundColor="#F4F5F7"
              Shell.TabBarIsVisible="False">
     <Grid RowDefinitions="*,Auto">
@@ -18,6 +18,7 @@
                     <Setter Property="IsVisible" Value="True" />
                 </DataTrigger>
             </ScrollView.Triggers>
+
             <VerticalStackLayout Spacing="18">
                 <Border BackgroundColor="White"
                         Padding="16"
@@ -25,6 +26,7 @@
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="18" />
                     </Border.StrokeShape>
+
                     <Grid ColumnDefinitions="Auto,*"
                           ColumnSpacing="16">
                         <Border WidthRequest="88"
@@ -45,12 +47,24 @@
                                    FontSize="20"
                                    FontAttributes="Bold"
                                    TextColor="#1A1A1A" />
-                            <Label Text="{Binding Service.GameName, StringFormat='&#25152;&#23646;&#28216;&#25103;&#65306;{0}', TargetNullValue='&#25152;&#23646;&#28216;&#25103;&#65306;-'}"
-                                   FontSize="14"
-                                   TextColor="#6B7280" />
-                            <Label Text="{Binding Service.ServiceType, StringFormat='&#26381;&#21153;&#31867;&#22411;&#65306;{0}', TargetNullValue='&#26381;&#21153;&#31867;&#22411;&#65306;-'}"
-                                   FontSize="14"
-                                   TextColor="#6B7280" />
+                            <Label FontSize="14"
+                                   TextColor="#6B7280">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="所属游戏: " />
+                                        <Span Text="{Binding Service.GameName, TargetNullValue='-'}" />
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                            <Label FontSize="14"
+                                   TextColor="#6B7280">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="服务类型: " />
+                                        <Span Text="{Binding Service.ServiceType, TargetNullValue='-'}" />
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
                         </VerticalStackLayout>
                     </Grid>
                 </Border>
@@ -61,20 +75,33 @@
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="18" />
                     </Border.StrokeShape>
+
                     <VerticalStackLayout Spacing="12">
-                        <Label Text="&#35746;&#21333;&#20449;&#24687;"
+                        <Label Text="订单信息"
                                FontSize="16"
                                FontAttributes="Bold"
                                TextColor="#1A1A1A" />
                         <Label Text="{Binding OrderNumberDisplay}"
                                FontSize="13"
                                TextColor="#434A59" />
-                        <Label Text="{Binding OrderDateDisplay, StringFormat='&#19979;&#21333;&#26102;&#38388;&#65306;{0}'}"
-                               FontSize="13"
-                               TextColor="#434A59" />
-                        <Label Text="{Binding OrderStatusDisplay, StringFormat='&#24403;&#21069;&#29366;&#24577;&#65306;{0}'}"
-                               FontSize="13"
-                               TextColor="#434A59" />
+                        <Label FontSize="13"
+                               TextColor="#434A59">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="下单时间: " />
+                                    <Span Text="{Binding OrderDateDisplay}" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                        <Label FontSize="13"
+                               TextColor="#434A59">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="当前状态: " />
+                                    <Span Text="{Binding OrderStatusDisplay}" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
                     </VerticalStackLayout>
                 </Border>
 
@@ -84,13 +111,14 @@
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="18" />
                     </Border.StrokeShape>
+
                     <VerticalStackLayout Spacing="16">
                         <VerticalStackLayout Spacing="4">
-                            <Label Text="&#32508;&#21512;&#35780;&#20998;"
+                            <Label Text="综合评分"
                                    FontSize="16"
                                    FontAttributes="Bold"
                                    TextColor="#1A1A1A" />
-                            <Label Text="&#35831;&#36873;&#25321; 1-5 &#20998;&#30340;&#35780;&#20998;&#65292;5 &#20998;&#20195;&#34920;&#38750;&#24120;&#28385;&#24847;"
+                            <Label Text="请选择 1-5 星评分，5 星表示非常满意"
                                    FontSize="12"
                                    TextColor="#87909F" />
                         </VerticalStackLayout>
@@ -128,11 +156,11 @@
                         </HorizontalStackLayout>
 
                         <VerticalStackLayout Spacing="4">
-                            <Label Text="&#35780;&#20215;&#20869;&#23481;"
+                            <Label Text="评价内容"
                                    FontSize="16"
                                    FontAttributes="Bold"
                                    TextColor="#1A1A1A" />
-                            <Label Text="&#33267;&#23569;&#22635;&#20889; 5 &#20010;&#23383;&#65292;&#24110;&#21161;&#26356;&#22810;&#29609;&#23478;&#20102;&#35299;&#23454;&#38469;&#20307;&#39564;"
+                            <Label Text="至少填写 5 个字，帮助更多玩家了解实际体验"
                                    FontSize="12"
                                    TextColor="#87909F" />
                         </VerticalStackLayout>
@@ -141,7 +169,7 @@
                                 AutoSize="TextChanges"
                                 HeightRequest="150"
                                 MaxLength="200"
-                                Placeholder="&#35831;&#20889;&#19979;&#26412;&#27425;&#26381;&#21153;&#20307;&#39564;"
+                                Placeholder="写下本次体验的想法"
                                 TextColor="#1A1A1A">
                             <Editor.Triggers>
                                 <DataTrigger TargetType="Editor"
@@ -152,6 +180,7 @@
                                 </DataTrigger>
                             </Editor.Triggers>
                         </Editor>
+
                         <Label Text="{Binding CommentLengthIndicator}"
                                FontSize="12"
                                TextColor="#9AA0B1"
@@ -170,7 +199,7 @@
                                     <Setter Property="IsVisible" Value="True" />
                                 </DataTrigger>
                             </Border.Triggers>
-                            <Label Text="&#35813;&#35746;&#21333;&#24050;&#23436;&#25104;&#35780;&#20215;&#65292;&#22914;&#38656;&#20462;&#25913;&#35831;&#32852;&#31995;&#24179;&#21488;&#23458;&#26381;"
+                            <Label Text="该订单已完成评价，如需修改请联系平台客服"
                                    FontSize="13"
                                    TextColor="#5A6475" />
                         </Border>
@@ -192,11 +221,12 @@
                     <Setter Property="IsVisible" Value="False" />
                 </DataTrigger>
             </VerticalStackLayout.Triggers>
-            <Label Text="&#26242;&#26080;&#21487;&#35780;&#20215;&#30340;&#35746;&#21333;"
+
+            <Label Text="暂无可评价的订单"
                    FontSize="20"
                    FontAttributes="Bold"
                    TextColor="#1A1A1A" />
-            <Label Text="&#35831;&#36820;&#22238;&#35746;&#21333;&#20013;&#24515;&#36873;&#25321;&#19968;&#31508;&#24453;&#35780;&#20215;&#30340;&#35746;&#21333;"
+            <Label Text="请返回订单列表选择一条待评价的订单"
                    FontSize="14"
                    TextColor="#6B7280"
                    HorizontalTextAlignment="Center" />

@@ -57,8 +57,8 @@
                 </Frame>
 
                 <VerticalStackLayout Spacing="8" IsVisible="{Binding IsShowingBanners}">
-                    <CarouselView HeightRequest="165"
-                                  Loop="True"
+                    <CarouselView x:Name="BannerCarouselView" 
+                        HeightRequest="{OnPlatform Android=165, iOS=165, WinUI=200}" 
                                   IsBounceEnabled="False"
                                   IndicatorView="{x:Reference BannerIndicators}">
                         <CarouselView.ItemsSource>

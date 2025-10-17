@@ -44,4 +44,14 @@ public partial class ProfilePage : ContentPage
 
         await Shell.Current.GoToAsync(nameof(FavoriteServicesPage));
     }
+
+    private async void OnSupportTapped(object sender, TappedEventArgs e)
+    {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
+        await Shell.Current.GoToAsync(nameof(SupportChatPage));
+    }
 }

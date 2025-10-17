@@ -29,6 +29,7 @@ namespace GamerLinkApp.Services
         Task<List<Service>> GetFavoriteServicesAsync(int userId);
         Task<bool> IsFavoriteAsync(int userId, int serviceId);
         Task<bool> ToggleFavoriteAsync(int userId, int serviceId);
+        Task<Service?> CreateServiceAsync(Service service);
         Task<Service?> UpdateServiceAsync(Service service);
         Task<List<Order>> GetAllOrdersAsync();
         Task<Order?> UpdateOrderStatusAsync(int orderId, string status, DateTime? paymentDate = null, DateTime? completionDate = null, DateTime? refundRequestedAt = null);

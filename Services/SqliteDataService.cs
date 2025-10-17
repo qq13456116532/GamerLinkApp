@@ -54,6 +54,49 @@ namespace GamerLinkApp.Services
             return service;
         }
 
+        public async Task<Service?> CreateServiceAsync(Service service)
+        {
+            ArgumentNullException.ThrowIfNull(service);
+
+            await EnsureInitializedAsync();
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+
+            var entity = new Service
+            {
+                Title = service.Title ?? string.Empty,
+                Description = service.Description ?? string.Empty,
+                Price = service.Price,
+                GameName = service.GameName ?? string.Empty,
+                ServiceType = service.ServiceType ?? string.Empty,
+                SellerId = service.SellerId,
+                ThumbnailUrl = service.ThumbnailUrl ?? string.Empty,
+                Category = service.Category ?? string.Empty,
+                IsFeatured = service.IsFeatured,
+                AverageRating = service.AverageRating,
+                ReviewCount = service.ReviewCount,
+                PurchaseCount = service.PurchaseCount,
+                CompletedCount = service.CompletedCount,
+                ImageUrls = service.ImageUrls ?? new List<string>(),
+                Tags = service.Tags ?? new List<string>()
+            };
+
+            context.Services.Add(entity);
+            await context.SaveChangesAsync();
+
+            var created = await context.Services
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == entity.Id);
+
+            if (created is not null)
+            {
+                created.ImageUrls ??= new List<string>();
+                created.Tags ??= new List<string>();
+            }
+
+            return created;
+        }
+
         public async Task<Service?> UpdateServiceAsync(Service service)
         {
             ArgumentNullException.ThrowIfNull(service);
@@ -371,12 +414,12 @@ namespace GamerLinkApp.Services
             if (order.ReviewId.HasValue)
             {
                 var existingReview = await context.Reviews.AsNoTracking().FirstOrDefaultAsync(r => r.Id == order.ReviewId.Value);
-                return (order, existingReview, "璇ヨ鍗曞凡瀹屾垚璇勪环");
+                return (order, existingReview, "该订单已完成评价");
             }
 
             if (!string.Equals(order.Status, nameof(OrderStatus.PendingReview), StringComparison.Ordinal))
             {
-                return (order, null, "褰撳墠璁㈠崟鐘舵€佷笉鏀寔璇勪环");
+                return (order, null, "当前订单状态不支持评价");
             }
 
             var review = new Review

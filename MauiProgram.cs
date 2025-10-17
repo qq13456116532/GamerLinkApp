@@ -69,6 +69,8 @@ namespace GamerLinkApp
             builder.Services.AddTransient<OrderReviewViewModel>();
             builder.Services.AddTransient<FavoriteServicesPage>();
             builder.Services.AddTransient<FavoriteServicesViewModel>();
+            builder.Services.AddTransient<SupportChatPage>();
+            builder.Services.AddTransient<SupportChatViewModel>();
             builder.Services.AddTransient<AdminDashboardPage>();
             builder.Services.AddTransient<AdminDashboardViewModel>();
             builder.Services.AddTransient<AdminOrdersPage>();
@@ -76,7 +78,18 @@ namespace GamerLinkApp
             builder.Services.AddTransient<AdminUsersViewModel>();
             builder.Services.AddTransient<AdminUsersPage>();
 
+            // 注册 RAG 服务为单例
+            builder.Services.AddSingleton<IRagService, RagService>();
+
             var app = builder.Build();
+
+            // 在 App 启动后异步初始化 RAG 服务
+            Task.Run(async () =>
+            {
+                var ragService = ServiceHelper.GetRequiredService<IRagService>();
+                await ragService.InitializeAsync();
+            });
+
             ServiceHelper.Initialize(app.Services);
 
             return app;

@@ -246,13 +246,24 @@
                         </Border.StrokeShape>
                         <Grid ColumnDefinitions="*,Auto"
                               VerticalOptions="Center">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSupportTapped" />
+                            </Grid.GestureRecognizers>
                             <Label Text="联系客服"
                                    FontSize="15"
-                                   TextColor="#1A1A1A" />
+                                   TextColor="#1A1A1A">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnSupportTapped" />
+                                </Label.GestureRecognizers>
+                            </Label>
                             <Label Text=">"
                                    Grid.Column="1"
                                    FontSize="16"
-                                   TextColor="#C0C0C0" />
+                                   TextColor="#C0C0C0">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnSupportTapped" />
+                                </Label.GestureRecognizers>
+                            </Label>
                         </Grid>
                     </Border>
 

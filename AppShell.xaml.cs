@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
+using GamerLinkApp.Behaviors;
 using GamerLinkApp.Helpers;
 using GamerLinkApp.Models;
 using GamerLinkApp.Services;
@@ -12,6 +14,7 @@ namespace GamerLinkApp;
 public partial class AppShell : Shell
 {
     private readonly IAuthService _authService;
+    private bool _isDisposed;
 
     public AppShell()
     {
@@ -24,9 +27,11 @@ public partial class AppShell : Shell
         Routing.RegisterRoute(nameof(AdminDashboardPage), typeof(AdminDashboardPage));
         Routing.RegisterRoute(nameof(AdminOrdersPage), typeof(AdminOrdersPage));
         Routing.RegisterRoute(nameof(AdminUsersPage), typeof(AdminUsersPage));
+        Routing.RegisterRoute(nameof(SupportChatPage), typeof(SupportChatPage));
 
         _authService = ServiceHelper.GetRequiredService<IAuthService>();
         _authService.CurrentUserChanged += OnCurrentUserChanged;
+        Navigated += OnShellNavigated;
 
         _ = InitializeTabsAsync();
     }
@@ -37,7 +42,15 @@ public partial class AppShell : Shell
 
         if (Handler is null)
         {
+            _isDisposed = true;
             _authService.CurrentUserChanged -= OnCurrentUserChanged;
+            Navigated -= OnShellNavigated;
+        }
+        else
+        {
+            _isDisposed = false;
+            Navigated -= OnShellNavigated;
+            Navigated += OnShellNavigated;
         }
     }
 
@@ -52,6 +65,11 @@ public partial class AppShell : Shell
 
     private void UpdateTabs(User? user)
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         Items.Clear();
 
         if (user?.IsAdmin == true)
@@ -70,6 +88,7 @@ public partial class AppShell : Shell
         if (Items.Count > 0)
         {
             CurrentItem = Items[0];
+            AttachSupportButtonToCurrentPage();
         }
     }
 
@@ -89,5 +108,56 @@ public partial class AppShell : Shell
 
         tab.Items.Add(content);
         return tab;
+    }
+
+    private void OnShellNavigated(object? sender, ShellNavigatedEventArgs e) => AttachSupportButtonToCurrentPage();
+
+    private void AttachSupportButtonToCurrentPage()
+    {
+        var contentPage = ResolveContentPage(CurrentPage);
+        if (contentPage is null)
+        {
+            return;
+        }
+
+        if (contentPage is SupportChatPage)
+        {
+            RemoveSupportButton(contentPage);
+            return;
+        }
+
+        EnsureSupportButton(contentPage);
+    }
+
+    private static ContentPage? ResolveContentPage(Page? page) =>
+        page switch
+        {
+            ContentPage contentPage => contentPage,
+            NavigationPage navigationPage => navigationPage.CurrentPage as ContentPage,
+            _ => null
+        };
+
+    private static void EnsureSupportButton(ContentPage page)
+    {
+        if (page.Behaviors.OfType<SupportFloatingButtonBehavior>().Any())
+        {
+            return;
+        }
+
+        page.Behaviors.Add(new SupportFloatingButtonBehavior());
+    }
+
+    private static void RemoveSupportButton(ContentPage page)
+    {
+        var behaviors = page.Behaviors.OfType<SupportFloatingButtonBehavior>().ToList();
+        if (behaviors.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var behavior in behaviors)
+        {
+            page.Behaviors.Remove(behavior);
+        }
     }
 }

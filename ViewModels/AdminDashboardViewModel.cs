@@ -34,6 +34,8 @@ public class AdminDashboardViewModel : BaseViewModel
     private ServiceListItem? _selectedService;
     private bool _isSelectingThumbnail;
     private string _currentOfficialThumbnail = string.Empty;
+    private User? _currentAdmin;
+    private ServiceListItem? _draftService;
 
     public AdminDashboardViewModel(IDataService dataService, IAuthService authService)
     {
@@ -41,6 +43,7 @@ public class AdminDashboardViewModel : BaseViewModel
         _authService = authService;
 
         RefreshCommand = new Command(async () => await LoadAsync(), () => !IsBusy);
+        AddServiceCommand = new Command(AddService, () => CanAddService);
         SaveCommand = new Command(async () => await SaveAsync(), () => CanSave);
         ResetCommand = new Command(ResetForm, () => CanReset);
         SelectServiceCommand = new Command<ServiceListItem>(item => SelectedService = item);
@@ -190,6 +193,8 @@ public class AdminDashboardViewModel : BaseViewModel
 
     public bool HasRecentOrders => RecentOrders.Count > 0;
 
+    public bool CanAddService => !IsBusy && !IsSaving;
+
     public bool CanSelectThumbnail => !IsBusy && !IsSaving && SelectedService is not null && !_isSelectingThumbnail;
 
     #endregion
@@ -197,6 +202,8 @@ public class AdminDashboardViewModel : BaseViewModel
     #region Commands
 
     public ICommand RefreshCommand { get; }
+
+    public ICommand AddServiceCommand { get; }
 
     public ICommand SaveCommand { get; }
 
@@ -263,6 +270,7 @@ public class AdminDashboardViewModel : BaseViewModel
     {
         var user = await _authService.GetCurrentUserAsync();
         var isAdmin = user?.IsAdmin == true;
+        _currentAdmin = isAdmin ? user : null;
         IsAccessDenied = !isAdmin;
         return isAdmin;
     }
@@ -271,6 +279,7 @@ public class AdminDashboardViewModel : BaseViewModel
     {
         _allServices.Clear();
         Services.Clear();
+        _draftService = null;
 
         var services = await _dataService.GetServicesAsync();
         foreach (var service in services.OrderByDescending(s => s.IsFeatured).ThenBy(s => s.Title, StringComparer.OrdinalIgnoreCase))
@@ -365,6 +374,53 @@ public class AdminDashboardViewModel : BaseViewModel
         var service = SelectedService.Service;
         _currentOfficialThumbnail = service.ThumbnailUrl ?? string.Empty;
         ServiceForm.Load(service);
+    }
+
+    private void AddService()
+    {
+        if (!CanAddService)
+        {
+            return;
+        }
+
+        if (_draftService is not null && _draftService.IsNew)
+        {
+            SelectedService = _draftService;
+            StatusMessage = "当前存在未保存的新服务草稿，已切换至该表单。";
+            return;
+        }
+
+        if (_currentAdmin is null)
+        {
+            StatusMessage = "无法确认当前管理员账号，暂时无法创建新服务。";
+            return;
+        }
+
+        var newService = new Service
+        {
+            Id = 0,
+            Title = string.Empty,
+            Description = string.Empty,
+            Price = 0,
+            GameName = string.Empty,
+            Category = string.Empty,
+            ServiceType = string.Empty,
+            SellerId = _currentAdmin.Id,
+            ThumbnailUrl = string.Empty,
+            ImageUrls = new List<string>(),
+            Tags = new List<string>(),
+            IsFeatured = false,
+            AverageRating = 0,
+            ReviewCount = 0,
+            PurchaseCount = 0,
+            CompletedCount = 0
+        };
+
+        var listItem = new ServiceListItem(newService, true);
+        Services.Insert(0, listItem);
+        _draftService = listItem;
+        SelectedService = listItem;
+        StatusMessage = "已创建新服务草稿，请填写完整后保存。";
     }
 
     private async Task SelectThumbnailAsync()
@@ -500,10 +556,15 @@ public class AdminDashboardViewModel : BaseViewModel
         ((Command)SaveCommand).ChangeCanExecute();
         ((Command)ResetCommand).ChangeCanExecute();
         ((Command)ToggleFeaturedCommand).ChangeCanExecute();
+        if (AddServiceCommand is Command addServiceCommand)
+        {
+            addServiceCommand.ChangeCanExecute();
+        }
         if (SelectThumbnailCommand is Command selectThumbnailCommand)
         {
             selectThumbnailCommand.ChangeCanExecute();
         }
+        OnPropertyChanged(nameof(CanAddService));
         OnPropertyChanged(nameof(CanSelectThumbnail));
     }
 
@@ -527,23 +588,45 @@ public class AdminDashboardViewModel : BaseViewModel
 
         try
         {
-            var updatedService = ServiceForm.ToServiceSnapshot(SelectedService.Service);
-            var result = await _dataService.UpdateServiceAsync(updatedService);
+            var isNew = SelectedService.IsNew;
+            var snapshot = ServiceForm.ToServiceSnapshot(SelectedService.Service);
+            Service? result;
+
+            if (isNew)
+            {
+                result = await _dataService.CreateServiceAsync(snapshot);
+            }
+            else
+            {
+                result = await _dataService.UpdateServiceAsync(snapshot);
+            }
 
             if (result is null)
             {
-                StatusMessage = "保存失败：服务可能已被删除。";
+                StatusMessage = isNew
+                    ? "创建服务失败，请稍后再试。"
+                    : "保存失败：服务可能已被删除。";
                 return;
             }
 
-            ReplaceService(result);
-            SelectedService.Update(result);
             _currentOfficialThumbnail = result.ThumbnailUrl ?? string.Empty;
-            LoadFormFromSelection();
-            UpdateSummaryMetrics();
-            UpdateRecentOrdersForSelection();
-            ApplyFilter();
-            StatusMessage = "保存成功。";
+
+            if (isNew)
+            {
+                _draftService = null;
+                await ReloadServicesAndSelectAsync(result.Id);
+                StatusMessage = "新服务创建成功。";
+            }
+            else
+            {
+                ReplaceService(result);
+                SelectedService.Update(result);
+                LoadFormFromSelection();
+                UpdateSummaryMetrics();
+                UpdateRecentOrdersForSelection();
+                ApplyFilter();
+                StatusMessage = "保存成功。";
+            }
         }
         catch (Exception ex)
         {
@@ -555,6 +638,24 @@ public class AdminDashboardViewModel : BaseViewModel
             IsSaving = false;
             UpdateFormState();
         }
+    }
+
+    private async Task ReloadServicesAndSelectAsync(int serviceId)
+    {
+        await LoadServicesAsync();
+
+        var matched = Services.FirstOrDefault(s => s.Id == serviceId);
+        if (matched is not null)
+        {
+            SelectedService = matched;
+        }
+        else if (Services.Count > 0)
+        {
+            SelectedService = Services[0];
+        }
+
+        UpdateSummaryMetrics();
+        UpdateRecentOrdersForSelection();
     }
 
     private void UpdateRecentOrdersForSelection()
@@ -646,17 +747,21 @@ public class AdminDashboardViewModel : BaseViewModel
     {
         private Service _service;
         private bool _isVisible = true;
+        private bool _isNew;
 
-        public ServiceListItem(Service service)
+        public ServiceListItem(Service service, bool isNew = false)
         {
             _service = service;
+            _isNew = isNew;
         }
 
         public Service Service => _service;
 
         public int Id => _service.Id;
 
-        public string Title => _service.Title ?? $"服务 #{_service.Id}";
+        public string Title => string.IsNullOrWhiteSpace(_service.Title)
+            ? (_isNew ? "新建服务" : $"服务 #{_service.Id}")
+            : _service.Title;
 
         public string PriceDisplay => $"¥{_service.Price:F0}";
 
@@ -667,6 +772,22 @@ public class AdminDashboardViewModel : BaseViewModel
         public bool IsFeatured => _service.IsFeatured;
 
         public string FeaturedBadge => _service.IsFeatured ? "精选" : string.Empty;
+
+        public bool IsNew
+        {
+            get => _isNew;
+            set
+            {
+                if (_isNew == value)
+                {
+                    return;
+                }
+
+                _isNew = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(Title));
+            }
+        }
 
         public bool IsVisible
         {
@@ -686,6 +807,7 @@ public class AdminDashboardViewModel : BaseViewModel
         public void Update(Service service)
         {
             _service = service;
+            IsNew = false;
             OnPropertyChanged(nameof(Service));
             OnPropertyChanged(nameof(Title));
             OnPropertyChanged(nameof(PriceDisplay));
