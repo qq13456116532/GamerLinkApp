@@ -60,6 +60,7 @@
                     <CarouselView x:Name="BannerCarouselView" 
                         HeightRequest="{OnPlatform Android=165, iOS=165, WinUI=200}" 
                                   IsBounceEnabled="False"
+                                  Loop="False"
                                   IndicatorView="{x:Reference BannerIndicators}">
                         <CarouselView.ItemsSource>
                             <x:Array Type="{x:Type x:String}">
