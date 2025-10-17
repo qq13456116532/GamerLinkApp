@@ -2,7 +2,7 @@
 /bin/
 /obj/
 /platforms/
-
+/build_logs/
 # Visual Studio files
 .vs/
 *.user
@@ -48,3 +48,7 @@ packages/
 
 # Others
 launchSettings.json
+/Resources/Raw/gemini_api_key.txt
+merge.py
+ResumeNotes.md
+all_code.txt
