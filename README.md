@@ -1,4 +1,4 @@
-﻿# GamerLinkApp
+﻿# GamerLinkApp - [中文说明](README_cn.md)
 
 GamerLinkApp is a cross-platform .NET MAUI sample marketplace for premium gaming services. It ships with seeded data, full MVVM flows, AI-assisted support, and an administrator back office so you can study how to deliver modern multi-device experiences with MAUI.
 
@@ -112,3 +112,4 @@ GamerLinkApp/
 - Introduce automated/unit/UI tests for the order wizard and admin pages to harden complex workflows.
 
 > Tip: enable XAML Hot Reload during development for instant visual feedback. Comment out the debug database reset in `MauiProgram.cs` if you want the seed data to persist between sessions.
+
