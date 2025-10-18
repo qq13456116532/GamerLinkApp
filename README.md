@@ -11,9 +11,32 @@ GamerLinkApp is a cross-platform .NET MAUI sample marketplace for premium gaming
 - Single codebase targeting Windows and Android with responsive layouts, theme awareness, and touch-friendly interactions.
 
 ## Screenshots
-| Windows Services | Windows Payment | Windows Profile | Windows Support |
-| --- | --- | --- | --- |
-| ![Windows Services](README.IMAGE/Services_Windows.png) | ![Windows Payment](README.IMAGE/Payment_Windows.png) | ![Windows Profile](README.IMAGE/Profile_Windows.png) | ![Windows Support](README.IMAGE/Support_Windows.png) |
+<table>
+  <tr>
+    <td align="center">
+      <img src="README.IMAGE/Services_Windows.png" alt="Windows Services" width="480" />
+      <br />
+      <sub>Windows Services</sub>
+    </td>
+    <td align="center">
+      <img src="README.IMAGE/Payment_Windows.png" alt="Windows Payment" width="480" />
+      <br />
+      <sub>Windows Payment</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="README.IMAGE/Profile_Windows.png" alt="Windows Profile" width="480" />
+      <br />
+      <sub>Windows Profile</sub>
+    </td>
+    <td align="center">
+      <img src="README.IMAGE/Support_Windows.png" alt="Windows Support" width="480" />
+      <br />
+      <sub>Windows Support</sub>
+    </td>
+  </tr>
+</table>
 
 | Android Services | Android Order | Android Profile | Android Support |
 | --- | --- | --- | --- |

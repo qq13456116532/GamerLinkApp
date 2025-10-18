@@ -11,9 +11,32 @@ GamerLinkApp 是一个面向高品质游戏服务的 .NET MAUI 跨平台示例�
 - **跨平台体验**：同一套代码运行在 Windows 与 Android，提供响应式布局、主题适配与触控优化。
 
 ## 界面预览
-| Windows 服务列表 | Windows 支付 | Windows 个人中心 | Windows 客服 |
-| --- | --- | --- | --- |
-| ![Windows Services](README.IMAGE/Services_Windows.png) | ![Windows Payment](README.IMAGE/Payment_Windows.png) | ![Windows Profile](README.IMAGE/Profile_Windows.png) | ![Windows Support](README.IMAGE/Support_Windows.png) |
+<table>
+  <tr>
+    <td align="center">
+      <img src="README.IMAGE/Services_Windows.png" alt="Windows Services" width="480" />
+      <br />
+      <sub>Windows 服务列表</sub>
+    </td>
+    <td align="center">
+      <img src="README.IMAGE/Payment_Windows.png" alt="Windows Payment" width="480" />
+      <br />
+      <sub>Windows 支付</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="README.IMAGE/Profile_Windows.png" alt="Windows Profile" width="480" />
+      <br />
+      <sub>Windows 个人中心</sub>
+    </td>
+    <td align="center">
+      <img src="README.IMAGE/Support_Windows.png" alt="Windows Support" width="480" />
+      <br />
+      <sub>Windows 客服</sub>
+    </td>
+  </tr>
+</table>
 
 | Android 服务列表 | Android 订单 | Android 个人中心 | Android 客服 |
 | --- | --- | --- | --- |
@@ -112,3 +135,4 @@ GamerLinkApp/
 - 补充自动化测试：为订单向导与后台页面编写单元 / UI 测试，提升复杂交互的稳定性。
 
 > 小贴士：开发时可启用 XAML Hot Reload 快速预览界面；若想保留调试数据，请注释 `MauiProgram.cs` 中的调试数据库重置逻辑。
+
