@@ -89,14 +89,18 @@ public class SupportFloatingButtonBehavior : Behavior<ContentPage>
             _floatingButtonBorder.GestureRecognizers.Remove(_tapGestureRecognizer);
         }
 
-        if (_floatingButtonHost is not null && _panGestureRecognizer is not null)
-        {
-            _floatingButtonHost.GestureRecognizers.Remove(_panGestureRecognizer);
-        }
-
         if (_tapGestureRecognizer is not null)
         {
             _tapGestureRecognizer.Tapped -= OnSupportButtonTapped;
+        }
+
+        if (_floatingButtonBorder is not null && _panGestureRecognizer is not null)
+        {
+            _floatingButtonBorder.GestureRecognizers.Remove(_panGestureRecognizer);
+        }
+        else if (_floatingButtonHost is not null && _panGestureRecognizer is not null)
+        {
+            _floatingButtonHost.GestureRecognizers.Remove(_panGestureRecognizer);
         }
 
         if (_panGestureRecognizer is not null)
@@ -193,11 +197,10 @@ public class SupportFloatingButtonBehavior : Behavior<ContentPage>
 
         container.Children.Add(outer);
 
+        _floatingButtonBorder = outer;
         var panGesture = new PanGestureRecognizer();
         panGesture.PanUpdated += OnSupportButtonPanUpdated;
-        container.GestureRecognizers.Add(panGesture);
-
-        _floatingButtonBorder = outer;
+        outer.GestureRecognizers.Add(panGesture);
         _panGestureRecognizer = panGesture;
         return container;
     }
@@ -276,12 +279,31 @@ public class SupportFloatingButtonBehavior : Behavior<ContentPage>
                         }
                     }
                 }
+
+                var panTarget = (View?)_floatingButtonBorder ?? view;
+
                 if (_panGestureRecognizer is null)
                 {
                     var panGesture = new PanGestureRecognizer();
                     panGesture.PanUpdated += OnSupportButtonPanUpdated;
-                    view.GestureRecognizers.Add(panGesture);
+                    panTarget.GestureRecognizers.Add(panGesture);
                     _panGestureRecognizer = panGesture;
+                }
+                else
+                {
+                    if (view.GestureRecognizers.Contains(_panGestureRecognizer))
+                    {
+                        view.GestureRecognizers.Remove(_panGestureRecognizer);
+                    }
+
+                    if (_floatingButtonBorder is not null && !_floatingButtonBorder.GestureRecognizers.Contains(_panGestureRecognizer))
+                    {
+                        _floatingButtonBorder.GestureRecognizers.Add(_panGestureRecognizer);
+                    }
+                    else if (_floatingButtonBorder is null && !view.GestureRecognizers.Contains(_panGestureRecognizer))
+                    {
+                        view.GestureRecognizers.Add(_panGestureRecognizer);
+                    }
                 }
                 break;
             }

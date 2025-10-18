@@ -9,7 +9,7 @@
       "ServiceType": "陪练",
       "Category": "MOBA",
       "SellerId": 1,
-      "ThumbnailUrl": "banner1.png",
+      "ThumbnailUrl": "wzry.jpg",
       "ImageUrls": [
         "banner1.png",
         "banner2.png"
@@ -34,7 +34,7 @@
       "ServiceType": "代练",
       "Category": "MOBA",
       "SellerId": 2,
-      "ThumbnailUrl": "banner1.png",
+      "ThumbnailUrl": "lol.jpg",
       "ImageUrls": [
         "banner1.png",
         "banner2.png"
@@ -59,7 +59,7 @@
       "ServiceType": "教学",
       "Category": "射击",
       "SellerId": 3,
-      "ThumbnailUrl": "banner1.png",
+      "ThumbnailUrl": "chiji.jpg",
       "ImageUrls": [
         "banner1.png",
         "banner2.png"
@@ -84,7 +84,7 @@
       "ServiceType": "陪练",
       "Category": "射击",
       "SellerId": 4,
-      "ThumbnailUrl": "banner1.png",
+      "ThumbnailUrl": "csgo.jpg",
       "ImageUrls": [
         "banner1.png"
       ],
@@ -97,6 +97,24 @@
         "压枪训练",
         "团队战术"
       ]
+    },
+    {
+      "Id": 5,
+      "Title": "三角洲行动 精英陪练",
+      "Description": "专业战术指导，涵盖精准压枪、投掷物运用、团队协同作战及高难度副本攻略，助你快速提升实战能力",
+      "GameName": "三角洲行动",
+      "Price": 109,
+      "ServiceType": "陪练",
+      "Category": "射击",
+      "SellerId": 5,
+      "ThumbnailUrl": "sjz.jpg",
+      "ImageUrls": [ "banner1.png", "banner2.png" ],
+      "IsFeatured": true,
+      "AverageRating": 4.7,
+      "ReviewCount": 286,
+      "PurchaseCount": 458,
+      "CompletedCount": 392,
+      "Tags": [ "精准压枪", "战术协同", "副本攻略" ]
     }
   ],
   "Users": [
@@ -206,6 +224,11 @@
     {
       "Id": 3,
       "Name": "RPG",
+      "IconUrl": "banner3.png"
+    },
+    {
+      "Id": 4,
+      "Name": "其他",
       "IconUrl": "banner3.png"
     }
   ],

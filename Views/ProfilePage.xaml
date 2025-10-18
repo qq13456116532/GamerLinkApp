@@ -39,17 +39,17 @@
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="48" />
                             </Border.StrokeShape>
-                            <Image Source="{Binding CurrentUser.AvatarUrl}"
+                            <Image Source="{Binding AvatarUrl}"
                                    Aspect="AspectFill" />
                         </Border>
 
-                        <Label Text="{Binding CurrentUser.Nickname}"
+                        <Label Text="{Binding DisplayNickname}"
                                FontSize="19"
                                FontAttributes="Bold"
                                TextColor="#1A1A1A"
                                HorizontalOptions="Center" />
 
-                        <Label Text="{Binding CurrentUser.Username, StringFormat='ID: {0}'}"
+                        <Label Text="{Binding DisplayUserId}"
                                FontSize="14"
                                TextColor="#666666"
                                HorizontalOptions="Center" />

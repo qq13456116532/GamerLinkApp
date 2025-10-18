@@ -49,6 +49,10 @@ public class ProfileViewModel : BaseViewModel
             _currentUser = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsAdmin));
+            OnPropertyChanged(nameof(IsLoggedIn));
+            OnPropertyChanged(nameof(AvatarUrl));
+            OnPropertyChanged(nameof(DisplayNickname));
+            OnPropertyChanged(nameof(DisplayUserId));
         }
     }
 
@@ -89,6 +93,10 @@ public class ProfileViewModel : BaseViewModel
     public ICommand NavigateToAdminCommand { get; }
 
     public bool IsAdmin => CurrentUser?.IsAdmin == true;
+    public bool IsLoggedIn => CurrentUser is not null;
+    public string AvatarUrl => CurrentUser?.AvatarUrl ?? string.Empty;
+    public string DisplayNickname => CurrentUser?.Nickname ?? "Not signed in";
+    public string DisplayUserId => CurrentUser is null ? string.Empty : $"ID: {CurrentUser.Username}";
 
     private async Task LoadAsync()
     {

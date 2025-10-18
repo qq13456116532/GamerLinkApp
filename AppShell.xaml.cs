@@ -70,6 +70,12 @@ public partial class AppShell : Shell
             return;
         }
 
+        if (user is null)
+        {
+            Items.Clear();
+            return;
+        }
+
         Items.Clear();
 
         if (user?.IsAdmin == true)
