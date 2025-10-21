@@ -6,6 +6,7 @@ using GamerLinkApp.ViewModels;
 using GamerLinkApp.Views;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Storage;
 
 namespace GamerLinkApp
@@ -78,20 +79,23 @@ namespace GamerLinkApp
             builder.Services.AddTransient<AdminUsersViewModel>();
             builder.Services.AddTransient<AdminUsersPage>();
 
-            // 注册 RAG 服务为单例
+            // Register RAG service as a singleton.
             builder.Services.AddSingleton<IRagService, RagService>();
 
             var app = builder.Build();
 
-            // 在 App 启动后异步初始化 RAG 服务
-            Task.Run(async () =>
+            // Ensure the RAG service is initialized before first use.
+            var ragService = app.Services.GetRequiredService<IRagService>();
+            try
             {
-                var ragService = ServiceHelper.GetRequiredService<IRagService>();
-                await ragService.InitializeAsync();
-            });
+                ragService.InitializeAsync().GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"RAG init failed at startup: {ex}");
+            }
 
             ServiceHelper.Initialize(app.Services);
-
             return app;
         }
     }

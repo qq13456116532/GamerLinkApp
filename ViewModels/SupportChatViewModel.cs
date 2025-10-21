@@ -96,7 +96,8 @@ public class SupportChatViewModel : BaseViewModel
         catch (Exception ex)
         {
             Debug.WriteLine($"Failed to get RAG response: {ex}");
-            Messages.Add(new SupportChatMessage(false, "\u62b1\u6b49\uff0c\u52a9\u624b\u6682\u65f6\u4e0d\u53ef\u7528\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5\u3002"));
+            var message = string.Format("\u62b1\u6b49\uff0c\u52a9\u624b\u6682\u65f6\u4e0d\u53ef\u7528\uff08{0}\uff09\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5\u3002", ex.Message);
+            Messages.Add(new SupportChatMessage(false, message));
         }
         finally
         {
