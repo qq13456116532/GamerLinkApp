@@ -180,6 +180,45 @@ public class AuthService : IAuthService
         }
     }
 
+    public async Task<User?> RefreshCurrentUserAsync()
+    {
+        await _syncLock.WaitAsync();
+        try
+        {
+            if (_currentUser is null)
+            {
+                return null;
+            }
+
+            User? user;
+            try
+            {
+                user = await _dataService.GetUserAsync(_currentUser.Id);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"RefreshCurrentUserAsync failed: {ex.Message}");
+                return _currentUser;
+            }
+
+            if (user is null)
+            {
+                _currentUser = null;
+                Preferences.Remove(CurrentUserIdKey);
+                RaiseCurrentUserChanged(null);
+                return null;
+            }
+
+            _currentUser = user;
+            RaiseCurrentUserChanged(user);
+            return user;
+        }
+        finally
+        {
+            _syncLock.Release();
+        }
+    }
+
     private Task CacheCurrentUserAsync(User user)
     {
         _currentUser = user;

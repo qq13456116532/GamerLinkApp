@@ -28,7 +28,8 @@ public partial class AppShell : Shell
         Routing.RegisterRoute(nameof(AdminOrdersPage), typeof(AdminOrdersPage));
         Routing.RegisterRoute(nameof(AdminUsersPage), typeof(AdminUsersPage));
         Routing.RegisterRoute(nameof(SupportChatPage), typeof(SupportChatPage));
-
+        Routing.RegisterRoute(nameof(OrderDetailPage), typeof(OrderDetailPage));
+        
         _authService = ServiceHelper.GetRequiredService<IAuthService>();
         _authService.CurrentUserChanged += OnCurrentUserChanged;
         Navigated += OnShellNavigated;

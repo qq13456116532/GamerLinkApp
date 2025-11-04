@@ -36,12 +36,20 @@
                                 BackgroundColor="#1A1A1A"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Center">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ChangeAvatarCommand}" />
+                            </Border.GestureRecognizers>
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="48" />
                             </Border.StrokeShape>
                             <Image Source="{Binding AvatarUrl}"
                                    Aspect="AspectFill" />
                         </Border>
+
+                        <Label Text="点击头像更换"
+                               FontSize="12"
+                               TextColor="#80869A"
+                               HorizontalOptions="Center" />
 
                         <Label Text="{Binding DisplayNickname}"
                                FontSize="19"

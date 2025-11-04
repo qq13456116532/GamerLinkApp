@@ -36,7 +36,7 @@
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="22" />
                                 </Border.StrokeShape>
-
+                                
                                 <VisualStateManager.VisualStateGroups>
                                     <VisualStateGroup Name="SelectionStates">
                                         <VisualState Name="Normal">
@@ -114,6 +114,9 @@
                                 BackgroundColor="White"
                                 StrokeThickness="1"
                                 Stroke="#E6E8F0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnOrderTapped" />
+                            </Border.GestureRecognizers>
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="18" />
                             </Border.StrokeShape>

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.AI;
+﻿using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Storage;
 using Microsoft.SemanticKernel;
@@ -14,6 +14,7 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 namespace GamerLinkApp.Services;
@@ -162,7 +163,7 @@ public class RagService : IRagService
         }
     }
 
-    public async Task<string> AskAsync(string question)
+    public async Task<RagResponse> AskAsync(string question)
     {
         if (!_isInitialized)
         {
@@ -173,7 +174,8 @@ public class RagService : IRagService
 
         if (_kernel is null || _memory is null)
         {
-            return _initializationError ?? "\u667A\u80FD\u5BA2\u670D\u6B63\u5728\u521D\u59CB\u5316\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5\u3002";
+            var message = _initializationError ?? "\u667A\u80FD\u5BA2\u670D\u6B63\u5728\u521D\u59CB\u5316\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5\u3002";
+            return new RagResponse(false, message, _initializationError);
         }
 
         var relevantContext = new List<string>();
@@ -193,14 +195,16 @@ public class RagService : IRagService
                     relevantContext.Add(searchResult.Metadata.Text);
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                return "\u68C0\u7D22\u5BA2\u670D\u77E5\u8BC6\u5E93\u8D85\u65F6\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8FDE\u63A5\u540E\u91CD\u8BD5\u3002";
+                const string message = "\u68C0\u7D22\u5BA2\u670D\u77E5\u8BC6\u5E93\u8D85\u65F6\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8FDE\u63A5\u540E\u91CD\u8BD5\u3002";
+                return new RagResponse(false, message, ex.ToString());
             }
             catch (HttpRequestException ex)
             {
                 Console.WriteLine($"RAG service memory search failed: {ex}");
-                return $"\u62B1\u6B49\uFF0C\u6682\u65F6\u65E0\u6CD5\u8FDE\u63A5\u667A\u80FD\u5BA2\u670D\u670D\u52A1\uFF08{ex.Message}\uFF09\u3002";
+                var message = $"\u62B1\u6B49\uFF0C\u6682\u65F6\u65E0\u6CD5\u8FDE\u63A5\u667A\u80FD\u5BA2\u670D\u670D\u52A1\uFF08{ex.Message}\uFF09\u3002";
+                return new RagResponse(false, message, ex.ToString());
             }
         }
 
@@ -234,20 +238,62 @@ public class RagService : IRagService
                 .GetChatMessageContentAsync(chatHistory, cancellationToken: chatCts.Token)
                 .ConfigureAwait(false);
 
-            return chatResult.Content ?? "\u62B1\u6B49\uFF0C\u6211\u6682\u65F6\u65E0\u6CD5\u56DE\u7B54\u8FD9\u4E2A\u95EE\u9898\u3002";
+            var content = chatResult.Content;
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                const string fallback = "\u62B1\u6B49\uFF0C\u6211\u6682\u65F6\u65E0\u6CD5\u56DE\u7B54\u8FD9\u4E2A\u95EE\u9898\u3002";
+                return new RagResponse(false, fallback, "Chat service returned empty content.");
+            }
+
+            return new RagResponse(true, content);
         }
-        catch (TaskCanceledException)
+        catch (TaskCanceledException ex)
         {
-            return "\u751F\u6210\u5BA2\u670D\u56DE\u590D\u8D85\u65F6\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u6216\u68C0\u67E5\u7F51\u7EDC\u72B6\u51B5\u3002";
+            const string message = "\u751F\u6210\u5BA2\u670D\u56DE\u590D\u8D85\u65F6\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u6216\u68C0\u67E5\u7F51\u7EDC\u72B6\u51B5\u3002";
+            return new RagResponse(false, message, ex.ToString());
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            return "\u751F\u6210\u5BA2\u670D\u56DE\u590D\u8D85\u65F6\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u6216\u68C0\u67E5\u7F51\u7EDC\u72B6\u51B5\u3002";
+            const string message = "\u751F\u6210\u5BA2\u670D\u56DE\u590D\u8D85\u65F6\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u6216\u68C0\u67E5\u7F51\u7EDC\u72B6\u51B5\u3002";
+            return new RagResponse(false, message, ex.ToString());
         }
         catch (HttpRequestException ex)
         {
             Console.WriteLine($"RAG service chat request failed: {ex}");
-            return $"\u62B1\u6B49\uFF0C\u6682\u65F6\u65E0\u6CD5\u8FDE\u63A5\u667A\u80FD\u5BA2\u670D\u670D\u52A1\uFF08{ex.Message}\uFF09\u3002";
+            var message = $"\u62B1\u6B49\uFF0C\u6682\u65F6\u65E0\u6CD5\u8FDE\u63A5\u667A\u80FD\u5BA2\u670D\u670D\u52A1\uFF08{ex.Message}\uFF09\u3002";
+            return new RagResponse(false, message, ex.ToString());
+        }
+    }
+
+    public async Task<IReadOnlyList<string>> GetPopularQuestionsAsync(int maxQuestions = 6)
+    {
+        if (maxQuestions <= 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        try
+        {
+            await using var stream = await OpenKnowledgeBaseStreamAsync().ConfigureAwait(false);
+            if (stream is null)
+            {
+                return Array.Empty<string>();
+            }
+
+            using var reader = new StreamReader(stream);
+            var content = await reader.ReadToEndAsync().ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return Array.Empty<string>();
+            }
+
+            var questions = ExtractPopularQuestions(content, maxQuestions);
+            return questions.Count > 0 ? questions : Array.Empty<string>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to extract popular questions: {ex}");
+            return Array.Empty<string>();
         }
     }
 
@@ -349,6 +395,36 @@ public class RagService : IRagService
             return false;
         }
     }
+
+    private static List<string> ExtractPopularQuestions(string content, int maxQuestions)
+    {
+        var questions = new List<string>();
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return questions;
+        }
+
+        // 使用一个更精确的正则表达式直接匹配以“**问：”开头并以“**”结尾的行，并提取问题文本
+        var regex = new Regex(@"^\s*\*\*(?:问：)(?<questionText>.*?)\*\*\s*$", RegexOptions.Multiline);
+
+        foreach (Match match in regex.Matches(content))
+        {
+            if (questions.Count >= maxQuestions)
+            {
+                break;
+            }
+
+            var question = match.Groups["questionText"].Value.Trim();
+            if (!string.IsNullOrEmpty(question))
+            {
+                questions.Add(question);
+            }
+        }
+
+        return questions;
+    }
+
+    
 
     private static async Task<string?> ResolveApiKeyAsync()
     {

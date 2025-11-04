@@ -84,4 +84,18 @@ public partial class OrderListPage : ContentPage
 
         await Shell.Current.GoToAsync($"{nameof(OrderReviewPage)}?orderId={item.OrderId}");
     }
+    private async void OnOrderTapped(object sender, TappedEventArgs e)
+    {
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync())
+        {
+            return;
+        }
+
+        if ((sender as Element)?.BindingContext is not OrderListViewModel.OrderListItem item)
+        {
+            return;
+        }
+
+        await Shell.Current.GoToAsync($"{nameof(OrderDetailPage)}?orderId={item.OrderId}");
+    }
 }

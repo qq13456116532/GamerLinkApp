@@ -78,7 +78,9 @@ namespace GamerLinkApp
             builder.Services.AddTransient<AdminOrdersViewModel>();
             builder.Services.AddTransient<AdminUsersViewModel>();
             builder.Services.AddTransient<AdminUsersPage>();
-
+            builder.Services.AddTransient<OrderDetailPage>();
+            builder.Services.AddTransient<OrderDetailViewModel>();
+            
             // Register RAG service as a singleton.
             builder.Services.AddSingleton<IRagService, RagService>();
 

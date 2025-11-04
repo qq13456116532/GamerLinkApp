@@ -1,0 +1,182 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:GamerLinkApp.ViewModels"
+             x:Class="GamerLinkApp.Views.OrderDetailPage"
+             x:DataType="vm:OrderDetailViewModel"
+             Title="订单详情"
+             BackgroundColor="#F4F5F7"
+             Shell.TabBarIsVisible="False">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView Grid.Row="0"
+                    IsVisible="{Binding HasOrder}">
+            <VerticalStackLayout Padding="20,16"
+                                 Spacing="18">
+
+                <!-- Service Info Card -->
+                <Border BackgroundColor="White"
+                        Padding="16"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="16">
+                        <Border WidthRequest="88"
+                                HeightRequest="88"
+                                StrokeThickness="0"
+                                BackgroundColor="#EEF1F5">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14" />
+                            </Border.StrokeShape>
+                            <Image Source="{Binding Service.ThumbnailUrl}"
+                                   Aspect="AspectFill" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1"
+                                             Spacing="8"
+                                             VerticalOptions="Center">
+                            <Label Text="{Binding Service.Title}"
+                                   FontSize="18"
+                                   FontAttributes="Bold"
+                                   TextColor="#1A1A1A"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="2" />
+                            <Label Text="{Binding Service.GameName}"
+                                   FontSize="13"
+                                   TextColor="#6B7280" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <!-- Order Details Card -->
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="订单明细"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#1A1A1A" />
+
+                        <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                              ColumnDefinitions="Auto,*"
+                              ColumnSpacing="12"
+                              RowSpacing="10">
+                            <Label Grid.Row="0"
+                                   Grid.Column="0"
+                                   Text="订单状态"
+                                   TextColor="#7A8196" />
+                            <Label Grid.Row="0"
+                                   Grid.Column="1"
+                                   Text="{Binding Order.Status}"
+                                   TextColor="#1A1A1A"
+                                   FontAttributes="Bold" />
+
+                            <Label Grid.Row="1"
+                                   Grid.Column="0"
+                                   Text="订单编号"
+                                   TextColor="#7A8196" />
+                            <Label Grid.Row="1"
+                                   Grid.Column="1"
+                                   Text="{Binding Order.Id}"
+                                   TextColor="#1A1A1A" />
+
+                            <Label Grid.Row="2"
+                                   Grid.Column="0"
+                                   Text="下单时间"
+                                   TextColor="#7A8196" />
+                            <Label Grid.Row="2"
+                                   Grid.Column="1"
+                                   Text="{Binding Order.OrderDate, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                                   TextColor="#1A1A1A" />
+
+                            <Label Grid.Row="3"
+                                   Grid.Column="0"
+                                   Text="支付时间"
+                                   TextColor="#7A8196" />
+                            <Label Grid.Row="3"
+                                   Grid.Column="1"
+                                   Text="{Binding Order.PaymentDate, StringFormat='{0:yyyy-MM-dd HH:mm}', TargetNullValue='--'}"
+                                   TextColor="#1A1A1A" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Price Card -->
+                <Border BackgroundColor="White"
+                        Padding="20"
+                        StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18" />
+                    </Border.StrokeShape>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="订单总价"
+                               FontSize="15"
+                               VerticalOptions="Center"
+                               TextColor="#1A1A1A" />
+                        <Label Text="{Binding Order.TotalPrice, StringFormat='￥{0:F2}'}"
+                               Grid.Column="1"
+                               FontSize="20"
+                               FontAttributes="Bold"
+                               TextColor="#FF4D4F" />
+                    </Grid>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Action Footer -->
+        <Grid Grid.Row="1"
+              BackgroundColor="White"
+              Padding="20,16"
+              ColumnDefinitions="*,*"
+              ColumnSpacing="12"
+              IsVisible="{Binding HasOrder}">
+            <Button Text="立即支付"
+                    Command="{Binding GoToPaymentCommand}"
+                    IsVisible="{Binding CanPay}"
+                    HeightRequest="48"
+                    CornerRadius="24"
+                    BackgroundColor="#5B61FF"
+                    TextColor="White"
+                    FontAttributes="Bold" />
+            <Button Grid.Column="1"
+                    Text="去评价"
+                    Command="{Binding GoToReviewCommand}"
+                    IsVisible="{Binding CanReview}"
+                    HeightRequest="48"
+                    CornerRadius="24"
+                    BackgroundColor="#FF8A3D"
+                    TextColor="White"
+                    FontAttributes="Bold" />
+        </Grid>
+
+        <ActivityIndicator Grid.RowSpan="2"
+                           IsRunning="{Binding IsLoading}"
+                           IsVisible="{Binding IsLoading}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           Color="#5B61FF" />
+
+        <Label Text="无法加载订单详情"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               TextColor="#6B7280"
+               IsVisible="True">
+            <Label.Triggers>
+                <DataTrigger TargetType="Label"
+                             Binding="{Binding HasOrder}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+                <DataTrigger TargetType="Label"
+                             Binding="{Binding IsLoading}"
+                             Value="True">
+                    <Setter Property="IsVisible" Value="False" />
+                </DataTrigger>
+            </Label.Triggers>
+        </Label>
+    </Grid>
+</ContentPage>

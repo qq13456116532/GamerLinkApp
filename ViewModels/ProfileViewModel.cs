@@ -10,6 +10,7 @@ using GamerLinkApp.Services;
 using GamerLinkApp.Views;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
 
 namespace GamerLinkApp.ViewModels;
 
@@ -22,6 +23,7 @@ public class ProfileViewModel : BaseViewModel
     private decimal _totalPaid;
     private int _completedOrders;
     private bool _isLoggingOut;
+    private bool _isChangingAvatar;
 
     public ProfileViewModel(IDataService dataService, IAuthService authService)
     {
@@ -31,6 +33,9 @@ public class ProfileViewModel : BaseViewModel
         OrderStatusTappedCommand = new Command<OrderStatusItem>(async item => await OnOrderStatusTapped(item));
         LogoutCommand = new Command(async () => await LogoutAsync(), () => !_isLoggingOut);
         NavigateToAdminCommand = new Command(async () => await NavigateToAdminAsync());
+        ChangeAvatarCommand = new Command(async () => await ChangeAvatarAsync(), () => CanChangeAvatar());
+
+        UpdateAvatarCommandState();
 
         _authService.CurrentUserChanged += OnCurrentUserChanged;
         _ = LoadAsync();
@@ -53,6 +58,7 @@ public class ProfileViewModel : BaseViewModel
             OnPropertyChanged(nameof(AvatarUrl));
             OnPropertyChanged(nameof(DisplayNickname));
             OnPropertyChanged(nameof(DisplayUserId));
+            UpdateAvatarCommandState();
         }
     }
 
@@ -91,12 +97,23 @@ public class ProfileViewModel : BaseViewModel
     public ICommand OrderStatusTappedCommand { get; }
     public ICommand LogoutCommand { get; }
     public ICommand NavigateToAdminCommand { get; }
+    public ICommand ChangeAvatarCommand { get; }
 
     public bool IsAdmin => CurrentUser?.IsAdmin == true;
     public bool IsLoggedIn => CurrentUser is not null;
     public string AvatarUrl => CurrentUser?.AvatarUrl ?? string.Empty;
     public string DisplayNickname => CurrentUser?.Nickname ?? "Not signed in";
     public string DisplayUserId => CurrentUser is null ? string.Empty : $"ID: {CurrentUser.Username}";
+
+    private bool CanChangeAvatar() => !_isChangingAvatar && IsLoggedIn;
+
+    private void UpdateAvatarCommandState()
+    {
+        if (ChangeAvatarCommand is Command command)
+        {
+            command.ChangeCanExecute();
+        }
+    }
 
     private async Task LoadAsync()
     {
@@ -140,6 +157,92 @@ public class ProfileViewModel : BaseViewModel
         catch (Exception ex)
         {
             Debug.WriteLine($"Failed to load profile: {ex.Message}");
+        }
+    }
+
+    private async Task ChangeAvatarAsync()
+    {
+        if (!CanChangeAvatar())
+        {
+            return;
+        }
+
+        if (!await AuthNavigationHelper.EnsureAuthenticatedAsync(_authService))
+        {
+            return;
+        }
+
+        var user = CurrentUser ?? await _authService.GetCurrentUserAsync();
+        if (user is null)
+        {
+            return;
+        }
+
+        _isChangingAvatar = true;
+        UpdateAvatarCommandState();
+
+        try
+        {
+            var pickResult = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "选择头像图片",
+                FileTypes = FilePickerFileType.Images
+            });
+
+            if (pickResult is null)
+            {
+                return;
+            }
+
+            var previousAvatar = user.AvatarUrl;
+            var savedPath = await AvatarFileHelper.SaveAvatarFileAsync(pickResult);
+
+            user.AvatarUrl = savedPath;
+
+            try
+            {
+                await _dataService.UpdateUserAsync(user);
+            }
+            catch
+            {
+                AvatarFileHelper.DeleteLocalAvatarFileIfOwned(savedPath);
+                user.AvatarUrl = previousAvatar;
+                throw;
+            }
+
+            AvatarFileHelper.DeleteLocalAvatarFileIfOwned(previousAvatar);
+
+            var refreshedUser = await _authService.RefreshCurrentUserAsync();
+            CurrentUser = refreshedUser ?? user;
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                if (Shell.Current is not null)
+                {
+                    await Shell.Current.DisplayAlert("提示", "头像已更新", "确定");
+                }
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            // User cancelled picking, no action needed.
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"ChangeAvatarAsync failed: {ex.Message}");
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                if (Shell.Current is not null)
+                {
+                    await Shell.Current.DisplayAlert("错误", $"更新头像失败：{ex.Message}", "确定");
+                }
+            });
+        }
+        finally
+        {
+            _isChangingAvatar = false;
+            UpdateAvatarCommandState();
         }
     }
 

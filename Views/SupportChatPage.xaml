@@ -18,28 +18,56 @@
             </Border.Shadow>
             <Grid ColumnDefinitions="Auto,*"
                   ColumnSpacing="12">
-                <Button Text="返回"
+                <!-- 左侧返回按钮，占据第一列 -->
+                <Button Grid.Column="0"
+                        Text="返回"
                         WidthRequest="60"
                         HeightRequest="44"
                         FontSize="16"
                         BackgroundColor="Transparent"
                         TextColor="#1A1A1A"
                         Clicked="OnBackClicked" />
+
+                <!-- 中间标题，占据第二列并在此列中居中 -->
                 <Label Grid.Column="1"
-                       HorizontalOptions="Center"
-                       VerticalOptions="Center"
-                       Text="智能客服"
-                       TextColor="#1A1A1A"
-                       FontSize="18"
-                       FontAttributes="Bold" />
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Text="智能客服"
+                    TextColor="#1A1A1A"
+                    FontSize="18"
+                    FontAttributes="Bold" />
+                
+                <!-- 右侧占位元素，宽度与左侧按钮相同，保证中间标题完美居中 -->
+                <BoxView Grid.Column="2"
+                        WidthRequest="60" />
             </Grid>
         </Border>
 
         <Grid Grid.Row="1"
-              RowDefinitions="*,Auto"
+              RowDefinitions="Auto,*,Auto"
               Padding="16">
+            <ScrollView Grid.Row="0"
+                        Orientation="Horizontal"
+                        Margin="0,0,0,12"
+                        HorizontalScrollBarVisibility="Never"
+                        IsVisible="{Binding HasPopularQuestions}">
+                <HorizontalStackLayout Spacing="8"
+                                       BindableLayout.ItemsSource="{Binding PopularQuestions}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate>
+                            <Button Text="{Binding .}"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SupportChatViewModel}}, Path=SelectPopularQuestionCommand}"
+                                    CommandParameter="{Binding .}"
+                                    Padding="16,10"
+                                    BackgroundColor="#EEF2FF"
+                                    TextColor="#1F2933"
+                                    CornerRadius="16" />
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </HorizontalStackLayout>
+            </ScrollView>
             <CollectionView x:Name="MessagesCollectionView"
-                            Grid.Row="0"
+                            Grid.Row="1"
                             ItemsSource="{Binding Messages}"
                             ItemsLayout="VerticalList"
                             Margin="0,0,0,12"
@@ -82,19 +110,34 @@
                                                     Value="#5B61FF" />
                                         </DataTrigger>
                                     </Border.Triggers>
-                                    <Label Text="{Binding Content}"
-                                           TextColor="#1A1A1A"
-                                           FontSize="14"
-                                           LineBreakMode="WordWrap">
-                                        <Label.Triggers>
-                                            <DataTrigger TargetType="Label"
-                                                         Binding="{Binding IsUser}"
-                                                         Value="True">
-                                                <Setter Property="TextColor"
-                                                        Value="White" />
-                                            </DataTrigger>
-                                        </Label.Triggers>
-                                    </Label>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="{Binding Content}"
+                                               TextColor="#1A1A1A"
+                                               FontSize="14"
+                                               LineBreakMode="CharacterWrap">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding IsUser}"
+                                                             Value="True">
+                                                    <Setter Property="TextColor"
+                                                            Value="White" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                        <Border BackgroundColor="#F3F4FF"
+                                                StrokeThickness="0"
+                                                Padding="10,8"
+                                                IsVisible="{Binding HasErrorDetail}">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="12" />
+                                            </Border.StrokeShape>
+                                            <Label Text="{Binding ErrorDetail}"
+                                                   TextColor="#454C9A"
+                                                   FontSize="12"
+                                                   LineHeight="1.2"
+                                                   LineBreakMode="CharacterWrap" />
+                                        </Border>
+                                    </VerticalStackLayout>
                                 </Border>
                             </HorizontalStackLayout>
                         </Grid>
@@ -102,7 +145,7 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <Border Grid.Row="1"
+            <Border Grid.Row="2"
                     StrokeThickness="0"
                     BackgroundColor="White"
                     Padding="12">

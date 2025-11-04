@@ -21,5 +21,7 @@ public interface IAuthService
 
     Task<User?> GetCurrentUserAsync();
 
+    Task<User?> RefreshCurrentUserAsync();
+
     bool IsAuthenticated { get; }
 }
