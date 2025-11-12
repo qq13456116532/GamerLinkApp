@@ -5,6 +5,7 @@ using GamerLinkApp.Helpers;
 using GamerLinkApp.ViewModels;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Dispatching;
 
 namespace GamerLinkApp.Views;
 
@@ -56,27 +57,8 @@ public partial class SupportChatPage : ContentPage
             return;
         }
 
-        var target = e.NewItems[e.NewItems.Count - 1];
-        var index = _viewModel.Messages.IndexOf((SupportChatMessage)target);
-        if (index < 0)
-        {
-            return;
-        }
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            try
-            {
-                MessagesCollectionView.ScrollTo(
-                    index: index,
-                    position: ScrollToPosition.End,
-                    animate: true);
-            }
-            catch (ArgumentException ex)
-            {
-                Debug.WriteLine($"ScrollTo failed: {ex.Message}");
-            }
-        });
+        var target = (SupportChatMessage)e.NewItems[e.NewItems.Count - 1]!;
+        ScrollToLatestMessage(target);
     }
 
     private async void OnBackClicked(object? sender, EventArgs e)
@@ -84,6 +66,44 @@ public partial class SupportChatPage : ContentPage
         if (Shell.Current is not null)
         {
             await Shell.Current.GoToAsync("..");
+        }
+    }
+
+    private void ScrollToLatestMessage(SupportChatMessage target)
+    {
+        if (MessagesCollectionView is null)
+        {
+            return;
+        }
+
+        void PerformScroll()
+        {
+            if (MessagesCollectionView is null)
+            {
+                return;
+            }
+
+            try
+            {
+                MessagesCollectionView.ScrollTo(
+                    item: target,
+                    position: ScrollToPosition.End,
+                    animate: true);
+            }
+            catch (ArgumentException ex)
+            {
+                Debug.WriteLine($"ScrollTo failed: {ex.Message}");
+            }
+        }
+
+        var dispatcher = MessagesCollectionView.Dispatcher;
+        if (dispatcher is IDispatcher uiDispatcher)
+        {
+            uiDispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(30), PerformScroll);
+        }
+        else
+        {
+            MainThread.BeginInvokeOnMainThread(PerformScroll);
         }
     }
 }

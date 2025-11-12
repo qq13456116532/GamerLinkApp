@@ -7,7 +7,21 @@
              xmlns:model="clr-namespace:GamerLinkApp.Models"
              Title="Game Zone"
              BackgroundColor="#FFFFFF">
-    <Grid ColumnDefinitions="140,*">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition>
+                <!-- 正确的语法：将 OnPlatform 应用于 Width 属性 -->
+                <ColumnDefinition.Width>
+                    <OnPlatform x:TypeArguments="GridLength">
+                        <On Platform="Windows" Value="220"/>
+                        <On Platform="Android, iOS" Value="140"/>
+                    </OnPlatform>
+                </ColumnDefinition.Width>
+            </ColumnDefinition>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 左侧分类导航 -->
         <Border Grid.Column="0"
                 Padding="0,24,0,0"
                 BackgroundColor="#F5F6F8"
@@ -79,85 +93,110 @@
             </CollectionView>
         </Border>
 
-        <VerticalStackLayout Grid.Column="1"
-                             Padding="32,24"
-                             Spacing="24"
-                             BackgroundColor="#FFFFFF">
-            <Label Text="{Binding SelectedCategory.Name, FallbackValue='Game Zone'}"
-                   FontSize="22"
-                   FontAttributes="Bold"
-                   TextColor="#1F1F1F"/>
+        <!-- 右侧内容区域 -->
+        <ScrollView Grid.Column="1">
+            <VerticalStackLayout Padding="32,24"
+                                 Spacing="24"
+                                 BackgroundColor="#FFFFFF">
+                <Label Text="{Binding SelectedCategory.Name, FallbackValue='Game Zone'}"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       TextColor="#1F1F1F"/>
 
-            <Label Text="No services available"
-                   FontSize="14"
-                   TextColor="#8E94A2"
-                   HorizontalOptions="Center"
-                   IsVisible="False">
-                <Label.Triggers>
-                    <DataTrigger TargetType="Label"
-                                 Binding="{Binding HighlightedService}"
-                                 Value="{x:Null}">
-                        <Setter Property="IsVisible"
-                                Value="True"/>
-                    </DataTrigger>
-                </Label.Triggers>
-            </Label>
-            <CollectionView ItemsSource="{Binding Services}"
-                            SelectionMode="None"
-                            Margin="0"
-                            BackgroundColor="Transparent">
-                <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical"
-                            ItemSpacing="12"/>
-                </CollectionView.ItemsLayout>
+                <Label Text="No services available"
+                       FontSize="14"
+                       TextColor="#8E94A2"
+                       HorizontalOptions="Center"
+                       IsVisible="False">
+                    <Label.Triggers>
+                        <DataTrigger TargetType="Label"
+                                     Binding="{Binding HighlightedService}"
+                                     Value="{x:Null}">
+                            <Setter Property="IsVisible"
+                                    Value="True"/>
+                        </DataTrigger>
+                    </Label.Triggers>
+                </Label>
 
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="model:Service">
-                        <Border Padding="16"
-                                BackgroundColor="#FFFFFF"
-                                StrokeThickness="1"
-                                Stroke="#E5E7EB"
-                                Margin="0,0,0,12">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="16"/>
-                            </Border.StrokeShape>
+                <!-- 服务列表 -->
+                <CollectionView ItemsSource="{Binding Services}"
+                                SelectionMode="None"
+                                Margin="0"
+                                BackgroundColor="Transparent">
+                    <CollectionView.ItemsLayout>
+                        <!-- 关键改动：根据设备类型选择布局 -->
+                        <OnIdiom x:TypeArguments="ItemsLayout">
+                            <OnIdiom.Phone>
+                                <!-- 手机上使用垂直列表布局 -->
+                                <LinearItemsLayout Orientation="Vertical"
+                                                   ItemSpacing="12"/>
+                            </OnIdiom.Phone>
+                            <OnIdiom.Tablet>
+                                <!-- 平板上使用2列网格 -->
+                                <GridItemsLayout Orientation="Vertical"
+                                                 Span="2"
+                                                 HorizontalItemSpacing="16"
+                                                 VerticalItemSpacing="16"/>
+                            </OnIdiom.Tablet>
+                            <OnIdiom.Desktop>
+                                <!-- 桌面上使用3列或更多列的网格布局 -->
+                                <GridItemsLayout Orientation="Vertical"
+                                                 Span="3"
+                                                 HorizontalItemSpacing="16"
+                                                 VerticalItemSpacing="16"/>
+                            </OnIdiom.Desktop>
+                        </OnIdiom>
+                    </CollectionView.ItemsLayout>
 
-                            <Grid ColumnDefinitions="Auto,*"
-                                  ColumnSpacing="16">
-                                <Border WidthRequest="84"
-                                        HeightRequest="84"
-                                        StrokeThickness="0"
-                                        BackgroundColor="#F2F4F8">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="12"/>
-                                    </Border.StrokeShape>
-                                    <Image Source="{Binding ThumbnailUrl}"
-                                            Aspect="AspectFill"/>
-                                </Border>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="model:Service">
+                            <Border Padding="16"
+                                    BackgroundColor="#FFFFFF"
+                                    StrokeThickness="1"
+                                    Stroke="#E5E7EB">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12"/>
+                                </Border.StrokeShape>
+                                <!-- 为了更好的桌面布局，我们改用VerticalStackLayout -->
+                                <VerticalStackLayout Spacing="12">
+                                    <Border WidthRequest="200"
+                                            HeightRequest="120"
+                                            StrokeThickness="0"
+                                            BackgroundColor="#F2F4F8"
+                                            HorizontalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="8"/>
+                                        </Border.StrokeShape>
+                                        <Image Source="{Binding ThumbnailUrl}"
+                                                Aspect="AspectFill"/>
+                                    </Border>
 
-                                <VerticalStackLayout Grid.Column="1"
-                                                     Spacing="8"
-                                                     VerticalOptions="Center">
                                     <Label Text="{Binding Title}"
                                            FontSize="16"
                                            FontAttributes="Bold"
                                            TextColor="#1F1F1F"
-                                           LineBreakMode="TailTruncation"/>
-                                    <Label Text="{Binding PurchaseCount, StringFormat='Sold {0}'}"
-                                           FontSize="12"
-                                           TextColor="#8E94A2"/>
-                                    <Label Text="{Binding Price, StringFormat='{0:C0}'}"
-                                           FontSize="18"
-                                           FontAttributes="Bold"
-                                           TextColor="#E53935"/>
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="2"/>
+
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding Price, StringFormat='{0:C0}'}"
+                                               FontSize="18"
+                                               FontAttributes="Bold"
+                                               TextColor="#E53935"
+                                               VerticalOptions="Center"/>
+                                        <Label Grid.Column="1"
+                                               Text="{Binding PurchaseCount, StringFormat='Sold {0}'}"
+                                               FontSize="12"
+                                               TextColor="#8E94A2"
+                                               VerticalOptions="Center"/>
+                                    </Grid>
                                 </VerticalStackLayout>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-
-
-        </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </ScrollView>
     </Grid>
 </ContentPage>

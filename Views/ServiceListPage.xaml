@@ -6,242 +6,188 @@
              x:Name="ServiceListPageRoot"
              Title="服务列表"
              BackgroundColor="#F5F6F9">
-    <ContentPage.Resources>
-        <Thickness x:Key="PagePadding">20,16,20,0</Thickness>
-    </ContentPage.Resources>
 
-    <CollectionView ItemsSource="{Binding Services}"
-                    SelectionMode="None"
-                    BackgroundColor="Transparent"
-                    ItemSizingStrategy="MeasureAllItems">
-        <CollectionView.ItemsLayout>
-            <LinearItemsLayout Orientation="Vertical"
-                               ItemSpacing="0" />
-        </CollectionView.ItemsLayout>
+    <ScrollView>
+        <VerticalStackLayout HorizontalOptions="Center" 
+                             Spacing="0">
+            <VerticalStackLayout.MaximumWidthRequest>
+                <OnPlatform x:TypeArguments="x:Double">
+                    <On Platform="WinUI" Value="1200" />
+                </OnPlatform>
+            </VerticalStackLayout.MaximumWidthRequest>
 
-        <CollectionView.Header>
-            <VerticalStackLayout Spacing="24"
-                                  Padding="{StaticResource PagePadding}">
-                <Frame Padding="14,12"
-                       CornerRadius="24"
-                       BackgroundColor="White"
-                       HasShadow="False"
-                       BorderColor="#EEEEEE">
-                    <Frame.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnSearchAreaTapped" />
-                    </Frame.GestureRecognizers>
-                    <Grid ColumnDefinitions="Auto,*"
-                          ColumnSpacing="12"
-                          VerticalOptions="Center"
-                          HorizontalOptions="FillAndExpand">
-                        <Image Grid.Column="0"
-                               HeightRequest="20"
-                               WidthRequest="20"
-                               VerticalOptions="Center"
-                               InputTransparent="True"
-                               Source="search.png" />
-                        <Entry x:Name="SearchEntry"
-                               Grid.Column="1"
-                               Placeholder="搜索服务或者向导"
-                               PlaceholderColor="#9AA0B1"
-                               TextColor="#2A2F3C"
-                               FontSize="14"
-                               VerticalOptions="Center"
-                               HorizontalOptions="FillAndExpand"
-                               BackgroundColor="Transparent"
-                               Margin="0"
-                               IsTextPredictionEnabled="False"
-                               ReturnType="Search"
-                               Text="{Binding SearchText}" />
-                    </Grid>
-                </Frame>
+            <CollectionView ItemsSource="{Binding Services}"
+                            SelectionMode="None"
+                            BackgroundColor="Transparent"
+                            ItemSizingStrategy="MeasureAllItems">
 
-                <VerticalStackLayout Spacing="8" IsVisible="{Binding IsShowingBanners}">
-                    <CarouselView x:Name="BannerCarouselView" 
-                        HeightRequest="{OnPlatform Android=165, iOS=165, WinUI=200}" 
-                                  IsBounceEnabled="False"
-                                  Loop="False"
-                                  IndicatorView="{x:Reference BannerIndicators}">
-                        <CarouselView.ItemsSource>
-                            <x:Array Type="{x:Type x:String}">
-                                <x:String>banner1.png</x:String>
-                                <x:String>banner2.png</x:String>
-                                <x:String>banner3.png</x:String>
-                            </x:Array>
-                        </CarouselView.ItemsSource>
-                        <CarouselView.ItemTemplate>
-                            <DataTemplate>
-                                <Frame Padding="0"
-                                       HasShadow="False"
-                                       CornerRadius="18">
-                                    <Image Source="{Binding .}"
-                                           Aspect="AspectFill" />
-                                </Frame>
-                            </DataTemplate>
-                        </CarouselView.ItemTemplate>
-                    </CarouselView>
-                    <IndicatorView x:Name="BannerIndicators"
-                                   HorizontalOptions="Center"
-                                   IndicatorColor="#D9D9D9"
-                                   SelectedIndicatorColor="#5B61FF" />
-                </VerticalStackLayout>
+                <CollectionView.ItemsLayout>
+                    <OnPlatform x:TypeArguments="ItemsLayout">
+                        <On Platform="Android, iOS">
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="0" />
+                        </On>
+                        <On Platform="WinUI">
+                            <GridItemsLayout Orientation="Vertical"
+                                             Span="3" 
+                                             HorizontalItemSpacing="16"
+                                             VerticalItemSpacing="16" />
+                        </On>
+                    </OnPlatform>
+                </CollectionView.ItemsLayout>
 
-                <Grid ColumnDefinitions="*,*,*"
-                      ColumnSpacing="14">
-                    <Border BackgroundColor="White"
-                            StrokeShape="RoundRectangle 18"
-                            Padding="14,12"
-                            HeightRequest="90">
-                        <VerticalStackLayout Spacing="10"
-                                             HorizontalOptions="Center"
-                                             VerticalOptions="Center">
-                            <Image HeightRequest="28"
-                                   WidthRequest="28"
-                                   Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/sword.png" />
-                            <Label Text="英雄联盟"
-                                   FontSize="13"
-                                   TextColor="#2A2F3C"
-                                   HorizontalTextAlignment="Center" />
+                <CollectionView.Header>
+                    <VerticalStackLayout Spacing="24">
+                        <VerticalStackLayout.Padding>
+                            <OnPlatform x:TypeArguments="Thickness">
+                                <On Platform="Android, iOS" Value="20,16,20,0" />
+                                <On Platform="WinUI" Value="40,24,40,0" />
+                            </OnPlatform>
+                        </VerticalStackLayout.Padding>
+
+                        <!-- 搜索框 -->
+                        <Frame Padding="14,12" CornerRadius="24" BackgroundColor="White" HasShadow="False" BorderColor="#EEEEEE">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSearchAreaTapped" />
+                            </Frame.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalOptions="Center" HorizontalOptions="FillAndExpand">
+                                <Image Grid.Column="0" HeightRequest="20" WidthRequest="20" VerticalOptions="Center" InputTransparent="True" Source="search.png" />
+                                <Entry x:Name="SearchEntry" Grid.Column="1" Placeholder="搜索服务或者向导" PlaceholderColor="#9AA0B1" TextColor="#2A2F3C" FontSize="14" VerticalOptions="Center" HorizontalOptions="FillAndExpand" BackgroundColor="Transparent" Margin="0" IsTextPredictionEnabled="False" ReturnType="Search" Text="{Binding SearchText}" />
+                            </Grid>
+                        </Frame>
+
+                        <!-- Banner轮播图 -->
+                        <VerticalStackLayout Spacing="8" IsVisible="{Binding IsShowingBanners}">
+                            <CarouselView x:Name="BannerCarouselView" HeightRequest="{OnPlatform Android=165, iOS=165, WinUI=280}" IsBounceEnabled="False" Loop="False" IndicatorView="{x:Reference BannerIndicators}">
+                                <CarouselView.ItemsSource>
+                                    <x:Array Type="{x:Type x:String}">
+                                        <x:String>banner1.png</x:String>
+                                        <x:String>banner2.png</x:String>
+                                        <x:String>banner3.png</x:String>
+                                    </x:Array>
+                                </CarouselView.ItemsSource>
+                                <CarouselView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Frame Padding="0" HasShadow="False" CornerRadius="18">
+                                            <Image Source="{Binding .}" Aspect="AspectFill" />
+                                        </Frame>
+                                    </DataTemplate>
+                                </CarouselView.ItemTemplate>
+                            </CarouselView>
+                            <IndicatorView x:Name="BannerIndicators" HorizontalOptions="Center" IndicatorColor="#D9D9D9" SelectedIndicatorColor="#5B61FF" />
                         </VerticalStackLayout>
-                    </Border>
 
-                    <Border Grid.Column="1"
-                            BackgroundColor="White"
-                            StrokeShape="RoundRectangle 18"
-                            Padding="14,12"
-                            HeightRequest="90">
-                        <VerticalStackLayout Spacing="10"
-                                             HorizontalOptions="Center"
-                                             VerticalOptions="Center">
-                            <Image HeightRequest="28"
-                                   WidthRequest="28"
-                                   Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/crown.png" />
-                            <Label Text="王者荣耀"
-                                   FontSize="13"
-                                   TextColor="#2A2F3C"
-                                   HorizontalTextAlignment="Center" />
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <Border Grid.Column="2"
-                            BackgroundColor="White"
-                            StrokeShape="RoundRectangle 18"
-                            Padding="14,12"
-                            HeightRequest="90">
-                        <VerticalStackLayout Spacing="10"
-                                             HorizontalOptions="Center"
-                                             VerticalOptions="Center">
-                            <Image HeightRequest="28"
-                                   WidthRequest="28"
-                                   Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/medal.png" />
-                            <Label Text="绝地求生"
-                                   FontSize="13"
-                                   TextColor="#2A2F3C"
-                                   HorizontalTextAlignment="Center" />
-                        </VerticalStackLayout>
-                    </Border>
-                </Grid>
-
-                <Label Text="精选推荐"
-                       FontSize="18"
-                       FontAttributes="Bold"
-                       TextColor="#2A2F3C" />
-            </VerticalStackLayout>
-        </CollectionView.Header>
-
-        <CollectionView.ItemTemplate>
-            <DataTemplate x:DataType="models:Service">
-                <Frame Margin="20,0,20,16"
-                       Padding="12"
-                       BackgroundColor="White"
-                       CornerRadius="18"
-                       HasShadow="False"
-                       BorderColor="#EEEEEE">
-                    <Frame.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnServiceTapped" />
-                    </Frame.GestureRecognizers>
-                    <Grid>
-                        <Grid ColumnDefinitions="Auto,*"
-                              ColumnSpacing="14">
-                            <Border Grid.Column="0"
-                                    WidthRequest="110"
-                                    HeightRequest="88"
-                                    StrokeShape="RoundRectangle 16"
-                                    VerticalOptions="Center">
-                                <Image Source="{Binding ThumbnailUrl}"
-                                       Aspect="AspectFill" />
+                        <!-- 游戏分类 -->
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
+                            <Border BackgroundColor="White" StrokeShape="RoundRectangle 18" Padding="14,12" HeightRequest="90">
+                                <VerticalStackLayout Spacing="10" HorizontalOptions="Center" VerticalOptions="Center">
+                                    <Image HeightRequest="28" WidthRequest="28" Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/sword.png" />
+                                    <Label Text="英雄联盟" FontSize="13" TextColor="#2A2F3C" HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
                             </Border>
-
-                            <VerticalStackLayout Grid.Column="1"
-                                                  Spacing="6"
-                                                  VerticalOptions="Center">
-                                <Label Text="{Binding Title}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       TextColor="#2A2F3C"
-                                       LineBreakMode="TailTruncation" />
-                                <Label Text="{Binding GameName}"
-                                       FontSize="13"
-                                       TextColor="#777D8C"
-                                       LineBreakMode="TailTruncation" />
-                                <HorizontalStackLayout Spacing="10">
-                                    <Label Text="{Binding PurchaseCount, StringFormat='{0}人购买'}"
-                                           FontSize="12"
-                                           TextColor="#9AA0B1" />
-                                    <Label Text="{Binding CompletedCount, StringFormat='完成{0}'}"
-                                           FontSize="12"
-                                           TextColor="#9AA0B1" />
-                                </HorizontalStackLayout>
-                                <Label Text="{Binding Price, StringFormat='￥{0:F0}'}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       TextColor="#FF4D4F" />
-                            </VerticalStackLayout>
+                            <Border Grid.Column="1" BackgroundColor="White" StrokeShape="RoundRectangle 18" Padding="14,12" HeightRequest="90">
+                                <VerticalStackLayout Spacing="10" HorizontalOptions="Center" VerticalOptions="Center">
+                                    <Image HeightRequest="28" WidthRequest="28" Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/crown.png" />
+                                    <Label Text="王者荣耀" FontSize="13" TextColor="#2A2F3C" HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Column="2" BackgroundColor="White" StrokeShape="RoundRectangle 18" Padding="14,12" HeightRequest="90">
+                                <VerticalStackLayout Spacing="10" HorizontalOptions="Center" VerticalOptions="Center">
+                                    <Image HeightRequest="28" WidthRequest="28" Source="https://img.icons8.com/fluency-systems-filled/48/5B61FF/medal.png" />
+                                    <Label Text="绝地求生" FontSize="13" TextColor="#2A2F3C" HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Border>
                         </Grid>
 
-                        <ImageButton Source="heart_outline.svg"
-                                     BackgroundColor="Transparent"
-                                     Padding="6"
-                                     WidthRequest="36"
-                                     HeightRequest="36"
-                                     HorizontalOptions="End"
-                                     VerticalOptions="Start"
-                                     Command="{Binding BindingContext.ToggleFavoriteCommand, Source={x:Reference ServiceListPageRoot}}"
-                                     CommandParameter="{Binding .}"
-                                     SemanticProperties.Description="切换收藏">
-                            <ImageButton.Triggers>
-                                <DataTrigger TargetType="ImageButton"
-                                             Binding="{Binding IsFavorite}"
-                                             Value="True">
-                                    <Setter Property="Source" Value="heart_filled.svg" />
-                                </DataTrigger>
-                            </ImageButton.Triggers>
-                        </ImageButton>
-                    </Grid>
-                </Frame>
-            </DataTemplate>
-        </CollectionView.ItemTemplate>
-        <!-- 🧩 这是添加的空视图部分 -->
-        <CollectionView.EmptyView>
-            <VerticalStackLayout Spacing="8"
-                             Padding="0,60,0,0"
-                             HorizontalOptions="Center"
-                             VerticalOptions="Start">
-                <Image Source="no_service.png"
-                   WidthRequest="120"
-                   HeightRequest="120"
-                   Aspect="AspectFit"
-                   Opacity="0.85" />
-                <Label Text="暂无服务"
-                   FontSize="18"
-                   FontAttributes="Bold"
-                   HorizontalTextAlignment="Center"
-                   TextColor="#6B7280" />
-                <Label Text="试试刷新一下或看看其他分类吧~"
-                   FontSize="13"
-                   HorizontalTextAlignment="Center"
-                   TextColor="#9AA0B1" />
-            </VerticalStackLayout>
-        </CollectionView.EmptyView>
-    </CollectionView>
+                        <!-- 标题 -->
+                        <Label Text="精选推荐" FontSize="{OnPlatform Android=18, iOS=18, WinUI=22}" FontAttributes="Bold" TextColor="#2A2F3C">
+                            <Label.Margin>
+                                <OnPlatform x:TypeArguments="Thickness">
+                                    <On Platform="WinUI" Value="0,10,0,0" />
+                                </OnPlatform>
+                            </Label.Margin>
+                        </Label>
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Service">
+                        <Frame Margin="{OnPlatform Android='20,0,20,16', iOS='20,0,20,16', WinUI='0'}" Padding="12" BackgroundColor="White" CornerRadius="18" HasShadow="False" BorderColor="#EEEEEE">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnServiceTapped" />
+                            </Frame.GestureRecognizers>
+                            <Grid>
+                                <!--
+                                    修正: 
+                                    1. 为移动端和桌面端分别创建一个布局容器 (Grid 和 VerticalStackLayout)。
+                                    2. 使用 OnPlatform 控制它们各自的 IsVisible 属性。
+                                    3. 这样，父Grid的直接子元素就是合法的可视化控件了。
+                                -->
+
+                                <!-- 移动端布局 (仅在 Android/iOS 上可见) -->
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                                    <Grid.IsVisible>
+                                        <OnPlatform x:TypeArguments="x:Boolean" Default="False">
+                                            <On Platform="Android, iOS" Value="True" />
+                                        </OnPlatform>
+                                    </Grid.IsVisible>
+
+                                    <Border Grid.Column="0" WidthRequest="110" HeightRequest="88" StrokeShape="RoundRectangle 16" VerticalOptions="Center">
+                                        <Image Source="{Binding ThumbnailUrl}" Aspect="AspectFill" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                        <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold" TextColor="#2A2F3C" LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding GameName}" FontSize="13" TextColor="#777D8C" LineBreakMode="TailTruncation" />
+                                        <HorizontalStackLayout Spacing="10">
+                                            <Label Text="{Binding PurchaseCount, StringFormat='{0}人购买'}" FontSize="12" TextColor="#9AA0B1" />
+                                            <Label Text="{Binding CompletedCount, StringFormat='完成{0}'}" FontSize="12" TextColor="#9AA0B1" />
+                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding Price, StringFormat='￥{0:F0}'}" FontSize="16" FontAttributes="Bold" TextColor="#FF4D4F" />
+                                    </VerticalStackLayout>
+                                </Grid>
+
+                                <!-- Windows 桌面端布局 (仅在 WinUI 上可见) -->
+                                <VerticalStackLayout Spacing="10">
+                                    <VerticalStackLayout.IsVisible>
+                                        <OnPlatform x:TypeArguments="x:Boolean" Default="False">
+                                            <On Platform="WinUI" Value="True" />
+                                        </OnPlatform>
+                                    </VerticalStackLayout.IsVisible>
+
+                                    <Border HeightRequest="140" StrokeShape="RoundRectangle 16">
+                                        <Image Source="{Binding ThumbnailUrl}" Aspect="AspectFill" />
+                                    </Border>
+                                    <VerticalStackLayout Spacing="8" Padding="4,0,4,4">
+                                        <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold" TextColor="#2A2F3C" LineBreakMode="WordWrap" MaxLines="2" />
+                                        <Label Text="{Binding GameName}" FontSize="13" TextColor="#777D8C" />
+                                        <HorizontalStackLayout Spacing="10">
+                                            <Label Text="{Binding PurchaseCount, StringFormat='{0}人购买'}" FontSize="12" TextColor="#9AA0B1" />
+                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding Price, StringFormat='￥{0:F0}'}" FontSize="16" FontAttributes="Bold" TextColor="#FF4D4F" />
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
+
+                                <!-- 收藏按钮 (所有平台共用，覆盖在右上角) -->
+                                <ImageButton Source="heart_outline.svg" BackgroundColor="Transparent" Padding="6" WidthRequest="36" HeightRequest="36" HorizontalOptions="End" VerticalOptions="Start" Command="{Binding BindingContext.ToggleFavoriteCommand, Source={x:Reference ServiceListPageRoot}}" CommandParameter="{Binding .}" SemanticProperties.Description="切换收藏">
+                                    <ImageButton.Triggers>
+                                        <DataTrigger TargetType="ImageButton" Binding="{Binding IsFavorite}" Value="True">
+                                            <Setter Property="Source" Value="heart_filled.svg" />
+                                        </DataTrigger>
+                                    </ImageButton.Triggers>
+                                </ImageButton>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Spacing="8" Padding="0,60,0,0" HorizontalOptions="Center" VerticalOptions="Start">
+                        <Image Source="no_service.png" WidthRequest="120" HeightRequest="120" Aspect="AspectFit" Opacity="0.85" />
+                        <Label Text="暂无服务" FontSize="18" FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="#6B7280" />
+                        <Label Text="试试刷新一下或看看其他分类吧~" FontSize="13" HorizontalTextAlignment="Center" TextColor="#9AA0B1" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

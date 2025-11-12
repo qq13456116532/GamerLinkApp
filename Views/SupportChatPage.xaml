@@ -16,17 +16,17 @@
                         Offset="0,4"
                         Radius="12" />
             </Border.Shadow>
-            <Grid ColumnDefinitions="Auto,*"
+            <Grid ColumnDefinitions="Auto,*,Auto"
                   ColumnSpacing="12">
                 <!-- 左侧返回按钮，占据第一列 -->
-                <Button Grid.Column="0"
-                        Text="返回"
-                        WidthRequest="60"
-                        HeightRequest="44"
-                        FontSize="16"
-                        BackgroundColor="Transparent"
-                        TextColor="#1A1A1A"
-                        Clicked="OnBackClicked" />
+                <ImageButton Grid.Column="0"
+                             Source="goback.png"
+                             WidthRequest="44"
+                             HeightRequest="44"
+                             BackgroundColor="Transparent"
+                             Padding="0"
+                             Clicked="OnBackClicked"
+                             SemanticProperties.Description="返回上一页" />
 
                 <!-- 中间标题，占据第二列并在此列中居中 -->
                 <Label Grid.Column="1"
@@ -39,35 +39,17 @@
                 
                 <!-- 右侧占位元素，宽度与左侧按钮相同，保证中间标题完美居中 -->
                 <BoxView Grid.Column="2"
-                        WidthRequest="60" />
+                        WidthRequest="44"
+                        HeightRequest="44"
+                        Color="Transparent" />
             </Grid>
         </Border>
 
         <Grid Grid.Row="1"
-              RowDefinitions="Auto,*,Auto"
+              RowDefinitions="*,Auto,Auto"
               Padding="16">
-            <ScrollView Grid.Row="0"
-                        Orientation="Horizontal"
-                        Margin="0,0,0,12"
-                        HorizontalScrollBarVisibility="Never"
-                        IsVisible="{Binding HasPopularQuestions}">
-                <HorizontalStackLayout Spacing="8"
-                                       BindableLayout.ItemsSource="{Binding PopularQuestions}">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate>
-                            <Button Text="{Binding .}"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SupportChatViewModel}}, Path=SelectPopularQuestionCommand}"
-                                    CommandParameter="{Binding .}"
-                                    Padding="16,10"
-                                    BackgroundColor="#EEF2FF"
-                                    TextColor="#1F2933"
-                                    CornerRadius="16" />
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
-                </HorizontalStackLayout>
-            </ScrollView>
             <CollectionView x:Name="MessagesCollectionView"
-                            Grid.Row="1"
+                            Grid.Row="0"
                             ItemsSource="{Binding Messages}"
                             ItemsLayout="VerticalList"
                             Margin="0,0,0,12"
@@ -87,15 +69,45 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:SupportChatMessage">
                         <Grid Padding="0,6">
-                            <HorizontalStackLayout>
+                            <HorizontalStackLayout Spacing="10"
+                                                   VerticalOptions="Start">
                                 <HorizontalStackLayout.Triggers>
                                     <DataTrigger TargetType="HorizontalStackLayout"
                                                  Binding="{Binding IsUser}"
                                                  Value="True">
                                         <Setter Property="HorizontalOptions"
                                                 Value="End" />
+                                        <Setter Property="FlowDirection"
+                                                Value="RightToLeft" />
                                     </DataTrigger>
                                 </HorizontalStackLayout.Triggers>
+                                <Border WidthRequest="36"
+                                        HeightRequest="36"
+                                        StrokeThickness="0"
+                                        BackgroundColor="#E5E7EB"
+                                        VerticalOptions="Start">
+                                    <Border.StrokeShape>
+                                        <Ellipse />
+                                    </Border.StrokeShape>
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border"
+                                                     Binding="{Binding IsUser}"
+                                                     Value="True">
+                                            <Setter Property="BackgroundColor"
+                                                    Value="#CBD5F5" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Image Source="{Binding AvatarPath}"
+                                           Aspect="AspectFill"
+                                           WidthRequest="36"
+                                           HeightRequest="36">
+                                        <Image.Clip>
+                                            <EllipseGeometry Center="18,18"
+                                                             RadiusX="18"
+                                                             RadiusY="18" />
+                                        </Image.Clip>
+                                    </Image>
+                                </Border>
                                 <Border Padding="14,12"
                                         BackgroundColor="#FFFFFF"
                                         StrokeThickness="0">
@@ -144,6 +156,40 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+            <VerticalStackLayout Grid.Row="1"
+                                 Spacing="6"
+                                 Margin="0,0,0,12"
+                                 IsVisible="{Binding HasPopularQuestions}">
+                <Label Text="热门问题推荐"
+                       FontSize="12"
+                       TextColor="#6B7280"
+                       Margin="4,0,0,0" />
+                <ScrollView Orientation="Horizontal"
+                            HorizontalScrollBarVisibility="Never">
+                    <HorizontalStackLayout Spacing="8"
+                                           BindableLayout.ItemsSource="{Binding PopularQuestions}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Button Text="{Binding .}"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SupportChatViewModel}}, Path=SelectPopularQuestionCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Padding="16,10"
+                                        MinimumWidthRequest="140"
+                                        BackgroundColor="#EEF2FF"
+                                        BorderColor="#C7D2FE"
+                                        BorderWidth="1"
+                                        CornerRadius="22"
+                                        TextColor="#1F2933"
+                                        FontSize="13"
+                                        HorizontalOptions="Start"
+                                        VerticalOptions="Center"
+                                        LineBreakMode="WordWrap"
+                                        SemanticProperties.Hint="点击快速输入该问题" />
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </HorizontalStackLayout>
+                </ScrollView>
+            </VerticalStackLayout>
 
             <Border Grid.Row="2"
                     StrokeThickness="0"
@@ -157,7 +203,7 @@
                             Offset="0,6"
                             Radius="12" />
                 </Border.Shadow>
-                <Grid ColumnDefinitions="*,Auto,Auto"
+                <Grid ColumnDefinitions="*,Auto"
                       ColumnSpacing="12"
                       VerticalOptions="Center">
                     <Entry Grid.Column="0"
@@ -169,19 +215,34 @@
                            IsEnabled="{Binding CanEdit}"
                            ReturnType="Send"
                            ReturnCommand="{Binding SendMessageCommand}" />
-                    <Button Grid.Column="1"
-                            Text="发送"
-                            Padding="18,10"
-                            CornerRadius="16"
-                            BackgroundColor="#5B61FF"
-                            TextColor="White"
-                            Command="{Binding SendMessageCommand}" />
-                    <ActivityIndicator Grid.Column="2"
-                                       WidthRequest="24"
-                                       HeightRequest="24"
-                                       IsRunning="{Binding IsBusy}"
-                                       IsVisible="{Binding IsBusy}"
+                    <Grid Grid.Column="1"
+                          WidthRequest="96"
+                          HorizontalOptions="End">
+                        <Button Text="发送"
+                                Padding="18,10"
+                                CornerRadius="16"
+                                BackgroundColor="#5B61FF"
+                                TextColor="White"
+                                Command="{Binding SendMessageCommand}"
+                                IsEnabled="{Binding CanEdit}" />
+                        <Border BackgroundColor="#5B61FF"
+                                StrokeThickness="0"
+                                IsVisible="{Binding IsBusy}"
+                                InputTransparent="True">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Grid Padding="0"
+                                  HorizontalOptions="Center"
+                                  VerticalOptions="Center">
+                                <Image Source="stop.png"
+                                       WidthRequest="20"
+                                       HeightRequest="20"
+                                       HorizontalOptions="Center"
                                        VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>

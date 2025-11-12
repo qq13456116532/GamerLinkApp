@@ -47,6 +47,16 @@ public class RagService : IRagService
     private string? _initializationError;
     private bool _remoteReady;
 
+    private static readonly IReadOnlyList<string> DefaultPopularQuestions = new[]
+    {
+        "\u5982\u4f55\u4e0b\u5355\uff1f",
+        "\u5982\u4f55\u7533\u8bf7\u9000\u6b3e\uff1f",
+        "\u8ba2\u5355\u201c\u5f85\u8bc4\u4ef7\u201d\u4ee3\u8868\u4ec0\u4e48\uff1f",
+        "\u201c\u966a\u7ec3\u201d\u548c\u201c\u4ee3\u7ec3\u201d\u6709\u4ec0\u4e48\u533a\u522b\uff1f",
+        "\u5982\u4f55\u6536\u85cf\u559c\u6b22\u7684\u670d\u52a1\uff1f",
+        "\u5982\u4f55\u8054\u7cfb\u5356\u5bb6\uff1f"
+    };
+
     public async Task InitializeAsync()
     {
         if (_isInitialized)
@@ -277,23 +287,29 @@ public class RagService : IRagService
             await using var stream = await OpenKnowledgeBaseStreamAsync().ConfigureAwait(false);
             if (stream is null)
             {
-                return Array.Empty<string>();
+                return GetFallbackPopularQuestions(maxQuestions);
             }
 
             using var reader = new StreamReader(stream);
             var content = await reader.ReadToEndAsync().ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(content))
             {
-                return Array.Empty<string>();
+                return GetFallbackPopularQuestions(maxQuestions);
             }
 
             var questions = ExtractPopularQuestions(content, maxQuestions);
-            return questions.Count > 0 ? questions : Array.Empty<string>();
+            var sanitized = SanitizeQuestions(questions, maxQuestions);
+            if (sanitized.Count > 0)
+            {
+                return sanitized;
+            }
+
+            return GetFallbackPopularQuestions(maxQuestions);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Failed to extract popular questions: {ex}");
-            return Array.Empty<string>();
+            return GetFallbackPopularQuestions(maxQuestions);
         }
     }
 
@@ -405,7 +421,9 @@ public class RagService : IRagService
         }
 
         // 使用一个更精确的正则表达式直接匹配以“**问：”开头并以“**”结尾的行，并提取问题文本
-        var regex = new Regex(@"^\s*\*\*(?:问：)(?<questionText>.*?)\*\*\s*$", RegexOptions.Multiline);
+        var regex = new Regex(
+            @"^\s*\*\*(?:问|Q)[\uFF1A:]\s*(?<questionText>.+?)\*\*\s*$",
+            RegexOptions.Multiline | RegexOptions.CultureInvariant);
 
         foreach (Match match in regex.Matches(content))
         {
@@ -424,7 +442,54 @@ public class RagService : IRagService
         return questions;
     }
 
-    
+
+    private static List<string> SanitizeQuestions(IReadOnlyList<string> source, int maxQuestions)
+    {
+        var result = new List<string>(Math.Min(maxQuestions, source.Count));
+        if (source.Count == 0 || maxQuestions <= 0)
+        {
+            return result;
+        }
+
+        foreach (var question in source)
+        {
+            var trimmed = question?.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                continue;
+            }
+
+            result.Add(trimmed);
+            if (result.Count >= maxQuestions)
+            {
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<string> GetFallbackPopularQuestions(int maxQuestions)
+    {
+        if (maxQuestions <= 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        if (maxQuestions >= DefaultPopularQuestions.Count)
+        {
+            return DefaultPopularQuestions;
+        }
+
+        var result = new List<string>(maxQuestions);
+        for (var i = 0; i < maxQuestions && i < DefaultPopularQuestions.Count; i++)
+        {
+            result.Add(DefaultPopularQuestions[i]);
+        }
+
+        return result;
+    }
+
 
     private static async Task<string?> ResolveApiKeyAsync()
     {

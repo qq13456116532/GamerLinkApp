@@ -7,7 +7,14 @@ using GamerLinkApp.Views;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui;
+using Microsoft.Maui.LifecycleEvents;
 using Microsoft.Maui.Storage;
+#if WINDOWS
+using Microsoft.Maui.Platform;
+using Microsoft.UI.Windowing;
+using Windows.Graphics;
+#endif
 
 namespace GamerLinkApp
 {
@@ -83,6 +90,62 @@ namespace GamerLinkApp
             
             // Register RAG service as a singleton.
             builder.Services.AddSingleton<IRagService, RagService>();
+
+#if WINDOWS
+            builder.ConfigureLifecycleEvents(events =>
+            {
+                events.AddWindows(windows =>
+                {
+                    windows.OnWindowCreated(window =>
+                    {
+                        const int DefaultWindowWidth = 1360;
+                        const int DefaultWindowHeight = 900;
+
+                        var appWindow = window.GetAppWindow();
+                        if (appWindow is null)
+                        {
+                            return;
+                        }
+
+                        appWindow.Resize(new SizeInt32(DefaultWindowWidth, DefaultWindowHeight));
+
+                        var displayArea = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary);
+                        if (displayArea is not null)
+                        {
+                            var centeredPosition = new PointInt32(
+                                displayArea.WorkArea.X + (displayArea.WorkArea.Width - DefaultWindowWidth) / 2,
+                                displayArea.WorkArea.Y + (displayArea.WorkArea.Height - DefaultWindowHeight) / 2);
+
+                            appWindow.Move(centeredPosition);
+                        }
+
+                        if (appWindow.Presenter is OverlappedPresenter presenter)
+                        {
+                            presenter.IsResizable = false;
+                            presenter.IsMaximizable = true;
+                            presenter.IsMinimizable = true;
+                        }
+
+                        window.SizeChanged += (_, args) =>
+                        {
+                            if (appWindow.Presenter is OverlappedPresenter overlappedPresenter &&
+                                overlappedPresenter.State == OverlappedPresenterState.Maximized)
+                            {
+                                return;
+                            }
+
+                            var width = (int)Math.Round(args.Size.Width);
+                            var height = (int)Math.Round(args.Size.Height);
+
+                            if (width != DefaultWindowWidth || height != DefaultWindowHeight)
+                            {
+                                appWindow.Resize(new SizeInt32(DefaultWindowWidth, DefaultWindowHeight));
+                            }
+                        };
+                    });
+                });
+            });
+#endif
 
             var app = builder.Build();
 

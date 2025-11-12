@@ -7,6 +7,15 @@
              Title="服务管理"
              BackgroundColor="#F4F5F7"
              Shell.TabBarIsVisible="True">
+    <ContentPage.Resources>
+        <Style TargetType="Entry">
+            <Setter Property="TextColor" Value="#1A1A1A" />
+        </Style>
+        <Style TargetType="Editor">
+            <Setter Property="TextColor" Value="#1A1A1A" />
+        </Style>
+    </ContentPage.Resources>
+    
     <Grid>
         <ScrollView IsVisible="{Binding HasAccess}">
             <VerticalStackLayout Padding="20,16,20,32"

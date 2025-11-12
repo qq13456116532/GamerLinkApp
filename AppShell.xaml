@@ -5,7 +5,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.FlyoutBehavior="Disabled"
     Title="GamerLinkApp"
-    Shell.NavBarIsVisible="False">
+    Shell.NavBarIsVisible="False"
+    TabBarBackgroundColor="#000000"
+    TabBarForegroundColor="Blue"
+    TabBarTitleColor="AliceBlue">
 
     <!-- 具体的 Tab 项目在代码中根据用户身份动态构建 -->
     

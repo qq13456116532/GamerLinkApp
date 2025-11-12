@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GamerLinkApp.Models;
 using GamerLinkApp.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
@@ -12,22 +13,28 @@ namespace GamerLinkApp.ViewModels;
 public class SupportChatViewModel : BaseViewModel
 {
     private readonly IRagService _ragService;
+    private readonly IAuthService _authService;
     private string _userInput = string.Empty;
     private bool _isBusy;
+    private User? _currentUser;
+    private const string AiAvatarImage = "ai_avatar.png";
 
-    public SupportChatViewModel(IRagService ragService)
+    public SupportChatViewModel(IRagService ragService, IAuthService authService)
     {
         _ragService = ragService;
+        _authService = authService;
+        _authService.CurrentUserChanged += OnCurrentUserChanged;
 
         Messages = new ObservableCollection<SupportChatMessage>
         {
-            new(false, "\u6b22\u8fce\u4f7f\u7528 GamerLink \u52a9\u624b\uff0c\u8bf7\u63cf\u8ff0\u4f60\u7684\u95ee\u9898\u3002")
+            new(false, "\u6b22\u8fce\u4f7f\u7528 GamerLink \u52a9\u624b\uff0c\u8bf7\u63cf\u8ff0\u4f60\u7684\u95ee\u9898\u3002", avatarPath: AiAvatarImage)
         };
 
         PopularQuestions.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasPopularQuestions));
         SendMessageCommand = new Command(async () => await SendMessageAsync(), CanSendMessage);
         SelectPopularQuestionCommand = new Command<string>(OnSelectPopularQuestion);
 
+        _ = LoadCurrentUserAsync();
         _ = LoadPopularQuestionsAsync();
     }
 
@@ -123,19 +130,19 @@ public class SupportChatViewModel : BaseViewModel
         {
             IsBusy = true;
 
-            Messages.Add(new SupportChatMessage(true, question));
+            Messages.Add(new SupportChatMessage(true, question, avatarPath: GetUserAvatarPath()));
             UserInput = string.Empty;
 
             var response = await _ragService.AskAsync(question);
             Debug.WriteLine($"RAG response success={response.IsSuccess}, detail={response.ErrorDetail}");
 
-            Messages.Add(new SupportChatMessage(false, response.Message, response.ErrorDetail));
+            Messages.Add(new SupportChatMessage(false, response.Message, response.ErrorDetail, AiAvatarImage));
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Failed to get RAG response: {ex}");
             var message = string.Format("\u62b1\u6b49\uff0c\u52a9\u624b\u6682\u65f6\u4e0d\u53ef\u7528\uff08{0}\uff09\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5\u3002", ex.Message);
-            Messages.Add(new SupportChatMessage(false, message, ex.ToString()));
+            Messages.Add(new SupportChatMessage(false, message, ex.ToString(), AiAvatarImage));
         }
         finally
         {
@@ -161,15 +168,56 @@ public class SupportChatViewModel : BaseViewModel
             Debug.WriteLine($"Failed to send popular question: {ex}");
         }
     }
+
+    private async Task LoadCurrentUserAsync()
+    {
+        try
+        {
+            _currentUser = await _authService.GetCurrentUserAsync().ConfigureAwait(false);
+            UpdateUserMessageAvatars();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to load current user: {ex}");
+        }
+    }
+
+    private void OnCurrentUserChanged(object? sender, User? user)
+    {
+        _currentUser = user;
+        UpdateUserMessageAvatars();
+    }
+
+    private void UpdateUserMessageAvatars()
+    {
+        var avatarPath = GetUserAvatarPath();
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            foreach (var message in Messages)
+            {
+                if (message.IsUser)
+                {
+                    message.AvatarPath = avatarPath;
+                }
+            }
+        });
+    }
+
+    private string? GetUserAvatarPath()
+    {
+        var avatar = _currentUser?.AvatarUrl;
+        return string.IsNullOrWhiteSpace(avatar) ? null : avatar;
+    }
 }
 
 public class SupportChatMessage : BaseViewModel
 {
-    public SupportChatMessage(bool isUser, string content, string? errorDetail = null)
+    public SupportChatMessage(bool isUser, string content, string? errorDetail = null, string? avatarPath = null)
     {
         IsUser = isUser;
         _content = content;
         _errorDetail = errorDetail;
+        _avatarPath = avatarPath;
     }
 
     public bool IsUser { get; }
@@ -210,4 +258,21 @@ public class SupportChatMessage : BaseViewModel
     }
 
     public bool HasErrorDetail => !string.IsNullOrEmpty(_errorDetail);
+
+    private string? _avatarPath;
+
+    public string? AvatarPath
+    {
+        get => _avatarPath;
+        set
+        {
+            if (_avatarPath == value)
+            {
+                return;
+            }
+
+            _avatarPath = value;
+            OnPropertyChanged();
+        }
+    }
 }
